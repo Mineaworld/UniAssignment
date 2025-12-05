@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Priority, Status } from '../types';
 import { useApp } from '../context';
@@ -9,7 +9,7 @@ interface CreateAssignmentModalProps {
 }
 
 const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, onClose }) => {
-  const { subjects, addAssignment } = useApp();
+  const { subjects, addAssignment, addSubject } = useApp();
   const [formData, setFormData] = useState({
     title: '',
     subjectId: '',
@@ -21,6 +21,55 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
   });
 
   const [loading, setLoading] = useState(false);
+
+  // Inline subject creation state
+  const [showSubjectForm, setShowSubjectForm] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [newSubjectColor, setNewSubjectColor] = useState('bg-blue-500');
+  const [subjectLoading, setSubjectLoading] = useState(false);
+  const [subjectSuccess, setSubjectSuccess] = useState('');
+
+  const colors = [
+    'bg-blue-500', 'bg-green-500', 'bg-red-500',
+    'bg-yellow-500', 'bg-purple-500', 'bg-pink-500',
+    'bg-indigo-500', 'bg-orange-500', 'bg-teal-500'
+  ];
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (subjectSuccess) {
+      const timer = setTimeout(() => setSubjectSuccess(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [subjectSuccess]);
+
+  const handleCreateSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubjectName) return;
+
+    setSubjectLoading(true);
+    try {
+      await addSubject({
+        name: newSubjectName,
+        color: newSubjectColor
+      });
+      setSubjectSuccess(`"${newSubjectName}" added!`);
+      setNewSubjectName('');
+      setNewSubjectColor('bg-blue-500');
+      // Keep the form open for adding more subjects
+    } catch (error) {
+      console.error("Failed to add subject:", error);
+    } finally {
+      setSubjectLoading(false);
+    }
+  };
+
+  const handleCloseSubjectForm = () => {
+    setShowSubjectForm(false);
+    setNewSubjectName('');
+    setNewSubjectColor('bg-blue-500');
+    setSubjectSuccess('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,20 +153,31 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
               </label>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <label className="block">
+                {/* Subject Selection with Add Button */}
+                <div className="block">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Subject</span>
-                  <select
-                    required
-                    className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
-                    value={formData.subjectId}
-                    onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
-                  >
-                    <option value="">Select a subject</option>
-                    {subjects.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </label>
+                  <div className="mt-1 flex gap-2">
+                    <select
+                      required
+                      className="flex-1 rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
+                      value={formData.subjectId}
+                      onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
+                    >
+                      <option value="">Select a subject</option>
+                      {subjects.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowSubjectForm(true)}
+                      className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 flex items-center justify-center transition-colors"
+                      title="Add new subject"
+                    >
+                      <span className="material-symbols-outlined">add</span>
+                    </button>
+                  </div>
+                </div>
 
                 <label className="block">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</span>
@@ -132,6 +192,96 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                   </select>
                 </label>
               </div>
+
+              {/* Inline Subject Creation Form */}
+              <AnimatePresence>
+                {showSubjectForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                          <span className="material-symbols-outlined text-primary text-lg">add_circle</span>
+                          Quick Add Subject
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={handleCloseSubjectForm}
+                          className="p-1 rounded-full hover:bg-white/50 dark:hover:bg-black/20 text-slate-500 dark:text-white/60 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+
+                      {/* Success Message */}
+                      <AnimatePresence>
+                        {subjectSuccess && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center gap-2"
+                          >
+                            <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                            <span className="text-xs font-medium text-green-600 dark:text-green-400">{subjectSuccess}</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          placeholder="Subject name (e.g., Mathematics)"
+                          className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 h-10 px-3 text-sm"
+                          value={newSubjectName}
+                          onChange={e => setNewSubjectName(e.target.value)}
+                        />
+
+                        <div>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2 block">Color</span>
+                          <div className="flex flex-wrap gap-2">
+                            {colors.map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => setNewSubjectColor(color)}
+                                className={`
+                                  w-7 h-7 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
+                                  ${newSubjectColor === color ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-[#101622] scale-110' : ''}
+                                `}
+                              >
+                                {newSubjectColor === color && <span className="material-symbols-outlined text-white text-xs">check</span>}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={handleCloseSubjectForm}
+                            className="px-3 py-1.5 rounded-lg text-slate-600 dark:text-white/70 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/30 text-sm font-medium transition-colors"
+                          >
+                            Done
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCreateSubject}
+                            disabled={!newSubjectName || subjectLoading}
+                            className="px-4 py-1.5 rounded-lg text-white bg-primary hover:bg-primary/90 text-sm font-semibold shadow-md shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {subjectLoading ? 'Adding...' : 'Add'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <label className="block">
@@ -220,3 +370,4 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
 };
 
 export default CreateAssignmentModal;
+
