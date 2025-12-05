@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context';
 
@@ -11,6 +11,7 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
   const { addSubject } = useApp();
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState('bg-blue-500');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const colors = [
     'bg-blue-500', 'bg-green-500', 'bg-red-500',
@@ -19,6 +20,22 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
   ];
 
   const [loading, setLoading] = useState(false);
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  // Reset form when modal closes
+  const handleClose = () => {
+    setName('');
+    setSelectedColor('bg-blue-500');
+    setSuccessMessage('');
+    onClose();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,9 +48,10 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
         color: selectedColor
       });
 
+      setSuccessMessage(`"${name}" added successfully!`);
       setName('');
       setSelectedColor('bg-blue-500');
-      onClose();
+      // Don't close the modal - let user add more subjects
     } catch (error) {
       console.error("Failed to add subject:", error);
     } finally {
@@ -49,7 +67,7 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
           <motion.div
@@ -61,12 +79,27 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add New Subject</h2>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 text-slate-500 dark:text-white/60 transition-colors"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
+
+            {/* Success Message Toast */}
+            <AnimatePresence>
+              {successMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mx-6 mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-green-500">check_circle</span>
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">{successMessage}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <label className="block">
@@ -103,10 +136,10 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="px-4 py-2 rounded-lg text-slate-700 dark:text-white bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 font-semibold transition-colors"
                 >
-                  Cancel
+                  Done
                 </button>
                 <button
                   type="submit"
