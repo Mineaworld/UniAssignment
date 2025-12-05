@@ -1,27 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import admin from 'firebase-admin';
 
-// Use dynamic import to avoid module resolution issues
-let db: FirebaseFirestore.Firestore;
-let admin: typeof import('firebase-admin');
-
-async function initFirebase() {
-    if (!admin) {
-        admin = await import('firebase-admin');
-
-        if (!admin.apps || admin.apps.length === 0) {
-            admin.initializeApp({
-                credential: admin.credential.cert({
-                    projectId: process.env.FIREBASE_PROJECT_ID,
-                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-                } as admin.ServiceAccount),
-            });
-        }
-        db = admin.firestore();
-    }
-    return { admin, db };
+// Initialize Firebase Admin (only once)
+if (!admin.apps || admin.apps.length === 0) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        } as admin.ServiceAccount),
+    });
 }
 
+const db = admin.firestore();
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
 // Send message via Telegram API
@@ -45,7 +36,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { admin: adminSDK, db } = await initFirebase();
         const update = req.body;
 
         if (!update.message) {
@@ -64,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // Store the link in Firestore
                 await db.collection('telegramLinks').doc(userUid).set({
                     chatId: chatId,
-                    linkedAt: adminSDK.firestore.FieldValue.serverTimestamp()
+                    linkedAt: admin.firestore.FieldValue.serverTimestamp()
                 });
 
                 await sendTelegramMessage(chatId,
