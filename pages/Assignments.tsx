@@ -4,11 +4,14 @@ import { Priority, Status, Assignment } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import CreateAssignmentModal from '../components/CreateAssignmentModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 const Assignments = () => {
   const { assignments, subjects, updateAssignment, deleteAssignment } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [deletingAssignment, setDeletingAssignment] = useState<Assignment | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [filterSubject, setFilterSubject] = useState<string[]>([]);
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null);
   const [filterStatus, setFilterStatus] = useState<Status | null>(null);
@@ -53,10 +56,32 @@ const Assignments = () => {
     }
   };
 
+  const handleDeleteAssignment = async () => {
+    if (!deletingAssignment) return;
+    setDeleteLoading(true);
+    try {
+      await deleteAssignment(deletingAssignment.id);
+      setDeletingAssignment(null);
+    } catch (error) {
+      console.error("Failed to delete assignment:", error);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-theme(spacing.0))] overflow-hidden">
       <CreateAssignmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <EditAssignmentModal isOpen={!!editingAssignment} onClose={() => setEditingAssignment(null)} assignment={editingAssignment} />
+      <ConfirmDeleteModal
+        isOpen={!!deletingAssignment}
+        onClose={() => setDeletingAssignment(null)}
+        onConfirm={handleDeleteAssignment}
+        title="Delete Assignment"
+        itemName={deletingAssignment?.title || ''}
+        itemType="assignment"
+        loading={deleteLoading}
+      />
 
       {/* Sidebar Filters */}
       <aside className="hidden lg:flex flex-col w-72 bg-white dark:bg-[#101622] border-r border-gray-200 dark:border-white/10 overflow-y-auto">
@@ -211,9 +236,7 @@ const Assignments = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm('Are you sure you want to delete this assignment?')) {
-                            deleteAssignment(assignment.id);
-                          }
+                          setDeletingAssignment(assignment);
                         }}
                         className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                         title="Delete Assignment"

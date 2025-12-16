@@ -2,14 +2,40 @@ import React, { useState } from 'react';
 import { useApp } from '../context';
 import { motion, AnimatePresence } from 'framer-motion';
 import CreateSubjectModal from '../components/CreateSubjectModal';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import { Subject } from '../types';
 
 const Subjects = () => {
   const { subjects, deleteSubject } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingSubject, setDeletingSubject] = useState<Subject | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteSubject = async () => {
+    if (!deletingSubject) return;
+    setDeleteLoading(true);
+    try {
+      await deleteSubject(deletingSubject.id);
+      setDeletingSubject(null);
+    } catch (error) {
+      console.error("Failed to delete subject:", error);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto p-8">
       <CreateSubjectModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ConfirmDeleteModal
+        isOpen={!!deletingSubject}
+        onClose={() => setDeletingSubject(null)}
+        onConfirm={handleDeleteSubject}
+        title="Delete Subject"
+        itemName={deletingSubject?.name || ''}
+        itemType="subject"
+        loading={deleteLoading}
+      />
 
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -60,11 +86,7 @@ const Subjects = () => {
                         <span className="material-symbols-outlined text-[20px]">edit</span>
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Delete subject "${subject.name}"?`)) {
-                            deleteSubject(subject.id);
-                          }
-                        }}
+                        onClick={() => setDeletingSubject(subject)}
                         className="text-slate-400 hover:text-red-500 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[20px]">delete</span>
