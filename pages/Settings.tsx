@@ -1,12 +1,39 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useApp } from '../context';
-import { motion } from 'framer-motion';
+import { useToast } from '../components/ToastContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Settings = () => {
   const { user, logout } = useApp();
+  const { showToast } = useToast();
+
+  // Track previous telegram link status to detect changes
+  const prevTelegramLinkedRef = useRef<boolean | undefined>(undefined);
+
+  // Show toast when Telegram gets connected
+  useEffect(() => {
+    if (prevTelegramLinkedRef.current === false && user?.telegramLinked === true) {
+      showToast('🎉 Telegram connected successfully! You will now receive assignment notifications.', 'success');
+    }
+    prevTelegramLinkedRef.current = user?.telegramLinked;
+  }, [user?.telegramLinked, showToast]);
+
+  const formatLinkedDate = (dateString: string | null) => {
+    if (!dateString) return null;
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return null;
+    }
+  };
 
   const sections = [
-
     {
       title: 'Profile Settings',
       description: 'Manage your personal information.',
@@ -51,26 +78,77 @@ const Settings = () => {
       icon: 'send',
       content: (
         <div className="space-y-4">
+          {/* Connection Status Badge */}
+          <div className="flex items-center gap-3">
+            <AnimatePresence mode="wait">
+              {user?.telegramLinked ? (
+                <motion.div
+                  key="connected"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-medium text-sm"
+                >
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 20, delay: 0.1 }}
+                    className="material-symbols-outlined text-lg"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    check_circle
+                  </motion.span>
+                  Connected
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="not-connected"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium text-sm"
+                >
+                  <span className="material-symbols-outlined text-lg">link_off</span>
+                  Not Connected
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {user?.telegramLinked && user?.telegramLinkedAt && (
+              <motion.span
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-xs text-slate-500 dark:text-slate-400"
+              >
+                Linked on {formatLinkedDate(user.telegramLinkedAt)}
+              </motion.span>
+            )}
+          </div>
+
           <p className="text-slate-600 dark:text-slate-400 text-sm">
-            Connect your Telegram account to receive notifications about upcoming assignment deadlines.
+            {user?.telegramLinked
+              ? 'Your Telegram account is connected. You will receive notifications about upcoming assignment deadlines.'
+              : 'Connect your Telegram account to receive notifications about upcoming assignment deadlines.'
+            }
           </p>
+
           <div className="flex flex-col sm:flex-row gap-3">
             <a
               href={`https://t.me/UniAssignmentBot?start=${user?.uid}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#0088cc] hover:bg-[#0077b5] text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg"
+              className="inline-flex items-center justify-center gap-2 bg-[#0088cc] hover:bg-[#0077b5] text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.008-1.252-.241-1.865-.44-.751-.244-1.349-.374-1.297-.789.027-.216.324-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141.121.1.155.231.17.325.015.093.035.305.019.47z" />
               </svg>
-              Link Telegram Account
+              {user?.telegramLinked ? 'Open Telegram Bot' : 'Link Telegram Account'}
             </a>
             <button
               onClick={() => {
                 const linkUrl = `https://t.me/UniAssignmentBot?start=${user?.uid}`;
                 navigator.clipboard.writeText(linkUrl);
-                alert('Link copied to clipboard!');
+                showToast('Link copied to clipboard!', 'info');
               }}
               className="inline-flex items-center justify-center gap-2 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-slate-700 dark:text-white px-6 py-3 rounded-xl font-bold transition-all"
             >
@@ -78,9 +156,12 @@ const Settings = () => {
               Copy Link
             </button>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-500">
-            After clicking the link, press "Start" in Telegram to complete the connection.
-          </p>
+
+          {!user?.telegramLinked && (
+            <p className="text-xs text-slate-500 dark:text-slate-500">
+              After clicking the link, press "Start" in Telegram to complete the connection.
+            </p>
+          )}
         </div>
       )
     }

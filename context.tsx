@@ -11,7 +11,8 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  orderBy
+  orderBy,
+  getDoc
 } from 'firebase/firestore';
 import { Assignment, AppContextType, Subject, User, Status } from './types';
 import { INITIAL_ASSIGNMENTS, INITIAL_SUBJECTS, INITIAL_USER } from './constants';
@@ -21,6 +22,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Persist user session simulation
   const [user, setUser] = useState<User | null>(null);
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramLinkedAt, setTelegramLinkedAt] = useState<string | null>(null);
 
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('uni_theme');
@@ -55,7 +58,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           name: firebaseUser.displayName || 'Student',
           email: firebaseUser.email || '',
           avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=Student',
-          major: 'Undeclared'
+          major: 'Undeclared',
+          telegramLinked: false,
+          telegramLinkedAt: null
         });
       } else {
         setUser(null);
@@ -97,6 +102,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [user?.uid]);
 
+  // Real-time Telegram link status listener
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const telegramLinkRef = doc(db, 'telegramLinks', user.uid);
+
+    const unsubscribeTelegram = onSnapshot(telegramLinkRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        const linkedAt = data.linkedAt?.toDate?.()?.toISOString() || data.linkedAt || null;
+
+        // Only trigger update if status changed
+        if (!telegramLinked) {
+          setTelegramLinked(true);
+          setTelegramLinkedAt(linkedAt);
+
+          // Update user object with telegram status
+          setUser(prev => prev ? {
+            ...prev,
+            telegramLinked: true,
+            telegramLinkedAt: linkedAt
+          } : null);
+        }
+      } else {
+        if (telegramLinked) {
+          setTelegramLinked(false);
+          setTelegramLinkedAt(null);
+
+          setUser(prev => prev ? {
+            ...prev,
+            telegramLinked: false,
+            telegramLinkedAt: null
+          } : null);
+        }
+      }
+    });
+
+    return () => unsubscribeTelegram();
+  }, [user?.uid, telegramLinked]);
+
   const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
   };
@@ -112,7 +157,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: name,
       email: email,
       avatar: 'https://ui-avatars.com/api/?name=' + name,
-      major: 'Undeclared'
+      major: 'Undeclared',
+      telegramLinked: false,
+      telegramLinkedAt: null
     });
   };
 

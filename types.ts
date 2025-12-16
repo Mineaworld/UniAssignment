@@ -35,6 +35,8 @@ export interface User {
   email: string;
   avatar: string;
   major: string;
+  telegramLinked: boolean;
+  telegramLinkedAt: string | null;
 }
 
 export interface AppContextType {
