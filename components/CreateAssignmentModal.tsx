@@ -53,10 +53,11 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
         name: newSubjectName,
         color: newSubjectColor
       });
-      setSubjectSuccess(`"${newSubjectName}" added!`);
+      // Reset form and close on success
       setNewSubjectName('');
       setNewSubjectColor('bg-blue-500');
-      // Keep the form open for adding more subjects
+      setSubjectSuccess('');
+      setShowSubjectForm(false);
     } catch (error) {
       console.error("Failed to add subject:", error);
     } finally {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context';
 
@@ -11,7 +11,7 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
   const { addSubject } = useApp();
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState('bg-blue-500');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const colors = [
     'bg-blue-500', 'bg-green-500', 'bg-red-500',
@@ -19,21 +19,10 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
     'bg-indigo-500', 'bg-orange-500', 'bg-teal-500'
   ];
 
-  const [loading, setLoading] = useState(false);
-
-  // Clear success message after 3 seconds
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(''), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
-
   // Reset form when modal closes
   const handleClose = () => {
     setName('');
     setSelectedColor('bg-blue-500');
-    setSuccessMessage('');
     onClose();
   };
 
@@ -48,10 +37,10 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
         color: selectedColor
       });
 
-      setSuccessMessage(`"${name}" added successfully!`);
+      // Reset form and close modal on success
       setName('');
       setSelectedColor('bg-blue-500');
-      // Don't close the modal - let user add more subjects
+      onClose();
     } catch (error) {
       console.error("Failed to add subject:", error);
     } finally {
@@ -85,21 +74,6 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-
-            {/* Success Message Toast */}
-            <AnimatePresence>
-              {successMessage && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mx-6 mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-green-500">check_circle</span>
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">{successMessage}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <label className="block">
