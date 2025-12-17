@@ -164,7 +164,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                   <div className="mt-1 flex gap-2">
                     <select
                       required
-                      className="flex-1 rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
+                      className="flex-1 rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
                       value={formData.subjectId}
                       onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
                     >
@@ -187,7 +187,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                 <label className="block">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</span>
                   <select
-                    className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
+                    className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
                   >

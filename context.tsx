@@ -1,7 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, db } from './firebase';
+import { auth, db, storage } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   collection,
   query,
@@ -12,7 +13,8 @@ import {
   doc,
   serverTimestamp,
   orderBy,
-  getDoc
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 import { Assignment, AppContextType, Subject, User, Status } from './types';
 import { INITIAL_ASSIGNMENTS, INITIAL_SUBJECTS, INITIAL_USER } from './constants';
@@ -50,17 +52,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [loading, setLoading] = useState(true);
 
+  // Sync user profile from Firestore
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+    if (!user?.uid) return;
+    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+      if (doc.exists()) {
+        setUser(prev => prev ? { ...prev, ...doc.data() } as User : null);
+      }
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || 'Student',
-          email: firebaseUser.email || '',
-          avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=Student',
-          major: 'Undeclared',
-          telegramLinked: false,
-          telegramLinkedAt: null
+        // Init with basic data, but don't overwrite potential existing data if possible, 
+        // essentially we wait for the Firestore listener to populate the full profile.
+        // We set a temporary state or rely on the listener.
+        // However, to avoid 'null' flash, we set basic info.
+        setUser(prev => {
+          if (prev?.uid === firebaseUser.uid) return prev; // Don't reset if already loaded
+          return {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || 'Student',
+            email: firebaseUser.email || '',
+            avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=Student',
+            major: 'Loading...', // Indicate loading state
+            telegramLinked: false,
+            telegramLinkedAt: null
+          };
         });
       } else {
         setUser(null);
@@ -146,21 +166,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (name: string, email: string, password: string, major?: string, avatarFile?: File) => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
+
+    let photoURL = result.user.photoURL;
+
+    if (avatarFile) {
+      const storageRef = ref(storage, `profile_pictures/${result.user.uid}`);
+      await uploadBytes(storageRef, avatarFile);
+      photoURL = await getDownloadURL(storageRef);
+    }
+
     await updateProfile(result.user, {
-      displayName: name
+      displayName: name,
+      photoURL: photoURL
     });
-    // Force update local state to show name immediately
-    setUser({
+
+    const userData: User = {
       uid: result.user.uid,
-      name: name,
-      email: email,
-      avatar: 'https://ui-avatars.com/api/?name=' + name,
-      major: 'Undeclared',
+      name,
+      email,
+      major: major || 'Undeclared',
+      avatar: photoURL || `https://ui-avatars.com/api/?name=${name}`,
       telegramLinked: false,
       telegramLinkedAt: null
-    });
+    };
+
+    await setDoc(doc(db, 'users', result.user.uid), userData);
+
+    // Force update local state to show name immediately
+    setUser(userData);
   };
 
   const logout = async () => {
@@ -209,6 +244,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const updateUserProfile = async (updates: Partial<User>, avatarFile?: File) => {
+    if (!user?.uid) return;
+
+    let newAvatarUrl = updates.avatar;
+
+    if (avatarFile) {
+      const storageRef = ref(storage, `profile_pictures/${user.uid}`);
+      await uploadBytes(storageRef, avatarFile);
+      newAvatarUrl = await getDownloadURL(storageRef);
+    }
+
+    const firestoreUpdates = { ...updates };
+    if (newAvatarUrl) firestoreUpdates.avatar = newAvatarUrl;
+
+    await setDoc(doc(db, 'users', user.uid), firestoreUpdates, { merge: true });
+
+    if (auth.currentUser) {
+      if (updates.name || newAvatarUrl) {
+        await updateProfile(auth.currentUser, {
+          displayName: updates.name || auth.currentUser.displayName,
+          photoURL: newAvatarUrl || auth.currentUser.photoURL
+        });
+      }
+    }
+
+    setUser(prev => prev ? { ...prev, ...firestoreUpdates } : null);
+  };
+
   return (
     <AppContext.Provider value={{
       user,
@@ -225,7 +288,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deleteAssignment,
       addSubject,
       updateSubject,
-      deleteSubject
+      deleteSubject,
+      updateUserProfile
     }}>
       {children}
     </AppContext.Provider>

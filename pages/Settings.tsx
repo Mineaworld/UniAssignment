@@ -1,14 +1,42 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context';
 import { useToast } from '../components/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AvatarUpload } from '../components/AvatarUpload';
 
 const Settings = () => {
-  const { user, logout } = useApp();
+  const { user, logout, updateUserProfile } = useApp();
   const { showToast } = useToast();
 
   // Track previous telegram link status to detect changes
   const prevTelegramLinkedRef = useRef<boolean | undefined>(undefined);
+
+  const [name, setName] = useState(user?.name || '');
+  const [major, setMajor] = useState(user?.major || '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setMajor(user.major);
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await updateUserProfile({ name, major }, avatarFile || undefined);
+      showToast('Profile updated successfully!', 'success');
+      setAvatarFile(null);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to update profile.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Show toast when Telegram gets connected
   useEffect(() => {
@@ -40,14 +68,26 @@ const Settings = () => {
       icon: 'person',
       content: (
         <div className="space-y-4">
+          <div className="flex items-center gap-6 mb-4">
+            <AvatarUpload
+              currentAvatarUrl={user?.avatar}
+              name={user?.name}
+              onFileSelect={setAvatarFile}
+            />
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white">{user?.name}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</span>
               <input
                 type="text"
-                value={user?.name}
-                disabled
-                className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-white/5 text-slate-500 dark:text-white/60 px-4 h-12 cursor-not-allowed"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white px-4 h-12 focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </label>
             <label className="block">
@@ -61,14 +101,25 @@ const Settings = () => {
             </label>
           </div>
           <label className="block">
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Major</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Major / Role</span>
             <input
               type="text"
-              value={user?.major}
-              disabled
-              className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-white/5 text-slate-500 dark:text-white/60 px-4 h-12 cursor-not-allowed"
+              value={major}
+              onChange={(e) => setMajor(e.target.value)}
+              placeholder="e.g. Software Engineer"
+              className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white px-4 h-12 focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </label>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       )
     },

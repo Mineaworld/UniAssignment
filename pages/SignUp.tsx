@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context';
 import { useNavigate, Link } from 'react-router-dom';
+import { AvatarUpload } from '../components/AvatarUpload';
 
 const SignUp = () => {
   const { signup } = useApp();
@@ -10,6 +11,8 @@ const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [major, setMajor] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +24,7 @@ const SignUp = () => {
 
     if (name && email && password) {
       try {
-        await signup(name, email, password);
+        await signup(name, email, password, major, avatarFile || undefined);
         navigate('/');
       } catch (err: any) {
         console.error(err);
@@ -59,6 +62,25 @@ const SignUp = () => {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 className="h-12 rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 px-4 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-white"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Major / Role (Optional)</span>
+              <input
+                type="text"
+                placeholder="e.g. Software Engineer, Graphic Designer"
+                value={major}
+                onChange={e => setMajor(e.target.value)}
+                className="h-12 rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 px-4 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-white"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Profile Picture (Optional)</span>
+              <AvatarUpload
+                onFileSelect={setAvatarFile}
+                className="self-start"
               />
             </label>
 
