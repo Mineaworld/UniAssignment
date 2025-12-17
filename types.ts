@@ -53,5 +53,6 @@ export interface AppContextType {
   updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   deleteAssignment: (id: string) => Promise<void>;
   addSubject: (subject: Omit<Subject, 'id' | 'lastUpdated'>) => Promise<void>;
+  updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
 }

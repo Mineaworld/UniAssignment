@@ -200,6 +200,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await deleteDoc(doc(db, `users/${user.uid}/subjects`, id));
   };
 
+  const updateSubject = async (id: string, updates: Partial<Subject>) => {
+    if (!user?.uid) return;
+    const docRef = doc(db, `users/${user.uid}/subjects`, id);
+    await updateDoc(docRef, {
+      ...updates,
+      lastUpdated: 'Just now' // Automatically update the lastUpdated field
+    });
+  };
+
   return (
     <AppContext.Provider value={{
       user,
@@ -215,6 +224,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateAssignment,
       deleteAssignment,
       addSubject,
+      updateSubject,
       deleteSubject
     }}>
       {children}

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useApp } from '../context';
 import { motion, AnimatePresence } from 'framer-motion';
 import CreateSubjectModal from '../components/CreateSubjectModal';
+import EditSubjectModal from '../components/EditSubjectModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { Subject } from '../types';
 
 const Subjects = () => {
   const { subjects, deleteSubject } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [deletingSubject, setDeletingSubject] = useState<Subject | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -27,6 +29,11 @@ const Subjects = () => {
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto p-8">
       <CreateSubjectModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <EditSubjectModal
+        isOpen={!!editingSubject}
+        onClose={() => setEditingSubject(null)}
+        subject={editingSubject}
+      />
       <ConfirmDeleteModal
         isOpen={!!deletingSubject}
         onClose={() => setDeletingSubject(null)}
@@ -82,7 +89,10 @@ const Subjects = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-3">
-                      <button className="text-slate-400 hover:text-primary transition-colors">
+                      <button
+                        onClick={() => setEditingSubject(subject)}
+                        className="text-slate-400 hover:text-primary transition-colors"
+                      >
                         <span className="material-symbols-outlined text-[20px]">edit</span>
                       </button>
                       <button
