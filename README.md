@@ -24,7 +24,8 @@ This project leverages a modern web development stack to ensure performance, sca
 ### Backend & Services
 *   **Firebase Authentication**: Secure user management (Email/Password, Google Sign-in).
 *   **Cloud Firestore**: Scalable NoSQL database for real-time data syncing.
-*   **Firebase Cloud Functions**: Serverless backend logic for scheduled tasks and Telegram bot integration.
+*   **Firebase Cloud Functions**: Serverless backend logic for scheduled tasks and database triggers.
+*   **Vercel Serverless Functions**: Hosting for the Telegram Bot integration to ensure reliable uptime and separation of concerns.
 
 ## ✨ Core Features
 
