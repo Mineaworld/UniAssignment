@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@vercel/node": "^5.5.15",
+    "chrono-node": "^2.9.0",
     "firebase": "^12.6.0",
     "firebase-admin": "^13.6.0",
     "framer-motion": "^12.23.25",
