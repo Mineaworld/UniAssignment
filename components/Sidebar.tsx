@@ -23,7 +23,7 @@ const Sidebar = () => {
       <div className="flex flex-col flex-grow p-4 gap-6">
         {/* Brand */}
         <div className="flex items-center gap-3 px-2 py-1">
-          <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-primary/10">
+          <div className="w-9 h-9 rounded-2xl overflow-hidden flex items-center justify-center bg-primary/10">
             <img src="/logo.png" alt="Uni Assignment Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-slate-900 dark:text-white text-lg font-bold tracking-tight">Uni Assignment</h1>

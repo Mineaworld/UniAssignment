@@ -35,7 +35,7 @@ const Login = () => {
         <div className="flex flex-col gap-6">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <img src="/logo.png" alt="Uni Assignment Logo" className="w-16 h-16 rounded-xl shadow-lg" />
+              <img src="/logo.png" alt="Uni Assignment Logo" className="w-16 h-16 rounded-2xl shadow-lg" />
             </div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome Back</h1>
             <p className="text-slate-500 dark:text-white/60">Please sign in to continue.</p>
