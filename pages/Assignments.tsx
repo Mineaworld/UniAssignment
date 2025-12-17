@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useApp } from '../context';
 import { Priority, Status, Assignment } from '../types';
+import { getPriorityColor, getStatusColor } from '../utils/theme';
 import { motion, AnimatePresence } from 'framer-motion';
 import CreateAssignmentModal from '../components/CreateAssignmentModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
+import ViewAssignmentModal from '../components/ViewAssignmentModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 const Assignments = () => {
   const { assignments, subjects, updateAssignment, deleteAssignment } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const [deletingAssignment, setDeletingAssignment] = useState<Assignment | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [filterSubject, setFilterSubject] = useState<string[]>([]);
@@ -40,21 +43,6 @@ const Assignments = () => {
     return 0;
   });
 
-  const getPriorityColor = (p: Priority) => {
-    switch (p) {
-      case Priority.High: return 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-300';
-      case Priority.Medium: return 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-300';
-      case Priority.Low: return 'bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-300';
-    }
-  };
-
-  const getStatusColor = (s: Status) => {
-    switch (s) {
-      case Status.Completed: return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300';
-      case Status.InProgress: return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300';
-      case Status.Pending: return 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
-    }
-  };
 
   const handleDeleteAssignment = async () => {
     if (!deletingAssignment) return;
@@ -73,6 +61,7 @@ const Assignments = () => {
     <div className="flex h-[calc(100vh-theme(spacing.0))] overflow-hidden">
       <CreateAssignmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <EditAssignmentModal isOpen={!!editingAssignment} onClose={() => setEditingAssignment(null)} assignment={editingAssignment} />
+      <ViewAssignmentModal isOpen={!!viewingAssignment} onClose={() => setViewingAssignment(null)} assignment={viewingAssignment} />
       <ConfirmDeleteModal
         isOpen={!!deletingAssignment}
         onClose={() => setDeletingAssignment(null)}
@@ -219,7 +208,7 @@ const Assignments = () => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    onClick={() => setEditingAssignment(assignment)}
+                    onClick={() => setViewingAssignment(assignment)}
                     className="flex flex-col justify-between bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 rounded-xl p-6 hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-300 group relative cursor-pointer"
                   >
                     <div className="absolute top-4 right-4 flex gap-1">
