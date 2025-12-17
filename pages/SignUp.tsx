@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context';
 import { useNavigate, Link } from 'react-router-dom';
-import { AvatarUpload } from '../components/AvatarUpload';
+import AvatarUpload from '../components/AvatarUpload';
 
 const SignUp = () => {
   const { signup } = useApp();

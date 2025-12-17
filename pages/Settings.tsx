@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context';
 import { useToast } from '../components/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AvatarUpload } from '../components/AvatarUpload';
+import AvatarUpload from '../components/AvatarUpload';
 
 const Settings = () => {
   const { user, logout, updateUserProfile } = useApp();
