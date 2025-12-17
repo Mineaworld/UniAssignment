@@ -26,6 +26,7 @@ export interface Assignment {
   status: Status;
   priority: Priority;
   description?: string;
+  examType?: 'midterm' | 'final' | null;
   createdAt: string;
 }
 
@@ -55,4 +56,5 @@ export interface AppContextType {
   addSubject: (subject: Omit<Subject, 'id' | 'lastUpdated'>) => Promise<void>;
   updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
+  updateUserProfile: (updates: Partial<User>, avatarFile?: File) => Promise<void>;
 }

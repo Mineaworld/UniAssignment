@@ -18,7 +18,8 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
         date: '',
         time: '',
         priority: Priority.Medium,
-        description: ''
+        description: '',
+        examType: null as 'midterm' | 'final' | null
     });
 
     const [loading, setLoading] = useState(false);
@@ -34,7 +35,8 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                 date: dueDate.toISOString().split('T')[0],
                 time: dueDate.toTimeString().slice(0, 5),
                 priority: assignment.priority,
-                description: assignment.description || ''
+                description: assignment.description || '',
+                examType: assignment.examType || null
             });
         }
     }, [assignment]);
@@ -57,7 +59,8 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                 status: formData.status,
                 dueDate: dateTime,
                 priority: formData.priority,
-                description: formData.description
+                description: formData.description,
+                examType: formData.examType
             });
 
             onClose();
@@ -165,6 +168,69 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                                         onChange={e => setFormData({ ...formData, time: e.target.value })}
                                     />
                                 </label>
+                            </div>
+
+                            <div>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Assignment Type</span>
+                                <div className="mt-2 grid grid-cols-3 gap-3">
+                                    <label
+                                        className={`
+                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
+                        ${!formData.examType
+                                                ? 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white ring-1 ring-gray-500'
+                                                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
+                                            }
+                      `}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="examType"
+                                            value=""
+                                            checked={!formData.examType}
+                                            onChange={() => setFormData({ ...formData, examType: null })}
+                                            className="sr-only"
+                                        />
+                                        <span className="font-medium">Regular</span>
+                                    </label>
+                                    <label
+                                        className={`
+                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
+                        ${formData.examType === 'midterm'
+                                                ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500'
+                                                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
+                                            }
+                      `}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="examType"
+                                            value="midterm"
+                                            checked={formData.examType === 'midterm'}
+                                            onChange={() => setFormData({ ...formData, examType: 'midterm' })}
+                                            className="sr-only"
+                                        />
+                                        <span className="font-medium">Midterm</span>
+                                    </label>
+                                    <label
+                                        className={`
+                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
+                        ${formData.examType === 'final'
+                                                ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500'
+                                                : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
+                                            }
+                      `}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="examType"
+                                            value="final"
+                                            checked={formData.examType === 'final'}
+                                            onChange={() => setFormData({ ...formData, examType: 'final' })}
+                                            className="sr-only"
+                                        />
+                                        <span className="font-medium">Final</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <div>

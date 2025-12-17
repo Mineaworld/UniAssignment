@@ -119,7 +119,10 @@ export const telegramWebhook = onRequest(async (req, res) => {
                     const dueDate = new Date(data.dueDate).toLocaleDateString();
                     const statusEmoji = data.status === "Completed" ? "✅" :
                         data.status === "In Progress" ? "🔄" : "⏳";
-                    message += `${index + 1}. ${statusEmoji} <b>${data.title}</b>\n`;
+                    const typePrefix = data.examType === 'midterm' ? "<b>[Midterm]</b> " :
+                        data.examType === 'final' ? "<b>[Final]</b> " : "";
+
+                    message += `${index + 1}. ${statusEmoji} ${typePrefix}<b>${data.title}</b>\n`;
                     message += `   📅 Due: ${dueDate}\n\n`;
                 });
                 await sendTelegramMessage(chatId, message);
@@ -175,7 +178,10 @@ export const checkDeadlines = onSchedule("every 1 hours", async () => {
                 const data = doc.data();
                 const dueDate = new Date(data.dueDate);
                 const hoursLeft = Math.round((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-                message += `📌 <b>${data.title}</b>\n`;
+                const typePrefix = data.examType === 'midterm' ? "<b>[Midterm]</b> " :
+                    data.examType === 'final' ? "<b>[Final]</b> " : "";
+
+                message += `📌 ${typePrefix}<b>${data.title}</b>\n`;
                 message += `   ⏰ ${hoursLeft} hours left\n\n`;
             });
 

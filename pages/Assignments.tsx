@@ -263,6 +263,16 @@ const Assignments = () => {
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${getStatusColor(assignment.status)}`}>
                           {assignment.status}
                         </span>
+                        {assignment.examType === 'midterm' && (
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
+                            Midterm
+                          </span>
+                        )}
+                        {assignment.examType === 'final' && (
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
+                            Final
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
