@@ -126,19 +126,30 @@ async function handleAssignmentsCommand(chatId: string, userUid: string) {
 
 // --- MAIN WEBHOOK HANDLER ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    console.log(`[Webhook] Method: ${req.method}`); // Debug Log
+
     if (req.method !== 'POST') {
         return res.status(200).json({ message: 'UniAssignment Bot Webhook Active' });
     }
 
     try {
         const update = req.body;
+        console.log("[Webhook] Payload:", JSON.stringify(update)); // Debug Log
+
         if (!update.message) {
+            console.log("[Webhook] No message in update");
             return res.status(200).send('OK');
         }
+
+        // Check Env Vars
+        if (!process.env.FIREBASE_PROJECT_ID) console.error("Missing FIREBASE_PROJECT_ID");
+        if (!process.env.TELEGRAM_BOT_TOKEN) console.error("Missing TELEGRAM_BOT_TOKEN");
 
         const chatId = update.message.chat.id.toString();
         const text = update.message.text || '';
         const userId = update.message.from?.id?.toString();
+
+        console.log(`[Webhook] Processing from ${chatId}: ${text}`); // Debug Log
 
         // 1. Handle /start
         if (text.startsWith('/start')) {
