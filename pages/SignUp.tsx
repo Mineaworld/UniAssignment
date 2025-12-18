@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context';
 import { useNavigate, Link } from 'react-router-dom';
 import AvatarUpload from '../components/AvatarUpload';
+import Logo from '../components/Logo';
 
 const SignUp = () => {
   const { signup } = useApp();
@@ -40,7 +41,7 @@ const SignUp = () => {
         <div className="flex flex-col gap-6">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <img src="/logo.png" alt="Uni Assignment Logo" className="w-16 h-16 rounded-xl shadow-lg" />
+              <Logo />
             </div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create Account</h1>
             <p className="text-slate-500 dark:text-white/60">Join us to manage your assignments effortlessly.</p>
@@ -76,13 +77,13 @@ const SignUp = () => {
               />
             </label>
 
-            <label className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Profile Picture (Optional)</span>
               <AvatarUpload
                 onFileSelect={setAvatarFile}
                 className="self-start"
               />
-            </label>
+            </div>
 
             <label className="flex flex-col gap-2">
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address</span>
