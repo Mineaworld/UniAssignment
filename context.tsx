@@ -35,6 +35,8 @@ const DEFAULT_USER: User = {
   major: 'Undeclared',
   telegramLinked: false,
   telegramLinkedAt: null,
+  telegramPromptLastShown: null,
+  telegramPromptDismissed: false,
 };
 
 // ============================================================================
@@ -88,6 +90,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           major: 'Loading...',
           telegramLinked: false,
           telegramLinkedAt: null,
+          telegramPromptLastShown: null,
+          telegramPromptDismissed: false,
         });
       } else {
         setUser(null);
@@ -229,6 +233,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           avatar: firebaseUser.photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(firebaseUser.displayName || 'Student')}`,
           telegramLinked: false,
           telegramLinkedAt: null,
+          telegramPromptLastShown: null,
+          telegramPromptDismissed: false,
         };
         await setDoc(userDocRef, userData);
         setUser(userData);
@@ -274,6 +280,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         avatar: photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(name)}`,
         telegramLinked: false,
         telegramLinkedAt: null,
+        telegramPromptLastShown: null,
+        telegramPromptDismissed: false,
       };
 
       await setDoc(doc(db, 'users', result.user.uid), userData);
@@ -372,6 +380,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(prev => prev ? { ...prev, ...firestoreUpdates } : null);
   };
 
+  const dismissTelegramPrompt = async (permanent: boolean): Promise<void> => {
+    if (!user?.uid) return;
+
+    const updates: Partial<User> = {
+      telegramPromptLastShown: new Date().toISOString(),
+    };
+
+    if (permanent) {
+      updates.telegramPromptDismissed = true;
+    }
+
+    await setDoc(doc(db, 'users', user.uid), updates, { merge: true });
+
+    // Update local state immediately
+    setUser(prev => prev ? { ...prev, ...updates } : null);
+  };
+
   // =========================================================================
   // Context Value
   // =========================================================================
@@ -394,6 +419,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateSubject,
     deleteSubject,
     updateUserProfile,
+    dismissTelegramPrompt,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

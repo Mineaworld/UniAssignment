@@ -39,6 +39,9 @@ export interface User {
   major: string;
   telegramLinked: boolean;
   telegramLinkedAt: string | null;
+  // Telegram prompt tracking
+  telegramPromptLastShown: string | null;
+  telegramPromptDismissed: boolean;
 }
 
 export interface AppContextType {
@@ -59,4 +62,5 @@ export interface AppContextType {
   updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
   updateUserProfile: (updates: Partial<User>, avatarFile?: File) => Promise<void>;
+  dismissTelegramPrompt: (permanent: boolean) => Promise<void>;
 }

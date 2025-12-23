@@ -7,7 +7,9 @@ export const INITIAL_USER: User = {
   major: "Computer Science",
   avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBpUAuwCOt2a1assmnFOlaNPJy3Qybg7BtICbD7kOAlLnmF5WSt26xBNMRZ--QKlB7C2-6lINdxetI-YI5Hk5s0dS5ppbWsSF6l5FQCPqd2sX6tnXihIaY8OzsANdBTeGBfu4L4GR5mmQhOBAL0WDXcNX0lf6wHRuZI5YIpbR4w9R7PKF0cKgDRDwEKyfIiIhPZXMyJjNly_iSTsb06U5NyUBPCzOwHDa_V7bbzIu0v_h8zZ-aiTkHSVD9mI7DlD2KH7jNuukFpYbY",
   telegramLinked: false,
-  telegramLinkedAt: null
+  telegramLinkedAt: null,
+  telegramPromptLastShown: null,
+  telegramPromptDismissed: false,
 };
 
 export const INITIAL_SUBJECTS: Subject[] = [
