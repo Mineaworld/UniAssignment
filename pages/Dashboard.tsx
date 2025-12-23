@@ -18,28 +18,31 @@ const Dashboard = () => {
   // =========================================================================
 
   useEffect(() => {
-    // Don't show if user not loaded
-    if (!user) return;
+    // Single timer with guaranteed cleanup
+    const timer = setTimeout(() => {
+      // Don't show if user not loaded
+      if (!user) return;
 
-    // Don't show if already linked
-    if (user.telegramLinked) return;
+      // Don't show if already linked
+      if (user.telegramLinked) return;
 
-    // Don't show if permanently dismissed
-    if (user.telegramPromptDismissed) return;
+      // Don't show if permanently dismissed
+      if (user.telegramPromptDismissed) return;
 
-    // Show to new users (never shown before)
-    if (!user.telegramPromptLastShown) {
-      // Small delay for better UX
-      const timer = setTimeout(() => setShowTelegramPrompt(true), 1000);
-      return () => clearTimeout(timer);
-    }
+      // Show to new users (never shown before)
+      if (!user.telegramPromptLastShown) {
+        setShowTelegramPrompt(true);
+        return;
+      }
 
-    // Show if 5 days have passed since last shown
-    const daysSinceLastShown = (Date.now() - new Date(user.telegramPromptLastShown).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceLastShown >= 5) {
-      const timer = setTimeout(() => setShowTelegramPrompt(true), 1000);
-      return () => clearTimeout(timer);
-    }
+      // Show if 5 days have passed since last shown
+      const daysSinceLastShown = (Date.now() - new Date(user.telegramPromptLastShown).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceLastShown >= 5) {
+        setShowTelegramPrompt(true);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [user]);
 
   const handlePromptClose = async (action: 'link' | 'remind' | 'permanent') => {
@@ -98,11 +101,13 @@ const Dashboard = () => {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8">
       <CreateAssignmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      <TelegramPromptModal
-        isOpen={showTelegramPrompt}
-        onClose={handlePromptClose}
-        userUid={user?.uid || ''}
-      />
+      {user?.uid && (
+        <TelegramPromptModal
+          isOpen={showTelegramPrompt}
+          onClose={handlePromptClose}
+          userUid={user.uid}
+        />
+      )}
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">

@@ -111,11 +111,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (!user?.uid) return;
 
-    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
-      if (snapshot.exists()) {
-        setUser(prev => prev ? { ...prev, ...snapshot.data() } as User : null);
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', user.uid),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          setUser(prev => prev ? {
+            ...prev,
+            uid: data.uid ?? prev.uid,
+            name: data.name ?? prev.name,
+            email: data.email ?? prev.email,
+            avatar: data.avatar ?? prev.avatar,
+            major: data.major ?? prev.major,
+            telegramLinked: data.telegramLinked ?? prev.telegramLinked,
+            telegramLinkedAt: data.telegramLinkedAt ?? prev.telegramLinkedAt,
+            telegramPromptLastShown: data.telegramPromptLastShown ?? prev.telegramPromptLastShown,
+            telegramPromptDismissed: data.telegramPromptDismissed ?? prev.telegramPromptDismissed,
+          } : null);
+        }
+      },
+      (error) => {
+        console.error('Error fetching user profile:', error);
       }
-    });
+    );
 
     return unsubscribe;
   }, [user?.uid]);
@@ -136,19 +154,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       orderBy('dueDate', 'asc')
     );
 
-    const unsubscribeSubjects = onSnapshot(subjectsQuery, (snapshot) => {
-      setSubjects(snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Subject[]);
-    });
+    const unsubscribeSubjects = onSnapshot(
+      subjectsQuery,
+      (snapshot) => {
+        setSubjects(snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Subject[]);
+      },
+      (error) => {
+        console.error('Error fetching subjects:', error);
+      }
+    );
 
-    const unsubscribeAssignments = onSnapshot(assignmentsQuery, (snapshot) => {
-      setAssignments(snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Assignment[]);
-    });
+    const unsubscribeAssignments = onSnapshot(
+      assignmentsQuery,
+      (snapshot) => {
+        setAssignments(snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Assignment[]);
+      },
+      (error) => {
+        console.error('Error fetching assignments:', error);
+      }
+    );
 
     return () => {
       unsubscribeSubjects();
@@ -163,19 +193,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (!user?.uid) return;
 
-    const unsubscribe = onSnapshot(doc(db, 'telegramLinks', user.uid), (snapshot) => {
-      const linkedAt = snapshot.exists()
-        ? (snapshot.data()?.linkedAt?.toDate?.()?.toISOString() ?? snapshot.data()?.linkedAt ?? null)
-        : null;
+    const unsubscribe = onSnapshot(
+      doc(db, 'telegramLinks', user.uid),
+      (snapshot) => {
+        let linkedAt: string | null = null;
 
-      const isLinked = snapshot.exists();
+        if (snapshot.exists()) {
+          const timestamp = snapshot.data()?.linkedAt;
+          if (timestamp) {
+            // Handle Firestore Timestamp
+            if (typeof timestamp?.toDate === 'function') {
+              linkedAt = timestamp.toDate().toISOString();
+            }
+            // Handle ISO string
+            else if (typeof timestamp === 'string') {
+              linkedAt = timestamp;
+            }
+            // Handle number (milliseconds)
+            else if (typeof timestamp === 'number') {
+              linkedAt = new Date(timestamp).toISOString();
+            }
+          }
+        }
 
-      setUser(prev => prev ? {
-        ...prev,
-        telegramLinked: isLinked,
-        telegramLinkedAt: linkedAt,
-      } : null);
-    });
+        const isLinked = snapshot.exists();
+
+        setUser(prev => prev ? {
+          ...prev,
+          telegramLinked: isLinked,
+          telegramLinkedAt: linkedAt,
+        } : null);
+      },
+      (error) => {
+        console.error('Error fetching Telegram link status:', error);
+      }
+    );
 
     return unsubscribe;
   }, [user?.uid]);
