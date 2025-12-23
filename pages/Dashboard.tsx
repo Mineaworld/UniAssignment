@@ -45,10 +45,7 @@ const Dashboard = () => {
   const handlePromptClose = async (action: 'link' | 'remind' | 'permanent') => {
     setShowTelegramPrompt(false);
 
-    if (action === 'link') {
-      // Open Telegram in new tab
-      window.open(`https://t.me/UniAssignmentBot?start=${user?.uid}`, '_blank');
-    }
+    // Note: 'link' action already opens Telegram in the modal, no need to open again here
 
     // Update dismissal state
     try {

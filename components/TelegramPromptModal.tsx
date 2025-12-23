@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TelegramPromptModalProps {
@@ -8,8 +8,6 @@ interface TelegramPromptModalProps {
 }
 
 const TelegramPromptModal: React.FC<TelegramPromptModalProps> = ({ isOpen, onClose, userUid }) => {
-  const [isOpening, setIsOpening] = useState(false);
-
   const handleLinkTelegram = () => {
     window.open(`https://t.me/UniAssignmentBot?start=${userUid}`, '_blank');
     onClose('link');
