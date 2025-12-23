@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db, storage } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   collection,
@@ -11,76 +10,84 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  serverTimestamp,
   orderBy,
   getDoc,
   setDoc
 } from 'firebase/firestore';
-import { Assignment, AppContextType, Subject, User, Status } from './types';
-import { INITIAL_ASSIGNMENTS, INITIAL_SUBJECTS, INITIAL_USER } from './constants';
+import { Assignment, AppContextType, Subject, User } from './types';
+
+// ============================================================================
+// Types & Constants
+// ============================================================================
+
+interface FirebaseError {
+  code: string;
+  message: string;
+}
+
+const UI_AVATARS_BASE_URL = 'https://ui-avatars.com/api/?name=';
+
+const DEFAULT_USER: User = {
+  uid: '',
+  name: 'Student',
+  email: '',
+  avatar: `${UI_AVATARS_BASE_URL}Student`,
+  major: 'Undeclared',
+  telegramLinked: false,
+  telegramLinkedAt: null,
+};
+
+// ============================================================================
+// Context Setup
+// ============================================================================
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Persist user session simulation
-  const [user, setUser] = useState<User | null>(null);
-  const [telegramLinked, setTelegramLinked] = useState(false);
-  const [telegramLinkedAt, setTelegramLinkedAt] = useState<string | null>(null);
+  // =========================================================================
+  // State
+  // =========================================================================
 
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+  const [user, setUser] = useState<User | null>(null);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => getInitialTheme());
+
+  // =========================================================================
+  // Theme Management
+  // =========================================================================
+
+  function getInitialTheme(): 'dark' | 'light' {
     const saved = localStorage.getItem('uni_theme');
     if (saved === 'dark' || saved === 'light') return saved;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  }
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    const root = document.documentElement;
+    const isDark = theme === 'dark';
+    root.classList.toggle('dark', isDark);
     localStorage.setItem('uni_theme', theme);
   }, [theme]);
 
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
-
-  const [loading, setLoading] = useState(true);
-
-  // Sync user profile from Firestore
-  useEffect(() => {
-    if (!user?.uid) return;
-    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) {
-        setUser(prev => prev ? { ...prev, ...doc.data() } as User : null);
-      }
-    });
-    return () => unsubscribe();
-  }, [user?.uid]);
+  // =========================================================================
+  // Auth State Management
+  // =========================================================================
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        // Init with basic data, but don't overwrite potential existing data if possible, 
-        // essentially we wait for the Firestore listener to populate the full profile.
-        // We set a temporary state or rely on the listener.
-        // However, to avoid 'null' flash, we set basic info.
-        setUser(prev => {
-          if (prev?.uid === firebaseUser.uid) return prev; // Don't reset if already loaded
-          return {
-            uid: firebaseUser.uid,
-            name: firebaseUser.displayName || 'Student',
-            email: firebaseUser.email || '',
-            avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=Student',
-            major: 'Loading...', // Indicate loading state
-            telegramLinked: false,
-            telegramLinkedAt: null
-          };
+        setUser({
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || DEFAULT_USER.name,
+          email: firebaseUser.email || DEFAULT_USER.email,
+          avatar: firebaseUser.photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(firebaseUser.displayName || 'Student')}`,
+          major: 'Loading...',
+          telegramLinked: false,
+          telegramLinkedAt: null,
         });
       } else {
         setUser(null);
@@ -89,31 +96,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       setLoading(false);
     });
+
     return unsubscribe;
   }, []);
 
-  // Fetch Data
+  // =========================================================================
+  // User Profile Sync
+  // =========================================================================
+
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Subjects
-    const subjectsQuery = query(collection(db, `users/${user.uid}/subjects`), orderBy('createdAt', 'desc'));
-    const unsubscribeSubjects = onSnapshot(subjectsQuery, (snapshot) => {
-      const fetchedSubjects = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Subject[];
-      setSubjects(fetchedSubjects);
+    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
+      if (snapshot.exists()) {
+        setUser(prev => prev ? { ...prev, ...snapshot.data() } as User : null);
+      }
     });
 
-    // Assignments
-    const assignmentsQuery = query(collection(db, `users/${user.uid}/assignments`), orderBy('dueDate', 'asc'));
-    const unsubscribeAssignments = onSnapshot(assignmentsQuery, (snapshot) => {
-      const fetchedAssignments = snapshot.docs.map(doc => ({
+    return unsubscribe;
+  }, [user?.uid]);
+
+  // =========================================================================
+  // Data Fetching
+  // =========================================================================
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const subjectsQuery = query(
+      collection(db, `users/${user.uid}/subjects`),
+      orderBy('createdAt', 'desc')
+    );
+    const assignmentsQuery = query(
+      collection(db, `users/${user.uid}/assignments`),
+      orderBy('dueDate', 'asc')
+    );
+
+    const unsubscribeSubjects = onSnapshot(subjectsQuery, (snapshot) => {
+      setSubjects(snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
-      })) as Assignment[];
-      setAssignments(fetchedAssignments);
+        ...doc.data(),
+      })) as Subject[]);
+    });
+
+    const unsubscribeAssignments = onSnapshot(assignmentsQuery, (snapshot) => {
+      setAssignments(snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Assignment[]);
     });
 
     return () => {
@@ -122,130 +152,200 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [user?.uid]);
 
-  // Real-time Telegram link status listener
+  // =========================================================================
+  // Telegram Link Status
+  // =========================================================================
+
   useEffect(() => {
     if (!user?.uid) return;
 
-    const telegramLinkRef = doc(db, 'telegramLinks', user.uid);
+    const unsubscribe = onSnapshot(doc(db, 'telegramLinks', user.uid), (snapshot) => {
+      const linkedAt = snapshot.exists()
+        ? (snapshot.data()?.linkedAt?.toDate?.()?.toISOString() ?? snapshot.data()?.linkedAt ?? null)
+        : null;
 
-    const unsubscribeTelegram = onSnapshot(telegramLinkRef, (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const data = docSnapshot.data();
-        const linkedAt = data.linkedAt?.toDate?.()?.toISOString() || data.linkedAt || null;
+      const isLinked = snapshot.exists();
 
-        // Only trigger update if status changed
-        if (!telegramLinked) {
-          setTelegramLinked(true);
-          setTelegramLinkedAt(linkedAt);
-
-          // Update user object with telegram status
-          setUser(prev => prev ? {
-            ...prev,
-            telegramLinked: true,
-            telegramLinkedAt: linkedAt
-          } : null);
-        }
-      } else {
-        if (telegramLinked) {
-          setTelegramLinked(false);
-          setTelegramLinkedAt(null);
-
-          setUser(prev => prev ? {
-            ...prev,
-            telegramLinked: false,
-            telegramLinkedAt: null
-          } : null);
-        }
-      }
+      setUser(prev => prev ? {
+        ...prev,
+        telegramLinked: isLinked,
+        telegramLinkedAt: linkedAt,
+      } : null);
     });
 
-    return () => unsubscribeTelegram();
-  }, [user?.uid, telegramLinked]);
+    return unsubscribe;
+  }, [user?.uid]);
 
-  const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-  };
+  // =========================================================================
+  // Authentication Functions
+  // =========================================================================
 
-  const signup = async (name: string, email: string, password: string, major?: string, avatarFile?: File) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-
-    let photoURL = result.user.photoURL;
-
-    if (avatarFile) {
-      const storageRef = ref(storage, `profile_pictures/${result.user.uid}`);
-      await uploadBytes(storageRef, avatarFile);
-      photoURL = await getDownloadURL(storageRef);
-    }
-
-    await updateProfile(result.user, {
-      displayName: name,
-      photoURL: photoURL
-    });
-
-    const userData: User = {
-      uid: result.user.uid,
-      name,
-      email,
-      major: major || 'Undeclared',
-      avatar: photoURL || `https://ui-avatars.com/api/?name=${name}`,
-      telegramLinked: false,
-      telegramLinkedAt: null
+  const getFirebaseErrorMessage = (errorCode: string): string => {
+    const errorMessages: Record<string, string> = {
+      'auth/popup-blocked': 'Popup was blocked. Please allow popups and try again.',
+      'auth/unauthorized-domain': 'This domain is not authorized. Contact support.',
+      'auth/cancelled-popup-request': 'Sign-in was cancelled.',
+      'auth/popup-closed-by-user': 'Sign-in cancelled. Please try again.',
+      'auth/invalid-email': 'Invalid email address.',
+      'auth/user-disabled': 'This account has been disabled.',
+      'auth/user-not-found': 'No account found with this email.',
+      'auth/wrong-password': 'Incorrect password.',
+      'auth/email-already-in-use': 'An account with this email already exists.',
+      'auth/weak-password': 'Password should be at least 6 characters.',
+      'auth/invalid-credential': 'Invalid email or password.',
+      'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+      'auth/network-request-failed': 'Network error. Please check your connection.',
+      'auth/account-exists-with-different-credential': 'An account already exists with this email. Sign in using your password.',
     };
-
-    await setDoc(doc(db, 'users', result.user.uid), userData);
-
-    // Force update local state to show name immediately
-    setUser(userData);
+    return errorMessages[errorCode] || 'An error occurred. Please try again.';
   };
 
-  const logout = async () => {
-    await signOut(auth);
+  const login = async (email: string, password: string): Promise<void> => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      const firebaseError = error as FirebaseError;
+      throw new Error(getFirebaseErrorMessage(firebaseError.code || 'auth/unknown'));
+    }
   };
 
-  const addAssignment = async (assignment: Omit<Assignment, 'id' | 'createdAt'>) => {
-    if (!user?.uid) return;
+  const loginWithGoogle = async (): Promise<void> => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        const userData: User = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || DEFAULT_USER.name,
+          email: firebaseUser.email || DEFAULT_USER.email,
+          major: DEFAULT_USER.major,
+          avatar: firebaseUser.photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(firebaseUser.displayName || 'Student')}`,
+          telegramLinked: false,
+          telegramLinkedAt: null,
+        };
+        await setDoc(userDocRef, userData);
+        setUser(userData);
+      } else {
+        // User exists, update local state from Firestore
+        const existingData = userDoc.data() as User;
+        setUser(existingData);
+      }
+    } catch (error) {
+      const firebaseError = error as FirebaseError;
+      throw new Error(getFirebaseErrorMessage(firebaseError.code || 'auth/unknown'));
+    }
+  };
+
+  const signup = async (
+    name: string,
+    email: string,
+    password: string,
+    major?: string,
+    avatarFile?: File
+  ): Promise<void> => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+
+      let photoURL = result.user.photoURL;
+
+      if (avatarFile) {
+        const storageRef = ref(storage, `profile_pictures/${result.user.uid}`);
+        await uploadBytes(storageRef, avatarFile);
+        photoURL = await getDownloadURL(storageRef);
+      }
+
+      await updateProfile(result.user, {
+        displayName: name,
+        photoURL,
+      });
+
+      const userData: User = {
+        uid: result.user.uid,
+        name,
+        email,
+        major: major || DEFAULT_USER.major,
+        avatar: photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(name)}`,
+        telegramLinked: false,
+        telegramLinkedAt: null,
+      };
+
+      await setDoc(doc(db, 'users', result.user.uid), userData);
+      setUser(userData);
+    } catch (error) {
+      const firebaseError = error as FirebaseError;
+      throw new Error(getFirebaseErrorMessage(firebaseError.code || 'auth/unknown'));
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      throw new Error('Failed to sign out. Please try again.');
+    }
+  };
+
+  // =========================================================================
+  // Assignment Operations
+  // =========================================================================
+
+  const addAssignment = async (assignment: Omit<Assignment, 'id' | 'createdAt'>): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
     await addDoc(collection(db, `users/${user.uid}/assignments`), {
       ...assignment,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
   };
 
-  const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
-    if (!user?.uid) return;
-    const docRef = doc(db, `users/${user.uid}/assignments`, id);
-    await updateDoc(docRef, updates);
+  const updateAssignment = async (id: string, updates: Partial<Assignment>): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
+    await updateDoc(doc(db, `users/${user.uid}/assignments`, id), updates);
   };
 
-  const deleteAssignment = async (id: string) => {
-    if (!user?.uid) return;
+  const deleteAssignment = async (id: string): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
     await deleteDoc(doc(db, `users/${user.uid}/assignments`, id));
   };
 
-  const addSubject = async (subject: Omit<Subject, 'id' | 'lastUpdated'>) => {
-    if (!user?.uid) return;
+  // =========================================================================
+  // Subject Operations
+  // =========================================================================
+
+  const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt' | 'lastUpdated'>): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
     await addDoc(collection(db, `users/${user.uid}/subjects`), {
       ...subject,
       createdAt: new Date().toISOString(),
-      lastUpdated: 'Just now'
+      lastUpdated: 'Just now',
     });
   };
 
-  const deleteSubject = async (id: string) => {
-    if (!user?.uid) return;
+  const updateSubject = async (id: string, updates: Partial<Subject>): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
+    await updateDoc(doc(db, `users/${user.uid}/subjects`, id), {
+      ...updates,
+      lastUpdated: 'Just now',
+    });
+  };
+
+  const deleteSubject = async (id: string): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
     await deleteDoc(doc(db, `users/${user.uid}/subjects`, id));
   };
 
-  const updateSubject = async (id: string, updates: Partial<Subject>) => {
-    if (!user?.uid) return;
-    const docRef = doc(db, `users/${user.uid}/subjects`, id);
-    await updateDoc(docRef, {
-      ...updates,
-      lastUpdated: 'Just now' // Automatically update the lastUpdated field
-    });
-  };
+  // =========================================================================
+  // User Profile Operations
+  // =========================================================================
 
-  const updateUserProfile = async (updates: Partial<User>, avatarFile?: File) => {
-    if (!user?.uid) return;
+  const updateUserProfile = async (updates: Partial<User>, avatarFile?: File): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
 
     let newAvatarUrl = updates.avatar;
 
@@ -256,48 +356,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const firestoreUpdates = { ...updates };
-    if (newAvatarUrl) firestoreUpdates.avatar = newAvatarUrl;
+    if (newAvatarUrl) {
+      firestoreUpdates.avatar = newAvatarUrl;
+    }
 
     await setDoc(doc(db, 'users', user.uid), firestoreUpdates, { merge: true });
 
-    if (auth.currentUser) {
-      if (updates.name || newAvatarUrl) {
-        await updateProfile(auth.currentUser, {
-          displayName: updates.name || auth.currentUser.displayName,
-          photoURL: newAvatarUrl || auth.currentUser.photoURL
-        });
-      }
+    if (auth.currentUser && (updates.name || newAvatarUrl)) {
+      await updateProfile(auth.currentUser, {
+        displayName: updates.name || auth.currentUser.displayName,
+        photoURL: newAvatarUrl || auth.currentUser.photoURL,
+      });
     }
 
     setUser(prev => prev ? { ...prev, ...firestoreUpdates } : null);
   };
 
-  return (
-    <AppContext.Provider value={{
-      user,
-      loading,
-      assignments,
-      subjects,
-      theme,
-      toggleTheme,
-      login,
-      signup,
-      logout,
-      addAssignment,
-      updateAssignment,
-      deleteAssignment,
-      addSubject,
-      updateSubject,
-      deleteSubject,
-      updateUserProfile
-    }}>
-      {children}
-    </AppContext.Provider>
-  );
+  // =========================================================================
+  // Context Value
+  // =========================================================================
+
+  const value: AppContextType = {
+    user,
+    loading,
+    assignments,
+    subjects,
+    theme,
+    toggleTheme,
+    login,
+    loginWithGoogle,
+    signup,
+    logout,
+    addAssignment,
+    updateAssignment,
+    deleteAssignment,
+    addSubject,
+    updateSubject,
+    deleteSubject,
+    updateUserProfile,
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
-export const useApp = () => {
+// ============================================================================
+// Hook
+// ============================================================================
+
+export const useApp = (): AppContextType => {
   const context = useContext(AppContext);
-  if (!context) throw new Error('useApp must be used within AppProvider');
+  if (!context) {
+    throw new Error('useApp must be used within AppProvider');
+  }
   return context;
 };

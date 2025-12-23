@@ -15,6 +15,7 @@ export interface Subject {
   id: string;
   name: string;
   color: string; // Tailwind color class like 'bg-blue-500'
+  createdAt: string;
   lastUpdated: string;
 }
 
@@ -48,12 +49,13 @@ export interface AppContextType {
   theme: 'dark' | 'light';
   toggleTheme: () => void;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, major?: string, avatarFile?: File) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   addAssignment: (assignment: Omit<Assignment, 'id' | 'createdAt'>) => Promise<void>;
   updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   deleteAssignment: (id: string) => Promise<void>;
-  addSubject: (subject: Omit<Subject, 'id' | 'lastUpdated'>) => Promise<void>;
+  addSubject: (subject: Omit<Subject, 'id' | 'createdAt' | 'lastUpdated'>) => Promise<void>;
   updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
   updateUserProfile: (updates: Partial<User>, avatarFile?: File) => Promise<void>;
