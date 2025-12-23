@@ -12,6 +12,31 @@ All notable changes to the UniAssignment project will be documented in this file
 
 ---
 
+## [0.3.0] - 2024-12-23
+
+### Added
+- Smart Telegram link prompt modal with:
+  - Shows to new users on first Dashboard visit (1s delay)
+  - Shows to existing unlinked users every 5 days
+  - Permanent "Don't Ask Again" option
+  - Telegram-branded UI with benefits list
+  - Three action buttons: Link Now, Remind Later, Don't Ask Again
+- `TelegramPromptModal` component with Framer Motion animations
+- `dismissTelegramPrompt()` function in context for prompt state management
+- User fields: `telegramPromptLastShown`, `telegramPromptDismissed`
+
+### Changed
+- Updated `User` interface with prompt tracking fields
+- Updated `INITIAL_USER` and all user creation points with new defaults
+- Dashboard now checks prompt eligibility on mount
+
+### Technical
+- Comprehensive test report created in `tests/TELEGRAM_PROMPT_TEST_REPORT.md`
+- All edge cases covered (backward compatibility, null states, etc.)
+- Timer cleanup implemented to prevent memory leaks
+
+---
+
 ## [0.2.0] - 2024-12-23
 
 ### Added

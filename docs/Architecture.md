@@ -119,7 +119,9 @@ uni-assignment-f0fbe/
 │       ├── avatar: string (URL)
 │       ├── major: string
 │       ├── telegramLinked: boolean
-│       └── telegramLinkedAt: string | null
+│       ├── telegramLinkedAt: string | null
+│       ├── telegramPromptLastShown: string | null  # Prompt tracking
+│       └── telegramPromptDismissed: boolean          # Permanent dismissal
 │
 │   ├── subjects/                           # User's subjects
 │   │   └── {subjectId}
@@ -171,6 +173,7 @@ src/
 │   ├── Logo.tsx
 │   ├── GoogleIcon.tsx
 │   ├── AvatarUpload.tsx
+│   ├── TelegramPromptModal.tsx
 │   ├── Sidebar.tsx
 │   └── ...
 │

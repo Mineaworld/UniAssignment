@@ -1,15 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
 import { Status } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import CreateAssignmentModal from '../components/CreateAssignmentModal';
+import TelegramPromptModal from '../components/TelegramPromptModal';
 
 const Dashboard = () => {
-  const { assignments, subjects } = useApp();
+  const { assignments, subjects, user, dismissTelegramPrompt } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showTelegramPrompt, setShowTelegramPrompt] = useState(false);
   const navigate = useNavigate();
+
+  // =========================================================================
+  // Telegram Prompt Logic
+  // =========================================================================
+
+  useEffect(() => {
+    // Don't show if user not loaded
+    if (!user) return;
+
+    // Don't show if already linked
+    if (user.telegramLinked) return;
+
+    // Don't show if permanently dismissed
+    if (user.telegramPromptDismissed) return;
+
+    // Show to new users (never shown before)
+    if (!user.telegramPromptLastShown) {
+      // Small delay for better UX
+      const timer = setTimeout(() => setShowTelegramPrompt(true), 1000);
+      return () => clearTimeout(timer);
+    }
+
+    // Show if 5 days have passed since last shown
+    const daysSinceLastShown = (Date.now() - new Date(user.telegramPromptLastShown).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceLastShown >= 5) {
+      const timer = setTimeout(() => setShowTelegramPrompt(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  const handlePromptClose = async (action: 'link' | 'remind' | 'permanent') => {
+    setShowTelegramPrompt(false);
+
+    if (action === 'link') {
+      // Open Telegram in new tab
+      window.open(`https://t.me/UniAssignmentBot?start=${user?.uid}`, '_blank');
+    }
+
+    // Update dismissal state
+    try {
+      await dismissTelegramPrompt(action === 'permanent');
+    } catch (error) {
+      console.error('Failed to dismiss Telegram prompt:', error);
+    }
+  };
 
   // Stats
   const total = assignments.length;
@@ -54,6 +101,11 @@ const Dashboard = () => {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8">
       <CreateAssignmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <TelegramPromptModal
+        isOpen={showTelegramPrompt}
+        onClose={handlePromptClose}
+        userUid={user?.uid || ''}
+      />
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
