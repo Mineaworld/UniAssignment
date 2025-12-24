@@ -53,7 +53,7 @@ Collections use subcollections per user:
 
 1. **Firebase Cloud Functions** (`functions/src/index.ts`):
    - `telegramWebhook` - HTTP endpoint for Telegram updates
-   - `checkDeadlines` - Scheduled function (every 1 hour) for deadline notifications
+   - `checkDeadlines` - Scheduled function (every 15 minutes) for deadline notifications
    - Uses `firebase-functions/params` for `TELEGRAM_BOT_TOKEN`
    - Deployed via Firebase: `firebase deploy --only functions`
 
@@ -105,3 +105,84 @@ TELEGRAM_BOT_TOKEN=
 - **Frontend:** Vercel (uses `vercel.json` for SPA routing)
 - **Cloud Functions:** Firebase (`firebase deploy --only functions`)
 - **Bot Webhook:** Configure Telegram bot webhook URL to point to deployed endpoint
+
+## Troubleshooting & Best Practices
+
+### Code Review Approach
+
+**When addressing CodeRabbit or automated review feedback:**
+- **Evaluate each suggestion** before applying - not all feedback may be valid or relevant
+- Consider if the fix makes sense for the codebase architecture
+- Check if the "issue" is actually a problem or just a style preference
+- Some feedback may be outdated or based on incomplete context
+
+**Decision criteria for applying feedback:**
+1. Is it a real bug or potential runtime error? → Fix
+2. Is it a valid security or performance concern? → Fix
+3. Is it purely stylistic without functional impact? → Use judgment
+4. Would the fix complicate the code without clear benefit? → Skip or discuss
+
+### After Destructive Git Operations
+
+**After `git-filter-repo` or any history rewrite:**
+```bash
+npm run build    # Verify build still works
+npm test         # Run tests if you have them
+git status       # Check what changed
+```
+
+### Handling Leaked Secrets
+
+**Prefer `git rm --cached` over history rewrites:**
+```bash
+# Instead of git-filter-repo:
+git rm --cached firebase.ts        # Remove from git tracking
+echo "firebase.ts" >> .gitignore   # Ignore going forward
+git add .gitignore
+git commit -m "chore: remove sensitive file from tracking"
+
+# Then rotate the API key in the service console
+```
+
+History rewrites (`git-filter-repo`, `git rebase -i`) should be **last resort** because:
+- They break all existing PRs
+- They require force-pushing
+- Team members need to re-clone
+- You can lose work if not done carefully
+
+### Vercel Deployment Debugging
+
+**If Vercel build fails but local build works:**
+1. Check if `firebase.ts` or similar config files exist
+2. Redeploy with **"Skip Build Cache"** enabled
+3. Keep `vercel.json` minimal - Vercel auto-detects runtimes
+
+```json
+// ✅ Good - minimal config
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
+}
+
+// ❌ Bad - over-engineered
+{
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs20.x"  // Invalid format!
+    }
+  }
+}
+```
+
+### Missing Import Errors
+
+**Local dev may hide missing imports**, but CI/build will expose them:
+- After any file deletion, always run `npm run build`
+- Missing files show up first in clean build environments (Vercel, CI)
+
+### Pre-PR Checklist
+
+1. Ensure `main` branch is healthy before merging
+2. Run `npm run build` locally before pushing
+3. Verify base branch (`main`) has all required files
+4. Check `.env.example` is up to date with new env vars

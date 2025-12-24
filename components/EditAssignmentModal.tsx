@@ -1,7 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status, Assignment } from '../types';
+import { Priority, Status, Assignment, AssignmentReminder } from '../types';
 import { useApp } from '../context';
+import { ReminderSelector } from './ReminderSelector';
+
+// Form data type for type safety
+interface FormData {
+  title: string;
+  subjectId: string;
+  status: Status;
+  date: string;
+  time: string;
+  priority: Priority;
+  description: string;
+  examType: 'midterm' | 'final' | null;
+  reminder: AssignmentReminder | undefined;
+}
+
+const DEFAULT_FORM_DATA: Omit<FormData, 'reminder'> & { reminder: AssignmentReminder | undefined } = {
+  title: '',
+  subjectId: '',
+  status: Status.Pending,
+  date: '',
+  time: '',
+  priority: Priority.Medium,
+  description: '',
+  examType: null,
+  reminder: undefined,
+};
+
+const getResetFormData = (): FormData => ({
+  ...DEFAULT_FORM_DATA,
+  reminder: undefined,
+});
+
+// Convert assignment to form data
+const assignmentToFormData = (assignment: Assignment): FormData => ({
+  title: assignment.title,
+  subjectId: assignment.subjectId,
+  status: assignment.status,
+  date: new Date(assignment.dueDate).toISOString().split('T')[0],
+  time: new Date(assignment.dueDate).toTimeString().slice(0, 5),
+  priority: assignment.priority,
+  description: assignment.description || '',
+  examType: assignment.examType || null,
+  reminder: assignment.reminder,
+});
 
 interface EditAssignmentModalProps {
     isOpen: boolean;
@@ -11,33 +55,14 @@ interface EditAssignmentModalProps {
 
 const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClose, assignment }) => {
     const { subjects, updateAssignment } = useApp();
-    const [formData, setFormData] = useState({
-        title: '',
-        subjectId: '',
-        status: Status.Pending,
-        date: '',
-        time: '',
-        priority: Priority.Medium,
-        description: '',
-        examType: null as 'midterm' | 'final' | null
-    });
+    const [formData, setFormData] = useState<FormData>(getResetFormData);
 
     const [loading, setLoading] = useState(false);
 
     // Populate form when assignment changes
     useEffect(() => {
         if (assignment) {
-            const dueDate = new Date(assignment.dueDate);
-            setFormData({
-                title: assignment.title,
-                subjectId: assignment.subjectId,
-                status: assignment.status,
-                date: dueDate.toISOString().split('T')[0],
-                time: dueDate.toTimeString().slice(0, 5),
-                priority: assignment.priority,
-                description: assignment.description || '',
-                examType: assignment.examType || null
-            });
+            setFormData(assignmentToFormData(assignment));
         }
     }, [assignment]);
 
@@ -60,7 +85,8 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                 dueDate: dateTime,
                 priority: formData.priority,
                 description: formData.description,
-                examType: formData.examType
+                examType: formData.examType,
+                reminder: formData.reminder,
             });
 
             onClose();
@@ -260,6 +286,16 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                                     ))}
                                 </div>
                             </div>
+
+                            <ReminderSelector
+                                dueDate={
+                                    formData.date
+                                        ? new Date(formData.time ? `${formData.date}T${formData.time}` : formData.date).toISOString()
+                                        : new Date().toISOString()
+                                }
+                                value={formData.reminder}
+                                onChange={(reminder) => setFormData({ ...formData, reminder })}
+                            />
 
                             <label className="block">
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Description / Notes</span>

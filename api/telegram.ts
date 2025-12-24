@@ -60,7 +60,7 @@ async function editTelegramMessage(chatId: string, messageId: number, text: stri
 }
 
 // --- HELPER: Manage State ---
-type BotStep = 'AWAITING_TITLE' | 'AWAITING_SUBJECT' | 'AWAITING_DUE_DATE' | 'AWAITING_EDIT_VALUE';
+type BotStep = 'AWAITING_TITLE' | 'AWAITING_SUBJECT' | 'AWAITING_DUE_DATE' | 'AWAITING_EDIT_VALUE' | 'AWAITING_REMINDER_PRESET';
 
 interface BotState {
     step: BotStep;
@@ -70,6 +70,7 @@ interface BotState {
         subjectId?: string;
         assignmentId?: string; // For editing
         editField?: 'title' | 'dueDate'; // For editing
+        reminderAssignmentId?: string; // For reminder setup
     };
     uid: string;
 }
@@ -154,6 +155,69 @@ async function handleAssignmentsCommand(chatId: string, userUid: string) {
     }
 }
 
+async function showRemindMenu(chatId: string, userUid: string) {
+    // Firestore requires inequality filter field to be first orderBy.
+    // Filter out Completed assignments in JavaScript instead.
+    const assignmentsSnapshot = await db
+        .collection(`users/${userUid}/assignments`)
+        .orderBy("dueDate", "asc")
+        .limit(20) // Fetch more since we'll filter out completed ones
+        .get();
+
+    // Filter out completed assignments
+    const pendingDocs = assignmentsSnapshot.docs.filter(
+        (doc) => doc.data().status !== "Completed"
+    ).slice(0, 10); // Limit to 10 after filtering
+
+    if (pendingDocs.length === 0) {
+        await sendTelegramMessage(chatId, "📚 You have no pending assignments to set reminders for.");
+        return;
+    }
+
+    const inlineKeyboard: any[][] = [];
+    pendingDocs.forEach((doc) => {
+        const d = doc.data();
+        const hasReminder = d.reminder?.enabled;
+        const emoji = hasReminder ? '🔔' : '⏰';
+        inlineKeyboard.push([{
+            text: `${emoji} ${d.title}`,
+            callback_data: `remind_set_${doc.id}`
+        }]);
+    });
+
+    await sendTelegramMessage(chatId, "⏰ <b>Set a Reminder</b>\n\nSelect an assignment:", {
+        inline_keyboard: inlineKeyboard
+    });
+}
+
+function formatPresetText(preset: string): string {
+    const map: Record<string, string> = {
+        '1h': '1 hour before',
+        '6h': '6 hours before',
+        '1d': '1 day before',
+        '3d': '3 days before',
+        '1w': '1 week before',
+        'custom': 'custom time'
+    };
+    return map[preset] || preset;
+}
+
+/**
+ * Format minutes into human-readable time before due
+ * Examples: 30 -> "30 minutes", 60 -> "1 hour", 90 -> "1 hour 30 minutes", 150 -> "2 hours 30 minutes"
+ */
+function formatMinutesBeforeDue(minutes: number): string {
+    if (minutes < 60) {
+        return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+        return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+}
+
 async function handleCallbackQuery(query: any, userUid: string) {
     // Must answer callback query to stop loading state
     const callbackQueryId = query.id;
@@ -169,6 +233,71 @@ async function handleCallbackQuery(query: any, userUid: string) {
     });
 
     // --- Action Routing ---
+
+    // REMINDER FLOW - Handle reminder-related callbacks
+    if (data.startsWith('remind_set_')) {
+        const assignmentId = data.replace('remind_set_', '');
+        const doc = await db.doc(`users/${userUid}/assignments/${assignmentId}`).get();
+
+        if (!doc.exists) {
+            await editTelegramMessage(chatId, messageId, "❌ Assignment not found.");
+            return;
+        }
+
+        await showReminderPresets(chatId, messageId, assignmentId, userUid, doc.data()?.reminder);
+        return;
+    }
+
+    if (data.startsWith('remind_preset_')) {
+        const parts = data.split('_');
+        const preset = parts[2];  // 1h, 6h, etc.
+        const assignmentId = parts[3];
+
+        const docRef = db.doc(`users/${userUid}/assignments/${assignmentId}`);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            await editTelegramMessage(chatId, messageId, "❌ Assignment not found.");
+            return;
+        }
+
+        const assignment = doc.data()!;
+        // Use dot notation to properly delete sentAt while updating other fields
+        await docRef.update({
+            "reminder.enabled": true,
+            "reminder.preset": preset,
+            "reminder.sentAt": admin.firestore.FieldValue.delete()  // Reset sent status if changing
+        });
+
+        await editTelegramMessage(chatId, messageId,
+            `✅ <b>Reminder Set!</b>\n\n` +
+            `I'll remind you about <b>${assignment.title}</b> ${formatPresetText(preset)} it's due.\n\n` +
+            `Use /assignments to manage your tasks.`
+        );
+        return;
+    }
+
+    if (data.startsWith('remind_disable_')) {
+        const assignmentId = data.replace('remind_disable_', '');
+        await db.doc(`users/${userUid}/assignments/${assignmentId}`).update({
+            "reminder.enabled": false
+        });
+
+        await editTelegramMessage(chatId, messageId, "🔕 <b>Reminder Disabled</b>");
+        return;
+    }
+
+    if (data.startsWith('remind_custom_')) {
+        const assignmentId = data.replace('remind_custom_', '');
+        await startState(chatId, userUid, 'AWAITING_REMINDER_PRESET', { reminderAssignmentId: assignmentId });
+
+        await sendTelegramMessage(chatId,
+            "⏰ <b>Custom Reminder</b>\n\n" +
+            "Enter how many hours/days before the deadline:\n" +
+            "Examples: \"2 hours\", \"3 days\", \"1 week\""
+        );
+        return;
+    }
 
     // 1. VIEW Details
     if (data.startsWith('view_')) {
@@ -329,6 +458,41 @@ async function handleCallbackQuery(query: any, userUid: string) {
     }
 }
 
+// --- HELPER: Show Reminder Presets ---
+async function showReminderPresets(chatId: string, messageId: number, assignmentId: string, userUid: string, currentReminder?: any) {
+    // Build keyboard rows
+    const keyboard = [
+        [
+            { text: "1 hour before", callback_data: `remind_preset_1h_${assignmentId}` },
+            { text: "6 hours before", callback_data: `remind_preset_6h_${assignmentId}` }
+        ],
+        [
+            { text: "1 day before", callback_data: `remind_preset_1d_${assignmentId}` },
+            { text: "3 days before", callback_data: `remind_preset_3d_${assignmentId}` }
+        ],
+        [
+            { text: "1 week before", callback_data: `remind_preset_1w_${assignmentId}` },
+            { text: "Custom", callback_data: `remind_custom_${assignmentId}` }
+        ],
+    ];
+
+    // Only show Disable button if reminder is already enabled
+    const bottomRow = [{ text: "🔙 Back", callback_data: "list_all" }];
+    if (currentReminder?.enabled) {
+        bottomRow.unshift({ text: "🔕 Disable", callback_data: `remind_disable_${assignmentId}` });
+    }
+    keyboard.push(bottomRow);
+
+    const currentText = currentReminder?.enabled
+        ? `\n\n📍 Current: ${formatPresetText(currentReminder.preset)}`
+        : '';
+
+    await editTelegramMessage(chatId, messageId,
+        `⏰ <b>When should I remind you?</b>${currentText}`,
+        { inline_keyboard: keyboard }
+    );
+}
+
 // --- MAIN WEBHOOK HANDLER ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
@@ -394,6 +558,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 "<b>Commands:</b>\n" +
                 "/add - Add a new assignment\n" +
                 "/assignments - View & Manage assignments\n" +
+                "/remind - Set assignment reminders\n" +
                 "/cancel - Cancel"
             );
             return res.status(200).send('OK');
@@ -404,10 +569,79 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).send('OK');
         }
 
+        if (text === '/remind') {
+            await showRemindMenu(chatId, userUid);
+            return res.status(200).send('OK');
+        }
+
         // 4. Conversation State Machine
         const currentState = await getState(chatId);
 
         if (currentState) {
+            if (currentState.step === 'AWAITING_REMINDER_PRESET') {
+                // Handle Custom Reminder Input
+                const { reminderAssignmentId } = currentState.data;
+
+                if (!reminderAssignmentId) {
+                    console.error(`[Reminder] Missing reminderAssignmentId for chatId ${chatId}, state:`, currentState);
+                    await clearState(chatId);
+                    // Notify user of the error (fire and forget to ensure 200 response)
+                    sendTelegramMessage(chatId,
+                        "⚠️ <b>Something went wrong</b>\n\n" +
+                        "I couldn't find the assignment. Please try /remind again."
+                    ).catch(err => console.error('[Reminder] Failed to send error message:', err));
+                    return res.status(200).send('OK');
+                }
+
+                // Parse custom time
+                const parsed = chrono.parseDate(text);
+                const now = new Date();
+                let minutes = 0;
+
+                // Try to parse as "X hours/days/weeks"
+                const hoursMatch = text.match(/(\d+)\s*(hour|hr|h)/i);
+                const daysMatch = text.match(/(\d+)\s*(day|d)/i);
+                const weeksMatch = text.match(/(\d+)\s*(week|w)/i);
+
+                if (weeksMatch) {
+                    minutes = parseInt(weeksMatch[1]) * 7 * 24 * 60;
+                } else if (daysMatch) {
+                    minutes = parseInt(daysMatch[1]) * 24 * 60;
+                } else if (hoursMatch) {
+                    minutes = parseInt(hoursMatch[1]) * 60;
+                } else if (parsed && parsed > now) {
+                    // Absolute date - calculate minutes from due date
+                    const doc = await db.doc(`users/${userUid}/assignments/${reminderAssignmentId}`).get();
+                    if (doc.exists) {
+                        const dueDate = new Date(doc.data()!.dueDate);
+                        minutes = Math.max(0, Math.round((dueDate.getTime() - parsed.getTime()) / (1000 * 60)));
+                    }
+                }
+
+                if (minutes > 0) {
+                    await db.doc(`users/${userUid}/assignments/${reminderAssignmentId}`).update({
+                        reminder: {
+                            enabled: true,
+                            preset: 'custom',
+                            customMinutes: minutes
+                        }
+                    });
+
+                    await clearState(chatId);
+                    await sendTelegramMessage(chatId,
+                        `✅ <b>Reminder Set!</b>\n\n` +
+                        `I'll remind you ${formatMinutesBeforeDue(minutes)} before the deadline.`
+                    );
+                } else {
+                    await sendTelegramMessage(chatId,
+                        "⚠️ I couldn't understand that. Try:\n" +
+                        "\"2 hours\" or \"3 days\" or \"next Monday\""
+                    );
+                }
+
+                return res.status(200).send('OK');
+            }
+
             if (currentState.step === 'AWAITING_EDIT_VALUE') {
                 // Handle Editing
                 const { assignmentId, editField } = currentState.data;

@@ -5,6 +5,15 @@ export enum Priority {
   High = 'High',
 }
 
+export enum ReminderPreset {
+  OneHour = '1h',
+  SixHours = '6h',
+  OneDay = '1d',
+  ThreeDays = '3d',
+  OneWeek = '1w',
+  Custom = 'custom',
+}
+
 export enum Status {
   Pending = 'Pending',
   InProgress = 'In Progress',
@@ -19,6 +28,14 @@ export interface Subject {
   lastUpdated: string;
 }
 
+export interface AssignmentReminder {
+  enabled: boolean;
+  preset: ReminderPreset;
+  customMinutes?: number;  // For custom relative time (minutes before due)
+  customTime?: string;      // For absolute specific time (ISO string)
+  sentAt?: string;          // When reminder was sent
+}
+
 export interface Assignment {
   id: string;
   title: string;
@@ -29,6 +46,7 @@ export interface Assignment {
   description?: string;
   examType?: 'midterm' | 'final' | null;
   createdAt: string;
+  reminder?: AssignmentReminder;
 }
 
 export interface User {

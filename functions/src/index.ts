@@ -12,21 +12,56 @@ const db = admin.firestore();
 // Define the bot token as a parameter (will read from .env or Firebase secrets)
 const telegramBotToken = defineString("TELEGRAM_BOT_TOKEN");
 
-// Helper to get the token value
-const getTelegramToken = (): string => {
+// --- CONSTANTS ---
+const MS_PER_MINUTE = 60 * 1000;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+
+const PRESET_TO_MINUTES: Record<string, number> = {
+    '1h': 60,
+    '6h': 360,
+    '1d': 1440,
+    '3d': 4320,
+    '1w': 10080,
+};
+
+// --- TYPES ---
+interface Reminder {
+    enabled: boolean;
+    preset: string;
+    customMinutes?: number;
+    customTime?: string;
+    sentAt?: string;
+}
+
+interface Assignment {
+    title: string;
+    dueDate: string;
+    reminder?: Reminder;
+}
+
+interface TelegramKeyboard {
+    inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+}
+
+// --- HELPER: Get Telegram Token ---
+function getTelegramToken(): string {
     try {
         return telegramBotToken.value();
     } catch {
         return process.env.TELEGRAM_BOT_TOKEN || "";
     }
-};
+}
 
 // --- HELPER: Send Telegram Message ---
-async function sendTelegramMessage(chatId: string, text: string, keyboard?: any): Promise<void> {
+async function sendTelegramMessage(
+    chatId: string,
+    text: string,
+    keyboard?: TelegramKeyboard
+): Promise<void> {
     const token = getTelegramToken();
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
-    const body: any = {
+    const body: Record<string, unknown> = {
         chat_id: chatId,
         text: text,
         parse_mode: "HTML"
@@ -45,6 +80,71 @@ async function sendTelegramMessage(chatId: string, text: string, keyboard?: any)
     if (!response.ok) {
         console.error("Failed to send Telegram message:", await response.text());
     }
+}
+
+// --- HELPER: Format time before due with proper pluralization ---
+function formatTimeBeforeDue(hours: number): string {
+    if (hours < 1) {
+        const minutes = Math.round(hours * 60);
+        return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    if (hours < 24) {
+        return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    const days = Math.round(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''}`;
+}
+
+// --- HELPER: Calculate Reminder Time ---
+function calculateReminderTime(dueDate: string, reminder: Reminder): Date | null {
+    const due = new Date(dueDate);
+    const preset = reminder.preset;
+
+    if (preset !== 'custom' && PRESET_TO_MINUTES[preset]) {
+        return new Date(due.getTime() - PRESET_TO_MINUTES[preset] * MS_PER_MINUTE);
+    }
+
+    if (reminder.customTime) {
+        return new Date(reminder.customTime);
+    }
+
+    if (reminder.customMinutes) {
+        return new Date(due.getTime() - reminder.customMinutes * MS_PER_MINUTE);
+    }
+
+    return null;
+}
+
+// --- HELPER: Send Reminder Notification ---
+async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<void> {
+    const { dueDate, title, reminder } = assignment;
+    if (!reminder) return;
+
+    const reminderTime = calculateReminderTime(dueDate, reminder);
+    if (!reminderTime) return;
+
+    const timeDiff = new Date(dueDate).getTime() - reminderTime.getTime();
+    const hoursBefore = timeDiff / MS_PER_HOUR;
+    const timeText = formatTimeBeforeDue(hoursBefore);
+
+    // Format due date with explicit locale for consistency
+    const dueDateTime = new Date(dueDate);
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    const message = `🔔 <b>Reminder!</b>\n\n` +
+        `<b>${title}</b> is due in ${timeText}.\n` +
+        `📅 Due: ${dateFormatter.format(dueDateTime)} at ${timeFormatter.format(dueDateTime)}`;
+
+    await sendTelegramMessage(chatId, message);
 }
 
 // --- HELPER: Manage State ---
@@ -319,11 +419,12 @@ export const telegramWebhook = onRequest(async (req, res) => {
 });
 
 // --- SCHEDULED: Check for upcoming deadlines and send notifications ---
-export const checkDeadlines = onSchedule("every 1 hours", async () => {
-    console.log("Checking for upcoming deadlines...");
+export const checkDeadlines = onSchedule("every 15 minutes", async () => {
+    console.log("Checking for reminders...");
 
     const now = new Date();
-    const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const windowStart = new Date(now.getTime() - 15 * 60 * 1000);  // 15 min ago (catch-up)
+    const windowEnd = new Date(now.getTime() + 15 * 60 * 1000);     // 15 min ahead
 
     // Get all users with linked Telegram
     const linksSnapshot = await db.collection("telegramLinks").get();
@@ -332,32 +433,38 @@ export const checkDeadlines = onSchedule("every 1 hours", async () => {
         const userUid = linkDoc.id;
         const chatId = linkDoc.data().chatId;
 
-        // Get assignments due in the next 24 hours
+        // Get assignments with enabled reminders
+        // Note: Filter out Completed assignments in JavaScript to avoid
+        // Firestore inequality + orderBy constraint if we add sorting later
         const assignmentsSnapshot = await db
             .collection(`users/${userUid}/assignments`)
-            .where("dueDate", ">=", now.toISOString())
-            .where("dueDate", "<=", in24Hours.toISOString())
-            .where("status", "!=", "Completed")
+            .where("reminder.enabled", "==", true)
             .get();
 
-        if (!assignmentsSnapshot.empty) {
-            let message = "⚠️ <b>Upcoming Deadlines!</b>\n\n";
-            message += "The following assignments are due within 24 hours:\n\n";
+        for (const doc of assignmentsSnapshot.docs) {
+            const assignment = doc.data();
 
-            assignmentsSnapshot.docs.forEach((doc) => {
-                const data = doc.data();
-                const dueDate = new Date(data.dueDate);
-                const hoursLeft = Math.round((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-                const typePrefix = data.examType === 'midterm' ? "<b>[Midterm]</b> " :
-                    data.examType === 'final' ? "<b>[Final]</b> " : "";
+            // Skip completed assignments
+            if (assignment.status === "Completed") continue;
 
-                message += `📌 ${typePrefix}<b>${data.title}</b>\n`;
-                message += `   ⏰ ${hoursLeft} hours left\n\n`;
-            });
+            // Skip if already sent
+            if (assignment.reminder?.sentAt) continue;
 
-            await sendTelegramMessage(chatId, message);
+            // Calculate reminder time
+            const reminderTime = calculateReminderTime(assignment.dueDate, assignment.reminder);
+            if (!reminderTime) continue;
+
+            // Check if reminder time is within execution window
+            if (reminderTime >= windowStart && reminderTime <= windowEnd) {
+                await sendReminderNotification(chatId, assignment as Assignment);
+
+                // Mark as sent
+                await doc.ref.update({
+                    "reminder.sentAt": now.toISOString()
+                });
+            }
         }
     }
 
-    console.log("Deadline check complete.");
+    console.log("Reminder check complete.");
 });

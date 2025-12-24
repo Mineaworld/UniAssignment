@@ -1,0 +1,11 @@
+# Ignore build artifacts
+dist
+build
+*.log
+
+# Ignore dependencies
+node_modules
+
+# Ignore cache
+.cache
+.tsbuildinfo

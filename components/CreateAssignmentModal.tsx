@@ -1,7 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status } from '../types';
+import { Priority, Status, AssignmentReminder } from '../types';
 import { useApp } from '../context';
+import { ReminderSelector } from './ReminderSelector';
+
+// Form data type for type safety
+interface FormData {
+  title: string;
+  subjectId: string;
+  status: Status;
+  date: string;
+  time: string;
+  priority: Priority;
+  description: string;
+  examType: 'midterm' | 'final' | null;
+  reminder: AssignmentReminder | undefined;
+}
+
+const DEFAULT_FORM_DATA: Omit<FormData, 'reminder'> & { reminder: AssignmentReminder | undefined } = {
+  title: '',
+  subjectId: '',
+  status: Status.Pending,
+  date: '',
+  time: '',
+  priority: Priority.Medium,
+  description: '',
+  examType: null,
+  reminder: undefined,
+};
+
+const getResetFormData = (): FormData => ({
+  ...DEFAULT_FORM_DATA,
+  reminder: undefined,
+});
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -10,16 +41,7 @@ interface CreateAssignmentModalProps {
 
 const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, onClose }) => {
   const { subjects, addAssignment, addSubject } = useApp();
-  const [formData, setFormData] = useState({
-    title: '',
-    subjectId: '',
-    status: Status.Pending,
-    date: '',
-    time: '',
-    priority: Priority.Medium,
-    description: '',
-    examType: null as 'midterm' | 'final' | null
-  });
+  const [formData, setFormData] = useState<FormData>(getResetFormData);
 
   const [loading, setLoading] = useState(false);
 
@@ -89,23 +111,14 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
         subjectId: formData.subjectId,
         status: formData.status,
         dueDate: dateTime,
-
         priority: formData.priority,
         description: formData.description,
-        examType: formData.examType
+        examType: formData.examType,
+        reminder: formData.reminder,
       });
 
       // Reset and close
-      setFormData({
-        title: '',
-        subjectId: '',
-        status: Status.Pending,
-        date: '',
-        time: '',
-        priority: Priority.Medium,
-        description: '',
-        examType: null
-      });
+      setFormData(getResetFormData());
       onClose();
     } catch (error) {
       console.error("Failed to create assignment:", error);
@@ -400,6 +413,16 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                   ))}
                 </div>
               </div>
+
+              <ReminderSelector
+                dueDate={
+                  formData.date
+                    ? new Date(formData.time ? `${formData.date}T${formData.time}` : formData.date).toISOString()
+                    : new Date().toISOString()
+                }
+                value={formData.reminder}
+                onChange={(reminder) => setFormData({ ...formData, reminder })}
+              />
 
               <label className="block">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Description / Notes</span>
