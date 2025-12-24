@@ -568,7 +568,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const { reminderAssignmentId } = currentState.data;
 
                 if (!reminderAssignmentId) {
+                    console.error(`[Reminder] Missing reminderAssignmentId for chatId ${chatId}, state:`, currentState);
                     await clearState(chatId);
+                    // Notify user of the error (fire and forget to ensure 200 response)
+                    sendTelegramMessage(chatId,
+                        "⚠️ <b>Something went wrong</b>\n\n" +
+                        "I couldn't find the assignment. Please try /remind again."
+                    ).catch(err => console.error('[Reminder] Failed to send error message:', err));
                     return res.status(200).send('OK');
                 }
 
