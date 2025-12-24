@@ -156,20 +156,26 @@ async function handleAssignmentsCommand(chatId: string, userUid: string) {
 }
 
 async function showRemindMenu(chatId: string, userUid: string) {
+    // Firestore requires inequality filter field to be first orderBy.
+    // Filter out Completed assignments in JavaScript instead.
     const assignmentsSnapshot = await db
         .collection(`users/${userUid}/assignments`)
-        .where("status", "!=", "Completed")
         .orderBy("dueDate", "asc")
-        .limit(10)
+        .limit(20) // Fetch more since we'll filter out completed ones
         .get();
 
-    if (assignmentsSnapshot.empty) {
+    // Filter out completed assignments
+    const pendingDocs = assignmentsSnapshot.docs.filter(
+        (doc) => doc.data().status !== "Completed"
+    ).slice(0, 10); // Limit to 10 after filtering
+
+    if (pendingDocs.length === 0) {
         await sendTelegramMessage(chatId, "📚 You have no pending assignments to set reminders for.");
         return;
     }
 
     const inlineKeyboard: any[][] = [];
-    assignmentsSnapshot.docs.forEach((doc) => {
+    pendingDocs.forEach((doc) => {
         const d = doc.data();
         const hasReminder = d.reminder?.enabled;
         const emoji = hasReminder ? '🔔' : '⏰';

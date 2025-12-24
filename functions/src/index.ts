@@ -421,14 +421,18 @@ export const checkDeadlines = onSchedule("every 15 minutes", async () => {
         const chatId = linkDoc.data().chatId;
 
         // Get assignments with enabled reminders
+        // Note: Filter out Completed assignments in JavaScript to avoid
+        // Firestore inequality + orderBy constraint if we add sorting later
         const assignmentsSnapshot = await db
             .collection(`users/${userUid}/assignments`)
-            .where("status", "!=", "Completed")
             .where("reminder.enabled", "==", true)
             .get();
 
         for (const doc of assignmentsSnapshot.docs) {
             const assignment = doc.data();
+
+            // Skip completed assignments
+            if (assignment.status === "Completed") continue;
 
             // Skip if already sent
             if (assignment.reminder?.sentAt) continue;
