@@ -262,12 +262,11 @@ async function handleCallbackQuery(query: any, userUid: string) {
         }
 
         const assignment = doc.data()!;
+        // Use dot notation to properly delete sentAt while updating other fields
         await docRef.update({
-            reminder: {
-                enabled: true,
-                preset: preset,
-                sentAt: admin.firestore.FieldValue.delete()  // Reset sent status if changing
-            }
+            "reminder.enabled": true,
+            "reminder.preset": preset,
+            "reminder.sentAt": admin.firestore.FieldValue.delete()  // Reset sent status if changing
         });
 
         await editTelegramMessage(chatId, messageId,

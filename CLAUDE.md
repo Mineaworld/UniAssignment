@@ -108,6 +108,20 @@ TELEGRAM_BOT_TOKEN=
 
 ## Troubleshooting & Best Practices
 
+### Code Review Approach
+
+**When addressing CodeRabbit or automated review feedback:**
+- **Evaluate each suggestion** before applying - not all feedback may be valid or relevant
+- Consider if the fix makes sense for the codebase architecture
+- Check if the "issue" is actually a problem or just a style preference
+- Some feedback may be outdated or based on incomplete context
+
+**Decision criteria for applying feedback:**
+1. Is it a real bug or potential runtime error? → Fix
+2. Is it a valid security or performance concern? → Fix
+3. Is it purely stylistic without functional impact? → Use judgment
+4. Would the fix complicate the code without clear benefit? → Skip or discuss
+
 ### After Destructive Git Operations
 
 **After `git-filter-repo` or any history rewrite:**
