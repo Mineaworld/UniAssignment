@@ -445,6 +445,7 @@ async function handleCallbackQuery(query: any, userUid: string) {
 
 // --- HELPER: Show Reminder Presets ---
 async function showReminderPresets(chatId: string, messageId: number, assignmentId: string, userUid: string, currentReminder?: any) {
+    // Build keyboard rows
     const keyboard = [
         [
             { text: "1 hour before", callback_data: `remind_preset_1h_${assignmentId}` },
@@ -458,11 +459,14 @@ async function showReminderPresets(chatId: string, messageId: number, assignment
             { text: "1 week before", callback_data: `remind_preset_1w_${assignmentId}` },
             { text: "Custom", callback_data: `remind_custom_${assignmentId}` }
         ],
-        [
-            { text: currentReminder?.enabled ? "🔕 Disable" : "🔕 Disable", callback_data: `remind_disable_${assignmentId}` },
-            { text: "🔙 Back", callback_data: `list_all` }
-        ]
     ];
+
+    // Only show Disable button if reminder is already enabled
+    const bottomRow = [{ text: "🔙 Back", callback_data: "list_all" }];
+    if (currentReminder?.enabled) {
+        bottomRow.unshift({ text: "🔕 Disable", callback_data: `remind_disable_${assignmentId}` });
+    }
+    keyboard.push(bottomRow);
 
     const currentText = currentReminder?.enabled
         ? `\n\n📍 Current: ${formatPresetText(currentReminder.preset)}`
