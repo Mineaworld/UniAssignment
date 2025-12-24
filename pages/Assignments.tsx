@@ -211,6 +211,17 @@ const Assignments = () => {
                     onClick={() => setViewingAssignment(assignment)}
                     className="flex flex-col justify-between bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 rounded-xl p-6 hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-300 group relative cursor-pointer"
                   >
+                    {/* Reminder Badge */}
+                    {assignment.reminder?.enabled && !assignment.reminder.sentAt && (
+                      <div className="absolute top-4 left-4" title="Reminder set">
+                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30">
+                          <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[18px]">
+                            notifications
+                          </span>
+                        </span>
+                      </div>
+                    )}
+
                     <div className="absolute top-4 right-4 flex gap-1">
                       <button
                         onClick={(e) => {

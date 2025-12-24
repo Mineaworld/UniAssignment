@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status, Assignment } from '../types';
+import { Priority, Status, Assignment, AssignmentReminder } from '../types';
 import { useApp } from '../context';
+import { ReminderSelector } from './ReminderSelector';
 
 interface EditAssignmentModalProps {
     isOpen: boolean;
@@ -19,7 +20,8 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
         time: '',
         priority: Priority.Medium,
         description: '',
-        examType: null as 'midterm' | 'final' | null
+        examType: null as 'midterm' | 'final' | null,
+        reminder: undefined as AssignmentReminder | undefined,
     });
 
     const [loading, setLoading] = useState(false);
@@ -36,7 +38,8 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                 time: dueDate.toTimeString().slice(0, 5),
                 priority: assignment.priority,
                 description: assignment.description || '',
-                examType: assignment.examType || null
+                examType: assignment.examType || null,
+                reminder: assignment.reminder,
             });
         }
     }, [assignment]);
@@ -60,7 +63,8 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                 dueDate: dateTime,
                 priority: formData.priority,
                 description: formData.description,
-                examType: formData.examType
+                examType: formData.examType,
+                reminder: formData.reminder,
             });
 
             onClose();
@@ -260,6 +264,12 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                                     ))}
                                 </div>
                             </div>
+
+                            <ReminderSelector
+                                dueDate={formData.date ? new Date(formData.date).toISOString() : new Date().toISOString()}
+                                value={formData.reminder}
+                                onChange={(reminder) => setFormData({ ...formData, reminder })}
+                            />
 
                             <label className="block">
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Description / Notes</span>

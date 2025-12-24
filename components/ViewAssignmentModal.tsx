@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Priority, Status, Assignment } from '../types';
 import { useApp } from '../context';
 import { getPriorityColor, getStatusColor } from '../utils/theme';
+import { formatReminderText } from '../utils/reminder';
 
 interface ViewAssignmentModalProps {
     isOpen: boolean;
@@ -114,6 +115,22 @@ const ViewAssignmentModal: React.FC<ViewAssignmentModalProps> = ({ isOpen, onClo
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Reminder */}
+                            {assignment.reminder?.enabled && (
+                                <div className="bg-amber-50 dark:bg-amber-500/10 rounded-xl p-4 border border-amber-100 dark:border-amber-500/30">
+                                    <span className="text-sm font-medium text-amber-700 dark:text-amber-300 block mb-2">Reminder</span>
+                                    <div className="flex items-center gap-2 text-amber-900 dark:text-amber-100 font-semibold text-sm">
+                                        <span className="material-symbols-outlined text-amber-500 text-[18px]">notifications</span>
+                                        <span>{formatReminderText(assignment.dueDate, assignment.reminder)}</span>
+                                    </div>
+                                    {assignment.reminder.sentAt && (
+                                        <span className="text-xs text-amber-600 dark:text-amber-400 mt-1 block">
+                                            Sent on {new Date(assignment.reminder.sentAt).toLocaleDateString()}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Exam Type Tag if exists */}
                             {assignment.examType && (

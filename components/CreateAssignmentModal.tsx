@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status } from '../types';
+import { Priority, Status, AssignmentReminder } from '../types';
 import { useApp } from '../context';
+import { ReminderSelector } from './ReminderSelector';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -18,7 +19,8 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
     time: '',
     priority: Priority.Medium,
     description: '',
-    examType: null as 'midterm' | 'final' | null
+    examType: null as 'midterm' | 'final' | null,
+    reminder: undefined as AssignmentReminder | undefined,
   });
 
   const [loading, setLoading] = useState(false);
@@ -89,10 +91,10 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
         subjectId: formData.subjectId,
         status: formData.status,
         dueDate: dateTime,
-
         priority: formData.priority,
         description: formData.description,
-        examType: formData.examType
+        examType: formData.examType,
+        reminder: formData.reminder,
       });
 
       // Reset and close
@@ -104,7 +106,8 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
         time: '',
         priority: Priority.Medium,
         description: '',
-        examType: null
+        examType: null,
+        reminder: undefined,
       });
       onClose();
     } catch (error) {
@@ -400,6 +403,12 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                   ))}
                 </div>
               </div>
+
+              <ReminderSelector
+                dueDate={formData.date ? new Date(formData.date).toISOString() : new Date().toISOString()}
+                value={formData.reminder}
+                onChange={(reminder) => setFormData({ ...formData, reminder })}
+              />
 
               <label className="block">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Description / Notes</span>
