@@ -53,7 +53,7 @@ Collections use subcollections per user:
 
 1. **Firebase Cloud Functions** (`functions/src/index.ts`):
    - `telegramWebhook` - HTTP endpoint for Telegram updates
-   - `checkDeadlines` - Scheduled function (every 1 hour) for deadline notifications
+   - `checkDeadlines` - Scheduled function (every 15 minutes) for deadline notifications
    - Uses `firebase-functions/params` for `TELEGRAM_BOT_TOKEN`
    - Deployed via Firebase: `firebase deploy --only functions`
 

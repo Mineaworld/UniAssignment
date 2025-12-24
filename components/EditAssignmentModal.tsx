@@ -288,7 +288,11 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                             </div>
 
                             <ReminderSelector
-                                dueDate={formData.date ? new Date(formData.date).toISOString() : new Date().toISOString()}
+                                dueDate={
+                                    formData.date
+                                        ? new Date(formData.time ? `${formData.date}T${formData.time}` : formData.date).toISOString()
+                                        : new Date().toISOString()
+                                }
                                 value={formData.reminder}
                                 onChange={(reminder) => setFormData({ ...formData, reminder })}
                             />

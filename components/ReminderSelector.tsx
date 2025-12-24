@@ -28,6 +28,7 @@ const PRESET_OPTIONS: ReminderPreset[] = [
 export function ReminderSelector({ dueDate, value, onChange, disabled }: ReminderSelectorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [customMode, setCustomMode] = useState<'relative' | 'absolute'>('relative');
+  const [customError, setCustomError] = useState<string>('');
 
   const isEnabled = value?.enabled ?? false;
   const currentPreset = value?.preset ?? ReminderPreset.OneDay;
@@ -48,11 +49,20 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
 
   const handleCustomSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setCustomError('');
     const formData = new FormData(e.currentTarget);
 
     if (customMode === 'relative') {
-      const amount = parseInt(formData.get('amount') as string) || 0;
+      const amountStr = formData.get('amount') as string;
+      const amount = parseInt(amountStr, 10);
       const unit = formData.get('unit') as keyof typeof UNIT_TO_MINUTES;
+
+      // Validate amount is a positive number
+      if (!amountStr || isNaN(amount) || amount <= 0) {
+        setCustomError('Please enter a valid number greater than 0');
+        return;
+      }
+
       const customMinutes = amount * UNIT_TO_MINUTES[unit];
       onChange({ enabled: true, preset: ReminderPreset.Custom, customMinutes });
     } else {
@@ -61,6 +71,8 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
       if (date && time) {
         const customTime = new Date(`${date}T${time}`).toISOString();
         onChange({ enabled: true, preset: ReminderPreset.Custom, customTime });
+      } else {
+        setCustomError('Please select both date and time');
       }
     }
   };
@@ -182,7 +194,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setCustomMode('relative')}
+                    onClick={() => { setCustomMode('relative'); setCustomError(''); }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       customMode === 'relative'
                         ? 'bg-primary text-white shadow-sm'
@@ -194,7 +206,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCustomMode('absolute')}
+                    onClick={() => { setCustomMode('absolute'); setCustomError(''); }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       customMode === 'absolute'
                         ? 'bg-primary text-white shadow-sm'
@@ -206,6 +218,11 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                   </button>
                 </div>
 
+                {/* Error Message */}
+                {customError && (
+                  <p className="text-xs text-red-500 dark:text-red-400">{customError}</p>
+                )}
+
                 {/* Custom Form */}
                 <form onSubmit={handleCustomSubmit} className="flex gap-2 items-end flex-wrap sm:flex-nowrap">
                   {customMode === 'relative' ? (
@@ -216,12 +233,14 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                         min="1"
                         defaultValue={value?.customMinutes ? Math.round(value.customMinutes / 60) : 1}
                         placeholder="1"
+                        onChange={() => setCustomError('')}
                         className="w-24 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                         aria-label="Amount of time before due"
                       />
                       <select
                         name="unit"
                         defaultValue={value?.customMinutes && value.customMinutes >= 1440 ? 'days' : 'hours'}
+                        onChange={() => setCustomError('')}
                         className="flex-1 sm:flex-none h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                         aria-label="Time unit"
                       >

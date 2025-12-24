@@ -202,6 +202,22 @@ function formatPresetText(preset: string): string {
     return map[preset] || preset;
 }
 
+/**
+ * Format minutes into human-readable time before due
+ * Examples: 30 -> "30 minutes", 60 -> "1 hour", 90 -> "1 hour 30 minutes", 150 -> "2 hours 30 minutes"
+ */
+function formatMinutesBeforeDue(minutes: number): string {
+    if (minutes < 60) {
+        return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+        return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+}
+
 async function handleCallbackQuery(query: any, userUid: string) {
     // Must answer callback query to stop loading state
     const callbackQueryId = query.id;
@@ -615,7 +631,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     await clearState(chatId);
                     await sendTelegramMessage(chatId,
                         `✅ <b>Reminder Set!</b>\n\n` +
-                        `I'll remind you ${Math.round(minutes / 60)} hours before the deadline.`
+                        `I'll remind you ${formatMinutesBeforeDue(minutes)} before the deadline.`
                     );
                 } else {
                     await sendTelegramMessage(chatId,

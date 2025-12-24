@@ -127,9 +127,22 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
     const hoursBefore = timeDiff / MS_PER_HOUR;
     const timeText = formatTimeBeforeDue(hoursBefore);
 
+    // Format due date with explicit locale for consistency
+    const dueDateTime = new Date(dueDate);
+    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
     const message = `🔔 <b>Reminder!</b>\n\n` +
         `<b>${title}</b> is due in ${timeText}.\n` +
-        `📅 Due: ${new Date(dueDate).toLocaleDateString()} at ${new Date(dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        `📅 Due: ${dateFormatter.format(dueDateTime)} at ${timeFormatter.format(dueDateTime)}`;
 
     await sendTelegramMessage(chatId, message);
 }
