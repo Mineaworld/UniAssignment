@@ -1,5 +1,10 @@
 import { AssignmentReminder, ReminderPreset } from '../types';
 
+// Constants
+const MS_PER_MINUTE = 60 * 1000;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+
 // Preset to minutes mapping
 const PRESET_MINUTES: Record<ReminderPreset, number> = {
   [ReminderPreset.OneHour]: 60,
@@ -10,6 +15,19 @@ const PRESET_MINUTES: Record<ReminderPreset, number> = {
   [ReminderPreset.Custom]: 0,
 };
 
+// Helper: Format time before due with proper pluralization
+function formatTimeBeforeDue(hours: number): string {
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60);
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+  if (hours < 24) {
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+  const days = Math.round(hours / 24);
+  return `${days} day${days !== 1 ? 's' : ''}`;
+}
+
 /**
  * Calculate when reminder should trigger based on due date and reminder settings
  */
@@ -18,7 +36,7 @@ export function calculateReminderTime(dueDate: string, reminder: AssignmentRemin
 
   if (reminder.preset !== ReminderPreset.Custom) {
     const minutes = PRESET_MINUTES[reminder.preset];
-    return new Date(due.getTime() - minutes * 60 * 1000);
+    return new Date(due.getTime() - minutes * MS_PER_MINUTE);
   }
 
   if (reminder.customTime) {
@@ -26,7 +44,7 @@ export function calculateReminderTime(dueDate: string, reminder: AssignmentRemin
   }
 
   if (reminder.customMinutes) {
-    return new Date(due.getTime() - reminder.customMinutes * 60 * 1000);
+    return new Date(due.getTime() - reminder.customMinutes * MS_PER_MINUTE);
   }
 
   return null;
@@ -42,11 +60,8 @@ export function formatReminderText(dueDate: string, reminder: AssignmentReminder
   if (!reminderTime) return 'Reminder set';
 
   if (reminder.preset !== ReminderPreset.Custom) {
-    const hoursBefore = Math.round((due.getTime() - reminderTime.getTime()) / (1000 * 60 * 60));
-    if (hoursBefore < 24) {
-      return `${hoursBefore} hour${hoursBefore !== 1 ? 's' : ''} before due`;
-    }
-    return `${Math.round(hoursBefore / 24)} day${Math.round(hoursBefore / 24) !== 1 ? 's' : ''} before due`;
+    const hoursBefore = (due.getTime() - reminderTime.getTime()) / MS_PER_HOUR;
+    return `${formatTimeBeforeDue(hoursBefore)} before due`;
   }
 
   if (reminder.customTime) {
@@ -54,11 +69,8 @@ export function formatReminderText(dueDate: string, reminder: AssignmentReminder
   }
 
   if (reminder.customMinutes) {
-    const hoursBefore = Math.round(reminder.customMinutes / 60);
-    if (hoursBefore < 24) {
-      return `${hoursBefore} hour${hoursBefore !== 1 ? 's' : ''} before due`;
-    }
-    return `${Math.round(hoursBefore / 24)} day${Math.round(hoursBefore / 24) !== 1 ? 's' : ''} before due`;
+    const hoursBefore = reminder.customMinutes / 60;
+    return `${formatTimeBeforeDue(hoursBefore)} before due`;
   }
 
   return 'Custom reminder';
@@ -67,28 +79,18 @@ export function formatReminderText(dueDate: string, reminder: AssignmentReminder
 /**
  * Check if reminder is due within a time window (for scheduled checks)
  */
-export function isReminderDue(reminder: AssignmentReminder, dueDate: string, windowStart: Date, windowEnd: Date): boolean {
+export function isReminderDue(
+  reminder: AssignmentReminder,
+  dueDate: string,
+  windowStart: Date,
+  windowEnd: Date
+): boolean {
   if (!reminder.enabled || reminder.sentAt) return false;
 
   const reminderTime = calculateReminderTime(dueDate, reminder);
   if (!reminderTime) return false;
 
   return reminderTime >= windowStart && reminderTime <= windowEnd;
-}
-
-/**
- * Get preset label for display
- */
-export function getPresetLabel(preset: ReminderPreset): string {
-  const labels: Record<ReminderPreset, string> = {
-    [ReminderPreset.OneHour]: '1 hour before',
-    [ReminderPreset.SixHours]: '6 hours before',
-    [ReminderPreset.OneDay]: '1 day before',
-    [ReminderPreset.ThreeDays]: '3 days before',
-    [ReminderPreset.OneWeek]: '1 week before',
-    [ReminderPreset.Custom]: 'Custom',
-  };
-  return labels[preset];
 }
 
 /**

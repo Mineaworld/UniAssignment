@@ -4,6 +4,36 @@ import { Priority, Status, AssignmentReminder } from '../types';
 import { useApp } from '../context';
 import { ReminderSelector } from './ReminderSelector';
 
+// Form data type for type safety
+interface FormData {
+  title: string;
+  subjectId: string;
+  status: Status;
+  date: string;
+  time: string;
+  priority: Priority;
+  description: string;
+  examType: 'midterm' | 'final' | null;
+  reminder: AssignmentReminder | undefined;
+}
+
+const DEFAULT_FORM_DATA: Omit<FormData, 'reminder'> & { reminder: AssignmentReminder | undefined } = {
+  title: '',
+  subjectId: '',
+  status: Status.Pending,
+  date: '',
+  time: '',
+  priority: Priority.Medium,
+  description: '',
+  examType: null,
+  reminder: undefined,
+};
+
+const getResetFormData = (): FormData => ({
+  ...DEFAULT_FORM_DATA,
+  reminder: undefined,
+});
+
 interface CreateAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,17 +41,7 @@ interface CreateAssignmentModalProps {
 
 const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, onClose }) => {
   const { subjects, addAssignment, addSubject } = useApp();
-  const [formData, setFormData] = useState({
-    title: '',
-    subjectId: '',
-    status: Status.Pending,
-    date: '',
-    time: '',
-    priority: Priority.Medium,
-    description: '',
-    examType: null as 'midterm' | 'final' | null,
-    reminder: undefined as AssignmentReminder | undefined,
-  });
+  const [formData, setFormData] = useState<FormData>(getResetFormData);
 
   const [loading, setLoading] = useState(false);
 
@@ -98,17 +118,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
       });
 
       // Reset and close
-      setFormData({
-        title: '',
-        subjectId: '',
-        status: Status.Pending,
-        date: '',
-        time: '',
-        priority: Priority.Medium,
-        description: '',
-        examType: null,
-        reminder: undefined,
-      });
+      setFormData(getResetFormData());
       onClose();
     } catch (error) {
       console.error("Failed to create assignment:", error);

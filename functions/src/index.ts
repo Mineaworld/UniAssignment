@@ -12,21 +12,56 @@ const db = admin.firestore();
 // Define the bot token as a parameter (will read from .env or Firebase secrets)
 const telegramBotToken = defineString("TELEGRAM_BOT_TOKEN");
 
-// Helper to get the token value
-const getTelegramToken = (): string => {
+// --- CONSTANTS ---
+const MS_PER_MINUTE = 60 * 1000;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+
+const PRESET_TO_MINUTES: Record<string, number> = {
+    '1h': 60,
+    '6h': 360,
+    '1d': 1440,
+    '3d': 4320,
+    '1w': 10080,
+};
+
+// --- TYPES ---
+interface Reminder {
+    enabled: boolean;
+    preset: string;
+    customMinutes?: number;
+    customTime?: string;
+    sentAt?: string;
+}
+
+interface Assignment {
+    title: string;
+    dueDate: string;
+    reminder?: Reminder;
+}
+
+interface TelegramKeyboard {
+    inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+}
+
+// --- HELPER: Get Telegram Token ---
+function getTelegramToken(): string {
     try {
         return telegramBotToken.value();
     } catch {
         return process.env.TELEGRAM_BOT_TOKEN || "";
     }
-};
+}
 
 // --- HELPER: Send Telegram Message ---
-async function sendTelegramMessage(chatId: string, text: string, keyboard?: any): Promise<void> {
+async function sendTelegramMessage(
+    chatId: string,
+    text: string,
+    keyboard?: TelegramKeyboard
+): Promise<void> {
     const token = getTelegramToken();
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
-    const body: any = {
+    const body: Record<string, unknown> = {
         chat_id: chatId,
         text: text,
         parse_mode: "HTML"
@@ -47,21 +82,26 @@ async function sendTelegramMessage(chatId: string, text: string, keyboard?: any)
     }
 }
 
+// --- HELPER: Format time before due with proper pluralization ---
+function formatTimeBeforeDue(hours: number): string {
+    if (hours < 1) {
+        const minutes = Math.round(hours * 60);
+        return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    if (hours < 24) {
+        return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    const days = Math.round(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''}`;
+}
+
 // --- HELPER: Calculate Reminder Time ---
-function calculateReminderTime(dueDate: string, reminder: any): Date | null {
+function calculateReminderTime(dueDate: string, reminder: Reminder): Date | null {
     const due = new Date(dueDate);
     const preset = reminder.preset;
 
-    const presetMinutes: Record<string, number> = {
-        '1h': 60,
-        '6h': 360,
-        '1d': 1440,
-        '3d': 4320,
-        '1w': 10080,
-    };
-
-    if (preset !== 'custom' && presetMinutes[preset]) {
-        return new Date(due.getTime() - presetMinutes[preset] * 60 * 1000);
+    if (preset !== 'custom' && PRESET_TO_MINUTES[preset]) {
+        return new Date(due.getTime() - PRESET_TO_MINUTES[preset] * MS_PER_MINUTE);
     }
 
     if (reminder.customTime) {
@@ -69,35 +109,27 @@ function calculateReminderTime(dueDate: string, reminder: any): Date | null {
     }
 
     if (reminder.customMinutes) {
-        return new Date(due.getTime() - reminder.customMinutes * 60 * 1000);
+        return new Date(due.getTime() - reminder.customMinutes * MS_PER_MINUTE);
     }
 
     return null;
 }
 
 // --- HELPER: Send Reminder Notification ---
-async function sendReminderNotification(chatId: string, assignment: any): Promise<void> {
-    const dueDate = new Date(assignment.dueDate);
-    const reminder = assignment.reminder;
-    const reminderTime = calculateReminderTime(assignment.dueDate, reminder)!;
+async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<void> {
+    const { dueDate, title, reminder } = assignment;
+    if (!reminder) return;
 
-    const timeDiff = dueDate.getTime() - reminderTime.getTime();
-    const hoursBefore = Math.round(timeDiff / (1000 * 60 * 60));
+    const reminderTime = calculateReminderTime(dueDate, reminder);
+    if (!reminderTime) return;
 
-    let timeText: string;
-    if (hoursBefore < 1) {
-        const minutesBefore = Math.round(timeDiff / (1000 * 60));
-        timeText = `${minutesBefore} minute${minutesBefore !== 1 ? 's' : ''}`;
-    } else if (hoursBefore < 24) {
-        timeText = `${hoursBefore} hour${hoursBefore !== 1 ? 's' : ''}`;
-    } else {
-        const daysBefore = Math.round(hoursBefore / 24);
-        timeText = `${daysBefore} day${daysBefore !== 1 ? 's' : ''}`;
-    }
+    const timeDiff = new Date(dueDate).getTime() - reminderTime.getTime();
+    const hoursBefore = timeDiff / MS_PER_HOUR;
+    const timeText = formatTimeBeforeDue(hoursBefore);
 
     const message = `🔔 <b>Reminder!</b>\n\n` +
-        `<b>${assignment.title}</b> is due in ${timeText}.\n` +
-        `📅 Due: ${dueDate.toLocaleDateString()} at ${dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        `<b>${title}</b> is due in ${timeText}.\n` +
+        `📅 Due: ${new Date(dueDate).toLocaleDateString()} at ${new Date(dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
     await sendTelegramMessage(chatId, message);
 }
@@ -407,7 +439,7 @@ export const checkDeadlines = onSchedule("every 15 minutes", async () => {
 
             // Check if reminder time is within execution window
             if (reminderTime >= windowStart && reminderTime <= windowEnd) {
-                await sendReminderNotification(chatId, assignment);
+                await sendReminderNotification(chatId, assignment as Assignment);
 
                 // Mark as sent
                 await doc.ref.update({

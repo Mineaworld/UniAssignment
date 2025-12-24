@@ -4,6 +4,49 @@ import { Priority, Status, Assignment, AssignmentReminder } from '../types';
 import { useApp } from '../context';
 import { ReminderSelector } from './ReminderSelector';
 
+// Form data type for type safety
+interface FormData {
+  title: string;
+  subjectId: string;
+  status: Status;
+  date: string;
+  time: string;
+  priority: Priority;
+  description: string;
+  examType: 'midterm' | 'final' | null;
+  reminder: AssignmentReminder | undefined;
+}
+
+const DEFAULT_FORM_DATA: Omit<FormData, 'reminder'> & { reminder: AssignmentReminder | undefined } = {
+  title: '',
+  subjectId: '',
+  status: Status.Pending,
+  date: '',
+  time: '',
+  priority: Priority.Medium,
+  description: '',
+  examType: null,
+  reminder: undefined,
+};
+
+const getResetFormData = (): FormData => ({
+  ...DEFAULT_FORM_DATA,
+  reminder: undefined,
+});
+
+// Convert assignment to form data
+const assignmentToFormData = (assignment: Assignment): FormData => ({
+  title: assignment.title,
+  subjectId: assignment.subjectId,
+  status: assignment.status,
+  date: new Date(assignment.dueDate).toISOString().split('T')[0],
+  time: new Date(assignment.dueDate).toTimeString().slice(0, 5),
+  priority: assignment.priority,
+  description: assignment.description || '',
+  examType: assignment.examType || null,
+  reminder: assignment.reminder,
+});
+
 interface EditAssignmentModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -12,35 +55,14 @@ interface EditAssignmentModalProps {
 
 const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClose, assignment }) => {
     const { subjects, updateAssignment } = useApp();
-    const [formData, setFormData] = useState({
-        title: '',
-        subjectId: '',
-        status: Status.Pending,
-        date: '',
-        time: '',
-        priority: Priority.Medium,
-        description: '',
-        examType: null as 'midterm' | 'final' | null,
-        reminder: undefined as AssignmentReminder | undefined,
-    });
+    const [formData, setFormData] = useState<FormData>(getResetFormData);
 
     const [loading, setLoading] = useState(false);
 
     // Populate form when assignment changes
     useEffect(() => {
         if (assignment) {
-            const dueDate = new Date(assignment.dueDate);
-            setFormData({
-                title: assignment.title,
-                subjectId: assignment.subjectId,
-                status: assignment.status,
-                date: dueDate.toISOString().split('T')[0],
-                time: dueDate.toTimeString().slice(0, 5),
-                priority: assignment.priority,
-                description: assignment.description || '',
-                examType: assignment.examType || null,
-                reminder: assignment.reminder,
-            });
+            setFormData(assignmentToFormData(assignment));
         }
     }, [assignment]);
 
