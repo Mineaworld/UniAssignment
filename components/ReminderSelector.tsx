@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReminderPreset, AssignmentReminder } from '../types';
 import { calculateReminderTime, formatReminderText, getPresetShort } from '../utils/reminder';
@@ -25,6 +25,23 @@ const PRESET_OPTIONS: ReminderPreset[] = [
   ReminderPreset.OneWeek,
 ];
 
+/**
+ * Render a reminder selection UI tied to an assignment due date.
+ *
+ * The component displays an enable/disable toggle, quick-select presets, and an expandable custom panel
+ * supporting both relative ("before due") and absolute ("specific time") reminder configuration.
+ * When the user changes settings the component invokes `onChange` with either `undefined` to disable the reminder
+ * or an object describing the enabled reminder:
+ * - For presets: `{ enabled: true, preset: ReminderPreset.<PresetName> }`
+ * - For custom relative: `{ enabled: true, preset: ReminderPreset.Custom, customMinutes: number }`
+ * - For custom absolute: `{ enabled: true, preset: ReminderPreset.Custom, customTime: string }`
+ *
+ * @param dueDate - ISO date string for the assignment due date used to compute and preview reminder times
+ * @param value - Current reminder configuration or `undefined` when no reminder is set
+ * @param onChange - Callback invoked with the updated reminder configuration or `undefined` to clear it
+ * @param disabled - Optional flag to disable user interaction with the control
+ * @returns A JSX element containing the reminder selector UI
+ */
 export function ReminderSelector({ dueDate, value, onChange, disabled }: ReminderSelectorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [customMode, setCustomMode] = useState<'relative' | 'absolute'>('relative');
@@ -47,7 +64,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
     }
   };
 
-  const handleCustomSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCustomSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setCustomError('');
     const formData = new FormData(e.currentTarget);
@@ -97,14 +114,14 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
           type="button"
           onClick={handleToggle}
           disabled={disabled}
-          className={`relative w-12 h-6 rounded-full transition-colors ${
+          className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${
             isEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
           }`}
           aria-label={isEnabled ? 'Disable reminder' : 'Enable reminder'}
         >
           <span
-            className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-              isEnabled ? 'translate-x-6' : 'translate-x-0.5'
+            className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+              isEnabled ? 'translate-x-6' : 'translate-x-0'
             }`}
           />
         </button>

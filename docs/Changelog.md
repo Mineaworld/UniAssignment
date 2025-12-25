@@ -4,6 +4,12 @@ All notable changes to the UniAssignment project will be documented in this file
 
 ## [Unreleased]
 
+### Fixed
+- Assignment reminder toggle button now stays within bounds (Issue #3)
+- Assignment updates properly delete optional fields when set to undefined (Issue #2)
+- Assignment title text wrapping and spacing to prevent overlap with action buttons
+- Modern React imports: use direct FormEvent import instead of React namespace
+
 ### Planned
 - Enhanced assignment statistics dashboard
 - Calendar view for assignments
