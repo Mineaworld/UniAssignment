@@ -354,15 +354,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // =========================================================================
+  // Helper Functions
+  // =========================================================================
+
+  /**
+   * Deeply removes undefined values from an object to make it Firestore-compatible.
+   * Firestore does not accept undefined values; they must be omitted or set to null.
+   *
+   * This function recursively processes nested objects and arrays to ensure
+   * no undefined values exist at any level of the data structure.
+   *
+   * @param obj - The object to sanitize
+   * @returns A new object with all undefined values removed
+   */
+  const sanitizeForFirestore = <T extends Record<string, any>>(obj: T): Partial<T> => {
+    const sanitized: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      // Skip undefined values entirely
+      if (value === undefined) {
+        continue;
+      }
+
+      // Recursively sanitize nested objects
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        const nestedSanitized = sanitizeForFirestore(value);
+        // Only include the nested object if it has properties after sanitization
+        if (Object.keys(nestedSanitized).length > 0) {
+          sanitized[key] = nestedSanitized;
+        }
+      }
+      // Recursively sanitize arrays
+      else if (Array.isArray(value)) {
+        sanitized[key] = value
+          .filter(item => item !== undefined)
+          .map(item =>
+            item !== null && typeof item === 'object' && !Array.isArray(item)
+              ? sanitizeForFirestore(item)
+              : item
+          );
+      }
+      // Include primitive values directly
+      else {
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized as Partial<T>;
+  };
+
+  // =========================================================================
   // Assignment Operations
   // =========================================================================
 
   const addAssignment = async (assignment: Omit<Assignment, 'id' | 'createdAt'>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
-    await addDoc(collection(db, `users/${user.uid}/assignments`), {
+
+    const assignmentData = sanitizeForFirestore({
       ...assignment,
       createdAt: new Date().toISOString(),
     });
+
+    await addDoc(collection(db, `users/${user.uid}/assignments`), assignmentData);
   };
 
   const updateAssignment = async (id: string, updates: Partial<Assignment>): Promise<void> => {
