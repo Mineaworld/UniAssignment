@@ -106,7 +106,97 @@ TELEGRAM_BOT_TOKEN=
 - **Cloud Functions:** Firebase (`firebase deploy --only functions`)
 - **Bot Webhook:** Configure Telegram bot webhook URL to point to deployed endpoint
 
+## Known Issues & Fixes
+
+### Issue #7: Firebase addDoc() Invalid Data Error (FIXED)
+**Problem:** Production crashes with `FirebaseError: Function addDoc() called with invalid data`
+
+**Root Cause:** Firestore rejects `undefined` values. Optional fields in TypeScript interfaces (like `Assignment.description?`, `Assignment.reminder?.customMinutes?`) can be undefined, causing errors when passed to `addDoc()`.
+
+**Solution:** Deep recursive sanitization implemented in `context.tsx:360-404`
+
+```typescript
+const sanitizeForFirestore = <T extends Record<string, any>>(obj: T): Partial<T> => {
+  // Recursively removes undefined values from objects and arrays
+  // Preserves null values (Firestore-compatible)
+  // Handles nested objects and arrays
+}
+
+// Usage in addAssignment
+const assignmentData = sanitizeForFirestore({
+  ...assignment,
+  createdAt: new Date().toISOString(),
+});
+await addDoc(collection(db, `users/${user.uid}/assignments`), assignmentData);
+```
+
+**Best Practice:**
+- Always sanitize data before passing to Firestore's `addDoc()` or `setDoc()`
+- Use `null` instead of `undefined` for optional fields if you want them in Firestore
+- The sanitization function handles all edge cases: nested objects, arrays, deep nesting
+
+**Testing:** Manually verified with 7 test scenarios covering all edge cases:
+- Simple objects with undefined values
+- Nested objects (Assignment with Reminder containing optional fields)
+- Empty nested objects after sanitization
+- Arrays with undefined values
+- Objects within arrays
+- Deeply nested structures (3+ levels)
+- null vs undefined handling
+
+### Issue #6: Reminder Badge Overlapping Assignment Title (FIXED)
+**Problem:** On assignment cards, the reminder notification badge overlaps with the assignment title text
+
+**Root Cause:** Badge positioned absolutely at `left-4` without corresponding padding on content
+
+**Solution:** Conditional padding in `pages/Assignments.tsx:248`
+
+```tsx
+<div className={`space-y-4 pr-20 ${assignment.reminder?.enabled && !assignment.reminder.sentAt ? 'pl-14' : ''}`}>
+```
+
+**Spacing Calculation:**
+- Badge: `left-4` (16px) + `w-8` (32px) = ends at 48px
+- Content: card padding (24px) + `pl-14` (56px) = starts at 80px
+- Clearance: 32px for optimal readability
+
+**Best Practice:**
+- When using absolutely positioned elements, always account for their space with padding/margin
+- Use conditional Tailwind classes for dynamic layouts
+- Calculate spacing based on Tailwind units (1 unit = 0.25rem = 4px)
+
 ## Troubleshooting & Best Practices
+
+### Firestore Data Sanitization
+**CRITICAL:** Always sanitize objects before passing to Firestore operations:
+- `addDoc()` - Use sanitization for new documents
+- `setDoc()` - Use sanitization for overwriting documents
+- `updateDoc()` - Use `deleteField()` for undefined values (already handled in `updateAssignment`)
+
+**Example:**
+```typescript
+// ❌ BAD - May throw "invalid data" error
+await addDoc(collection(db, 'collection'), {
+  title: 'Test',
+  description: undefined,  // Firestore rejects this
+  reminder: {
+    enabled: true,
+    customTime: undefined  // Nested undefined also causes errors
+  }
+});
+
+// ✅ GOOD - Sanitized before save
+const data = sanitizeForFirestore({
+  title: 'Test',
+  description: undefined,
+  reminder: {
+    enabled: true,
+    customTime: undefined
+  }
+});
+await addDoc(collection(db, 'collection'), data);
+// Result: { title: 'Test', reminder: { enabled: true } }
+```
 
 ### Code Review Approach
 

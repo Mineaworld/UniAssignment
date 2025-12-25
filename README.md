@@ -31,10 +31,25 @@ This project leverages a modern web development stack to ensure performance, sca
 
 *   **Authentication**: Secure, persistent sessions with fast sign-up/login.
 *   **Dashboard**: "Up Next" view for immediate priorities and progress visualization.
-*   **Assignment CRUD**: Full control over assignment details (Due Date, Priority, Status).
+*   **Assignment CRUD**: Full control over assignment details (Due Date, Priority, Status, Reminders).
+*   **Smart Reminders**: Configure custom reminders for assignments with Telegram notifications.
 *   **Interactive Notifications**: Receive alerts and mark tasks as "Done" directly from Telegram.
 *   **Responsive Design**: Mobile-first approach, optimized for all devices.
 *   **Dark/Light Mode**: System-aware theme support.
+
+## 🔄 Recent Improvements
+
+### v1.1.0 - December 2025
+**Critical Bug Fixes:**
+- ✅ **Fixed Firebase Production Error** - Resolved `addDoc() invalid data` errors by implementing deep recursive sanitization for Firestore operations
+- ✅ **Fixed UI Overlap Issue** - Corrected reminder badge overlapping with assignment titles through dynamic padding
+
+**Technical Enhancements:**
+- Implemented robust data sanitization for all Firestore writes
+- Improved UI spacing calculations for better visual consistency
+- Added comprehensive error handling for production environments
+
+See [CLAUDE.md](CLAUDE.md) for detailed technical documentation of these fixes.
 
 ## ⚡ Getting Started
 

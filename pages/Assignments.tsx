@@ -245,7 +245,7 @@ const Assignments = () => {
                       </button>
                     </div>
 
-                    <div className="space-y-4 pr-20">
+                    <div className={`space-y-4 pr-20 ${assignment.reminder?.enabled && !assignment.reminder.sentAt ? 'pl-14' : ''}`}>
                       <div className="flex justify-between items-start gap-3">
                         <h3 className="font-bold text-lg text-slate-900 dark:text-white leading-tight line-clamp-2 break-words">{assignment.title}</h3>
                       </div>
