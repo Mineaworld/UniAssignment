@@ -135,7 +135,14 @@ await addDoc(collection(db, `users/${user.uid}/assignments`), assignmentData);
 - Use `null` instead of `undefined` for optional fields if you want them in Firestore
 - The sanitization function handles all edge cases: nested objects, arrays, deep nesting
 
-**Testing:** Verified with 7 comprehensive test cases covering all scenarios
+**Testing:** Manually verified with 7 test scenarios covering all edge cases:
+- Simple objects with undefined values
+- Nested objects (Assignment with Reminder containing optional fields)
+- Empty nested objects after sanitization
+- Arrays with undefined values
+- Objects within arrays
+- Deeply nested structures (3+ levels)
+- null vs undefined handling
 
 ### Issue #6: Reminder Badge Overlapping Assignment Title (FIXED)
 **Problem:** On assignment cards, the reminder notification badge overlaps with the assignment title text
