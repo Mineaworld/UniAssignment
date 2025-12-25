@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReminderPreset, AssignmentReminder } from '../types';
 import { calculateReminderTime, formatReminderText, getPresetShort } from '../utils/reminder';
@@ -47,7 +47,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
     }
   };
 
-  const handleCustomSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCustomSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setCustomError('');
     const formData = new FormData(e.currentTarget);
@@ -97,14 +97,14 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
           type="button"
           onClick={handleToggle}
           disabled={disabled}
-          className={`relative w-12 h-6 rounded-full transition-colors ${
+          className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${
             isEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
           }`}
           aria-label={isEnabled ? 'Disable reminder' : 'Enable reminder'}
         >
           <span
-            className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-              isEnabled ? 'translate-x-6' : 'translate-x-0.5'
+            className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+              isEnabled ? 'translate-x-6' : 'translate-x-0'
             }`}
           />
         </button>

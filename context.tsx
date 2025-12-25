@@ -12,7 +12,8 @@ import {
   doc,
   orderBy,
   getDoc,
-  setDoc
+  setDoc,
+  deleteField
 } from 'firebase/firestore';
 import { Assignment, AppContextType, Subject, User } from './types';
 
@@ -366,7 +367,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateAssignment = async (id: string, updates: Partial<Assignment>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
-    await updateDoc(doc(db, `users/${user.uid}/assignments`, id), updates);
+
+    // Convert undefined values to deleteField() for proper Firestore field deletion
+    const processedUpdates: Record<string, any> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      processedUpdates[key] = value === undefined ? deleteField() : value;
+    }
+
+    await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
   };
 
   const deleteAssignment = async (id: string): Promise<void> => {
