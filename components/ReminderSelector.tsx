@@ -25,6 +25,23 @@ const PRESET_OPTIONS: ReminderPreset[] = [
   ReminderPreset.OneWeek,
 ];
 
+/**
+ * Render a reminder selection UI tied to an assignment due date.
+ *
+ * The component displays an enable/disable toggle, quick-select presets, and an expandable custom panel
+ * supporting both relative ("before due") and absolute ("specific time") reminder configuration.
+ * When the user changes settings the component invokes `onChange` with either `undefined` to disable the reminder
+ * or an object describing the enabled reminder:
+ * - For presets: `{ enabled: true, preset: ReminderPreset.<PresetName> }`
+ * - For custom relative: `{ enabled: true, preset: ReminderPreset.Custom, customMinutes: number }`
+ * - For custom absolute: `{ enabled: true, preset: ReminderPreset.Custom, customTime: string }`
+ *
+ * @param dueDate - ISO date string for the assignment due date used to compute and preview reminder times
+ * @param value - Current reminder configuration or `undefined` when no reminder is set
+ * @param onChange - Callback invoked with the updated reminder configuration or `undefined` to clear it
+ * @param disabled - Optional flag to disable user interaction with the control
+ * @returns A JSX element containing the reminder selector UI
+ */
 export function ReminderSelector({ dueDate, value, onChange, disabled }: ReminderSelectorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [customMode, setCustomMode] = useState<'relative' | 'absolute'>('relative');
