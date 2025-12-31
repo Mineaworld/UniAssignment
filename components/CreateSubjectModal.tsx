@@ -115,7 +115,7 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
                     onClick={handleClose}
                     className="px-4 py-2 rounded-lg text-slate-700 dark:text-white bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 font-semibold transition-colors"
                   >
-                    Done
+                    Cancel
                   </button>
                   <button
                     type="submit"
