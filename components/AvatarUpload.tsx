@@ -91,7 +91,7 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
   return (
     <div className={`relative group ${className}`}>
-      <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-slate-800 border-4 border-white dark:border-[#1e293b] shadow-lg transition-transform hover:scale-105 duration-300">
+      <div className={`relative ${sizeClasses[size]} rounded-full overflow-hidden bg-gray-100 dark:bg-slate-800 border-4 border-white dark:border-[#1e293b] shadow-lg transition-transform hover:scale-105 duration-300`}>
         <img
           src={avatarSrc}
           alt={`${name} profile`}
