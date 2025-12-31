@@ -1,11 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
 import { Status } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import CreateAssignmentModal from '../components/CreateAssignmentModal';
 import TelegramPromptModal from '../components/TelegramPromptModal';
+import { BentoCard, BentoHeader, BentoContent } from '../components/ui/BentoCard';
+import { Button } from '../components/ui/Button';
+import { NeonButton } from '../components/ui/NeonButton';
+import { Input } from '../components/ui/Input';
+import { MiniChart } from '../components/ui/MiniChart';
+import {
+  Search, Plus, Calendar, Clock, BookOpen,
+  CheckCircle, AlertCircle, TrendingUp, MoreHorizontal
+} from 'lucide-react';
+import { cn } from '../utils/cn';
+
+// Wrapper to delay chart rendering until container is mounted
+const DelayedChart = ({ children, delay = 100 }: { children: React.ReactNode; delay?: number }) => {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+  if (!ready) return null;
+  return <>{children}</>;
+};
 
 const Dashboard = () => {
   const { assignments, subjects, user, dismissTelegramPrompt } = useApp();
@@ -13,270 +34,251 @@ const Dashboard = () => {
   const [showTelegramPrompt, setShowTelegramPrompt] = useState(false);
   const navigate = useNavigate();
 
-  // =========================================================================
-  // Telegram Prompt Logic
-  // =========================================================================
-
+  // Telegram Logic (Same as before)
   useEffect(() => {
-    // Single timer with guaranteed cleanup
     const timer = setTimeout(() => {
-      // Don't show if user not loaded
       if (!user) return;
-
-      // Don't show if already linked
       if (user.telegramLinked) return;
-
-      // Don't show if permanently dismissed
       if (user.telegramPromptDismissed) return;
-
-      // Show to new users (never shown before)
-      if (!user.telegramPromptLastShown) {
-        setShowTelegramPrompt(true);
-        return;
-      }
-
-      // Show if 5 days have passed since last shown
-      const daysSinceLastShown = (Date.now() - new Date(user.telegramPromptLastShown).getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceLastShown >= 5) {
-        setShowTelegramPrompt(true);
-      }
+      if (!user.telegramPromptLastShown) { setShowTelegramPrompt(true); return; }
+      const daysSince = (Date.now() - new Date(user.telegramPromptLastShown).getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSince >= 5) setShowTelegramPrompt(true);
     }, 1000);
-
     return () => clearTimeout(timer);
   }, [user]);
 
   const handlePromptClose = async (action: 'link' | 'remind' | 'permanent') => {
     setShowTelegramPrompt(false);
-
-    // Note: 'link' action already opens Telegram in the modal, no need to open again here
-
-    // Update dismissal state
-    try {
-      await dismissTelegramPrompt(action === 'permanent');
-    } catch (error) {
-      console.error('Failed to dismiss Telegram prompt:', error);
-    }
+    try { await dismissTelegramPrompt(action === 'permanent'); } catch (e) { console.error(e); }
   };
 
   // Stats
   const total = assignments.length;
   const completed = assignments.filter(a => a.status === Status.Completed).length;
   const pending = total - completed;
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const highPriorityCount = assignments.filter(a => a.priority === 'High' && a.status !== 'Completed').length;
 
-  // Chart Data
-  const chartData = [
-    { name: 'Completed', value: completed, color: '#22c55e' }, // green-500
-    { name: 'Pending', value: pending, color: '#eab308' }, // yellow-500
-  ];
 
-  // Upcoming
+
+  // Upcoming (Timeline Viz Data)
   const upcoming = [...assignments]
     .filter(a => a.status !== Status.Completed)
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-    .slice(0, 3);
+    .slice(0, 4);
 
-  // Recent
-  const recent = [...assignments]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 3);
-
-  // By Subject
-  const bySubject = subjects.map(s => ({
+  // Subject Heatmap Data
+  const subjectData = subjects.map(s => ({
     name: s.name,
+    full: s.name,
     count: assignments.filter(a => a.subjectId === s.id).length
-  })).sort((a, b) => b.count - a.count).slice(0, 5);
+  })).sort((a, b) => b.count - a.count).slice(0, 6);
 
-  const getSubjectName = (id: string) => subjects.find(s => s.id === id)?.name || 'Unknown Subject';
+  const miniChartData = subjectData.map(s => ({
+    label: s.name,
+    value: s.count
+  }));
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
+  const getSubjectName = (id: string) => subjects.find(s => s.id === id)?.name || 'Unknown';
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
+  // Time-aware greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
   };
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8">
+    <div className="min-h-screen w-full max-w-[1400px] mx-auto p-6 md:p-8 space-y-10">
       <CreateAssignmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       {user?.uid && (
-        <TelegramPromptModal
-          isOpen={showTelegramPrompt}
-          onClose={handlePromptClose}
-          userUid={user.uid}
-        />
+        <TelegramPromptModal isOpen={showTelegramPrompt} onClose={handlePromptClose} userUid={user.uid} />
       )}
-      
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Dashboard Overview</h1>
-          <p className="text-slate-500 dark:text-white/60 mt-1">Here is an overview of your academic workload.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
+        <div className="space-y-1">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground via-foreground/90 to-foreground/50 pb-1">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground text-lg font-medium">
+            {getGreeting()}, <span className="text-foreground font-semibold">{user?.name.split(' ')[1]}</span>.
+          </p>
         </div>
-        
+
         <div className="flex w-full md:w-auto items-center gap-4">
-          <div className="relative flex-1 md:w-64">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-            <input 
-              type="text" 
-              placeholder="Search assignments..." 
-              className="w-full h-10 pl-10 pr-4 rounded-lg border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent"
+          <div className="relative flex-1 md:w-72 group">
+            <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-foreground z-10" />
+            <Input
+              type="text"
+              placeholder="Search anything..."
+              className="pl-11 h-12 bg-background/40 backdrop-blur-md border border-black/5 dark:border-white/5 focus:bg-background/60 focus:border-primary/20 transition-all rounded-2xl shadow-sm z-10 relative"
             />
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center h-10 px-4 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-          >
-            Add New
-          </button>
+          <NeonButton onClick={() => setIsModalOpen(true)} className="h-12 px-6 rounded-2xl shadow-lg shadow-primary/20">
+            <Plus className="h-4 w-4 mr-2" />
+            New Task
+          </NeonButton>
         </div>
       </div>
 
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="flex flex-col gap-6"
-      >
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 shadow-sm">
-            <p className="text-slate-500 dark:text-white/60 font-medium">Total Assignments</p>
-            <p className="text-4xl font-bold text-slate-900 dark:text-white mt-2">{total}</p>
-          </motion.div>
-          <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 shadow-sm">
-            <p className="text-slate-500 dark:text-white/60 font-medium">Completed</p>
-            <p className="text-4xl font-bold text-slate-900 dark:text-white mt-2">{completed}</p>
-          </motion.div>
-          <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 shadow-sm">
-            <p className="text-slate-500 dark:text-white/60 font-medium">Pending</p>
-            <p className="text-4xl font-bold text-slate-900 dark:text-white mt-2">{pending}</p>
-          </motion.div>
+      {/* Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 auto-rows-[180px]">
+
+        <BentoCard delay={0.1} className="lg:col-span-3 lg:row-span-2 relative p-6">
+          <div className="relative z-10 flex flex-col h-full">
+            <div className="mb-4 flex flex-col items-center text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Progress</span>
+              </div>
+              <h2 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-foreground to-foreground/50">
+                {completionRate}%
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2 font-medium">Assignment Completion</p>
+            </div>
+
+            <div className="flex-1 w-full flex items-center justify-center opacity-80 mix-blend-multiply dark:mix-blend-screen">
+              <DelayedChart delay={500}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <RadialBarChart innerRadius="70%" outerRadius="100%" data={[{ value: completionRate, fill: 'hsl(var(--primary))' }]} startAngle={90} endAngle={-270}>
+                    <RadialBar background dataKey="value" cornerRadius={100} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+              </DelayedChart>
+            </div>
+          </div>
+          {/* Decorative Blur */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
+        </BentoCard>
+
+        {/* 2. Stats Column - 3 Columns */}
+        <div className="lg:col-span-3 lg:row-span-2 flex flex-col gap-6">
+          {/* Total Tasks */}
+          <BentoCard delay={0.2} href="/assignments" className="flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
+            <div className="absolute right-4 top-4 p-3 bg-muted/50 dark:bg-white/5 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+              <BookOpen className="h-5 w-5 text-foreground/70" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Assignments</p>
+              <p className="text-4xl font-bold mt-1 tracking-tight">{total}</p>
+            </div>
+            <div className="mt-4 flex items-center text-xs text-muted-foreground font-medium">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary mr-2" />
+              All active and completed
+            </div>
+          </BentoCard>
+
+          {/* Pending Review */}
+          <BentoCard delay={0.3} className="flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
+            <div className="absolute right-4 top-4 p-3 bg-muted/50 dark:bg-white/5 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+              <Clock className="h-5 w-5 text-foreground/70" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
+              <p className="text-4xl font-bold mt-1 tracking-tight">{pending}</p>
+            </div>
+            <div className="mt-4 flex items-center text-xs text-muted-foreground font-medium">
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
+              Requires attention
+            </div>
+          </BentoCard>
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            {/* Upcoming */}
-            <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 shadow-sm">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Upcoming Deadlines</h2>
-                <button onClick={() => navigate('/assignments')} className="text-sm font-semibold text-primary hover:underline">View All</button>
-              </div>
-              <div className="flex flex-col gap-2">
-                {upcoming.map(item => {
+        {/* 3. Upcoming Timeline - 6 Columns */}
+        <BentoCard className="lg:col-span-6 lg:row-span-2" delay={0.4}>
+          <BentoHeader title="Timeline" subtitle="Upcoming deadlines" icon={Calendar} />
+          <BentoContent className="flex flex-col gap-3 mt-4 overflow-y-auto custom-scrollbar pr-2 h-[calc(100%-60px)]">
+            {upcoming.length > 0 ? (
+              <div className="space-y-3">
+                {upcoming.map((item, idx) => {
                   const daysLeft = Math.ceil((new Date(item.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24));
                   return (
-                    <div key={item.id} className="group flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/5 transition-all cursor-pointer">
-                      <div className="flex items-center gap-4">
-                        <div className={`
-                          flex items-center justify-center w-12 h-12 rounded-xl shrink-0
-                          ${daysLeft <= 2 ? 'bg-red-100 text-red-500 dark:bg-red-500/10' : daysLeft <= 5 ? 'bg-yellow-100 text-yellow-500 dark:bg-yellow-500/10' : 'bg-green-100 text-green-500 dark:bg-green-500/10'}
-                        `}>
-                          <span className="material-symbols-outlined">{daysLeft <= 2 ? 'priority_high' : 'event'}</span>
-                        </div>
-                        <div>
-                          <p className="text-slate-900 dark:text-white font-bold line-clamp-1">{item.title}</p>
-                          <p className="text-slate-500 dark:text-white/60 text-sm line-clamp-1">{getSubjectName(item.subjectId)} • Due in {daysLeft} days</p>
-                        </div>
-                      </div>
-                      <button onClick={() => navigate('/assignments')} className="opacity-0 group-hover:opacity-100 text-primary text-sm font-semibold transition-opacity">Details</button>
-                    </div>
-                  );
-                })}
-                {upcoming.length === 0 && <p className="text-slate-500 dark:text-white/40 text-center py-4">No upcoming deadlines.</p>}
-              </div>
-            </motion.div>
-
-            {/* Recently Added */}
-            <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Recently Added</h2>
-              <div className="flex flex-col gap-2">
-                {recent.map(item => (
-                  <div key={item.id} className="group flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent hover:border-gray-200 dark:hover:border-white/5 transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary shrink-0">
-                        <span className="material-symbols-outlined">post_add</span>
-                      </div>
-                      <div>
-                        <p className="text-slate-900 dark:text-white font-bold line-clamp-1">{item.title}</p>
-                        <p className="text-slate-500 dark:text-white/60 text-sm line-clamp-1">{getSubjectName(item.subjectId)}</p>
-                      </div>
-                    </div>
-                    <button onClick={() => navigate('/assignments')} className="opacity-0 group-hover:opacity-100 text-primary text-sm font-semibold transition-opacity">Details</button>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Right Column */}
-          <div className="lg:col-span-1 flex flex-col gap-6">
-            {/* Status Chart */}
-            <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Assignment Status</h2>
-              <div className="h-64 relative flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                      stroke="none"
+                    <div
+                      key={item.id}
+                      className="group flex items-center gap-4 p-3 rounded-2xl bg-muted/30 hover:bg-muted/60 dark:bg-white/5 dark:hover:bg-white/10 border border-transparent hover:border-black/5 dark:hover:border-white/10 transition-all cursor-pointer"
+                      onClick={() => navigate('/assignments')}
                     >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-4xl font-bold text-slate-900 dark:text-white">{total}</span>
-                  <span className="text-slate-500 dark:text-white/60 text-sm">Total</span>
-                </div>
+                      <div className={cn(
+                        "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                        daysLeft <= 2 ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                      )}>
+                        <Clock className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm truncate">{item.title}</h4>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                          <span className="w-1 h-1 rounded-full bg-foreground/30" />
+                          {getSubjectName(item.subjectId)}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className={cn("text-xs font-bold px-2.5 py-1 rounded-lg inline-block", daysLeft <= 2 ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
+                          {daysLeft} days left
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+                          {new Date(item.dueDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-              <div className="flex flex-col gap-3 mt-4">
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-slate-600 dark:text-white/80">Completed</span>
-                  </div>
-                  <span className="font-bold text-slate-900 dark:text-white">{completed}</span>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground/60">
+                <div className="p-4 bg-muted/30 rounded-full mb-3">
+                  <Calendar className="h-6 w-6 opacity-40" />
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <span className="text-slate-600 dark:text-white/80">Pending</span>
-                  </div>
-                  <span className="font-bold text-slate-900 dark:text-white">{pending}</span>
-                </div>
+                <p className="text-sm font-medium">All caught up!</p>
               </div>
-            </motion.div>
+            )}
+          </BentoContent>
+        </BentoCard>
 
-            {/* Subjects List */}
-            <motion.div variants={itemVariants} className="p-6 rounded-2xl bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Assignments by Subject</h2>
-              <div className="flex flex-col gap-4">
-                {bySubject.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
-                    <p className="text-slate-600 dark:text-white/80 text-sm font-medium">{item.name}</p>
-                    <span className="flex items-center justify-center min-w-[24px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-xs font-bold text-slate-900 dark:text-white">
-                      {item.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+        {/* 4. Subject Heatmap - 4 Columns */}
+        <BentoCard className="lg:col-span-4 p-0 overflow-hidden" delay={0.5}>
+          <MiniChart title="Workload" data={miniChartData} className="!border-0 !bg-transparent w-full h-full" />
+        </BentoCard>
+
+        {/* 5. High Priority Alert - 4 Columns */}
+        <BentoCard delay={0.6} className="lg:col-span-4 bg-gradient-to-br from-destructive/5 via-destructive/5 to-transparent border-destructive/10">
+          <div className="flex flex-row items-center h-full p-6 gap-5">
+            <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 animate-pulse">
+              <AlertCircle className="h-7 w-7 text-destructive" />
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold text-destructive tracking-tight">{highPriorityCount}</h3>
+              <p className="text-sm font-medium text-muted-foreground">High Priority Tasks</p>
+            </div>
           </div>
-        </div>
-      </motion.div>
+        </BentoCard>
+
+        {/* 6. Quick Actions - 4 Columns */}
+        <BentoCard className="lg:col-span-4" delay={0.7}>
+          <div className="flex h-full items-center justify-between p-4 px-6 gap-3">
+            {[
+              { icon: BookOpen, label: 'Subjects', path: '/subjects' },
+              { icon: CheckCircle, label: 'Tasks', path: '/assignments' },
+              { icon: MoreHorizontal, label: 'Settings', path: '/settings' }
+            ].map((action, i) => (
+              <Button
+                key={i}
+                variant="outline"
+                className="flex-1 h-20 flex-col gap-2 border-dashed border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all rounded-xl"
+                onClick={() => navigate(action.path)}
+              >
+                <action.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-xs font-medium">{action.label}</span>
+              </Button>
+            ))}
+          </div>
+        </BentoCard>
+
+      </div>
     </div>
   );
 };

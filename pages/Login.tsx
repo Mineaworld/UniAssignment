@@ -1,52 +1,46 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import Logo from '../components/Logo';
-import GoogleIcon from '../components/GoogleIcon';
+"use client";
+
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context';
+import { Button } from '../components/ui/Button';
+import { NeonButton } from '../components/ui/NeonButton';
+import { GlassCard } from '../components/ui/GlassCard';
+import { Input } from '../components/ui/Input';
+import { Label } from '../components/ui/Label';
+import GoogleIcon from '../components/GoogleIcon';
+import { Loader2, Sparkles, ArrowRight, Eye as ViewIcon, EyeOff as ViewOffIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-// ============================================================================
-// Component
-// ============================================================================
-
-const Login = () => {
-  const navigate = useNavigate();
-  const { login, loginWithGoogle } = useApp();
-
-  // ---------------------------------------------------------------------------
-  // State
-  // ---------------------------------------------------------------------------
-
+export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, loginWithGoogle } = useApp();
+  const navigate = useNavigate();
 
-  // ---------------------------------------------------------------------------
-  // Handlers
-  // ---------------------------------------------------------------------------
-
-  const handleEmailLogin = useCallback(async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
+    setLoading(true);
 
     try {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to sign in. Please check your credentials.';
+      const message = err instanceof Error ? err.message : 'Failed to sign in.';
       setError(message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [email, password, login, navigate]);
+  };
 
-  const handleGoogleLogin = useCallback(async () => {
+  const handleGoogleLogin = async () => {
     setError('');
     setIsGoogleLoading(true);
-
     try {
       await loginWithGoogle();
       navigate('/');
@@ -56,138 +50,156 @@ const Login = () => {
     } finally {
       setIsGoogleLoading(false);
     }
-  }, [loginWithGoogle, navigate]);
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background-light dark:bg-background-dark p-4">
-      <div className="w-full max-w-md bg-white dark:bg-[#101622]/50 rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 p-8 md:p-10 backdrop-blur-sm">
-        <div className="flex flex-col gap-6">
-          {/* Header */}
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <Logo />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-slate-500 dark:text-white/60">
-              Please sign in to continue.
-            </p>
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 w-full h-full bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+      <div className="absolute top-0 left-1/2 w-[1000px] h-[500px] -translate-x-1/2 bg-primary/20 blur-[130px] rounded-full opacity-50 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-purple-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none" />
+
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
+
+      <div className="w-full max-w-md p-6 relative z-10 flex flex-col gap-8">
+        {/* Brand Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center space-y-2"
+        >
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-4 ring-1 ring-primary/20 shadow-lg shadow-primary/10">
+            <Sparkles className="w-6 h-6 text-primary" />
           </div>
-
-          {/* Error Alert */}
-          {error && (
-            <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded relative" role="alert">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-
-          {/* Login Form */}
-          <form onSubmit={handleEmailLogin} className="flex flex-col gap-5">
-            {/* Email Input */}
-            <label className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Email Address
-              </span>
-              <input
-                type="email"
-                required
-                placeholder="Enter your email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="h-12 rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 px-4 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-white"
-              />
-            </label>
-
-            {/* Password Input */}
-            <label className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Password
-              </span>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="h-12 w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 px-4 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {showPassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
-              </div>
-              <div className="text-right">
-                <a href="#" className="text-sm font-semibold text-primary hover:underline">
-                  Forgot Password?
-                </a>
-              </div>
-            </label>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading || isGoogleLoading}
-              className="mt-2 h-12 w-full rounded-lg bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Signing In...' : 'Sign In'}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-300 dark:border-gray-600" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-[#101622] px-2 text-slate-500">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* Google Sign-In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={isLoading || isGoogleLoading}
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-slate-700/80 hover:border-gray-300 dark:hover:border-gray-600 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGoogleLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-blue-600 dark:border-t-blue-400" />
-                <span className="text-sm">Signing in...</span>
-              </>
-            ) : (
-              <>
-                <GoogleIcon />
-                <span className="text-sm font-semibold">Sign in with Google</span>
-              </>
-            )}
-          </button>
-
-          {/* Sign Up Link */}
-          <p className="text-center text-slate-600 dark:text-slate-400 text-sm">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary font-bold hover:underline">
-              Sign Up
-            </Link>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            Welcome back
+          </h1>
+          <p className="text-muted-foreground text-md">
+            Enter your credentials to access your workspace.
           </p>
-        </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <GlassCard className="p-8 border-white/5 dark:border-white/5 bg-white/50 dark:bg-black/40 backdrop-blur-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
+            <div className="space-y-6">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="text-sm text-destructive bg-destructive/5 border border-destructive/10 p-3 rounded-xl flex items-center gap-2"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                  {error}
+                </motion.div>
+              )}
+
+              <form onSubmit={handleEmailLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="student@university.edu"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-11 bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 focus:border-primary/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="h-11 bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 focus:border-primary/50 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? (
+                        <ViewOffIcon className="h-4 w-4" />
+                      ) : (
+                        <ViewIcon className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <NeonButton
+                  className="w-full h-11 text-base shadow-lg shadow-primary/20"
+                  type="submit"
+                  disabled={loading || isGoogleLoading}
+                  variant="primary"
+                  glow
+                >
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
+                </NeonButton>
+              </form>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-muted/20" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background/50 px-3 text-muted-foreground backdrop-blur-sm">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full h-11 gap-2 bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 transition-all"
+                onClick={handleGoogleLogin}
+                disabled={loading || isGoogleLoading}
+              >
+                {isGoogleLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <GoogleIcon className="h-5 w-5" />
+                )}
+                <span className="font-medium">Google</span>
+              </Button>
+            </div>
+          </GlassCard>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="text-center text-sm text-muted-foreground"
+        >
+          New to UniMinder?{" "}
+          <Link
+            to="/signup"
+            className="font-semibold text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1 group"
+          >
+            Create an account
+            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </motion.p>
       </div>
     </div>
   );
-};
-
-export default Login;
+}

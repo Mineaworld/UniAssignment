@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GlassCard } from '../components/ui/GlassCard';
+import { NeonButton } from '../components/ui/NeonButton';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 const Calendar = () => {
   const { assignments, subjects } = useApp();
@@ -41,29 +45,29 @@ const Calendar = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Calendar</h1>
-          <p className="text-slate-500 dark:text-white/60 mt-1">Plan your study schedule effectively.</p>
+          <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/40">Calendar</h1>
+          <p className="text-muted-foreground mt-1">Plan your study schedule effectively.</p>
         </div>
-        
-        <div className="flex items-center gap-4 bg-white dark:bg-[#101622]/50 p-2 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
-          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-white">
-            <span className="material-symbols-outlined">chevron_left</span>
-          </button>
-          <span className="text-lg font-bold text-slate-900 dark:text-white w-40 text-center select-none">
+
+        <GlassCard className="flex items-center gap-4 p-2 rounded-xl shadow-sm">
+          <NeonButton onClick={prevMonth} variant="ghost" size="icon" className="rounded-lg">
+            <ChevronLeft className="h-5 w-5" />
+          </NeonButton>
+          <span className="text-lg font-bold w-40 text-center select-none tracking-tight">
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </span>
-          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-white">
-            <span className="material-symbols-outlined">chevron_right</span>
-          </button>
-        </div>
+          <NeonButton onClick={nextMonth} variant="ghost" size="icon" className="rounded-lg">
+            <ChevronRight className="h-5 w-5" />
+          </NeonButton>
+        </GlassCard>
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1 bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+      <GlassCard className="flex-1 rounded-2xl shadow-sm flex flex-col overflow-hidden p-0">
         {/* Days Header */}
-        <div className="grid grid-cols-7 border-b border-gray-200 dark:border-white/10">
+        <div className="grid grid-cols-7 border-b border-border dark:border-white/10 bg-muted/30 dark:bg-white/5">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-4 text-center text-sm font-semibold text-slate-500 dark:text-white/40 uppercase tracking-wider">
+            <div key={day} className="py-4 text-center text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               {day}
             </div>
           ))}
@@ -73,7 +77,7 @@ const Calendar = () => {
         <div className="grid grid-cols-7 flex-1 auto-rows-fr overflow-y-auto">
           {/* Padding Days */}
           {paddingDays.map(i => (
-            <div key={`padding-${i}`} className="bg-gray-50/50 dark:bg-white/[0.02] border-r border-b border-gray-100 dark:border-white/5 min-h-[100px]" />
+            <div key={`padding-${i}`} className="bg-muted/10 dark:bg-white/[0.02] border-r border-b border-border dark:border-white/5 min-h-[100px]" />
           ))}
 
           {/* Actual Days */}
@@ -84,18 +88,18 @@ const Calendar = () => {
             const isToday = today.toDateString() === date.toDateString();
 
             return (
-              <div 
-                key={day} 
-                className={`
-                  relative p-2 border-r border-b border-gray-100 dark:border-white/5 min-h-[100px] transition-colors
-                  ${isToday ? 'bg-primary/5 dark:bg-primary/5' : 'hover:bg-gray-50 dark:hover:bg-white/[0.02]'}
-                `}
+              <div
+                key={day}
+                className={cn(
+                  "relative p-2 border-r border-b border-border dark:border-white/5 min-h-[100px] transition-colors",
+                  isToday ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-muted/30 dark:hover:bg-white/5'
+                )}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <span className={`
-                    w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold
-                    ${isToday ? 'bg-primary text-white shadow-md shadow-primary/30' : 'text-slate-700 dark:text-slate-300'}
-                  `}>
+                  <span className={cn(
+                    "w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold",
+                    isToday ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30" : "text-muted-foreground"
+                  )}>
                     {day}
                   </span>
                 </div>
@@ -105,24 +109,24 @@ const Calendar = () => {
                     {dayAssignments.map((assignment) => {
                       const subject = subjects.find(s => s.id === assignment.subjectId);
                       const statusColor = assignment.status === 'Completed' ? 'opacity-50 line-through' : '';
-                      
+
                       return (
                         <motion.div
                           key={assignment.id}
                           initial={{ opacity: 0, x: -5 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className={`
-                            px-2 py-1 rounded text-xs truncate cursor-pointer font-medium border-l-2
-                            ${statusColor}
-                            bg-white dark:bg-white/10 border-gray-200 dark:border-white/10 hover:shadow-md transition-all
-                          `}
-                          style={{ borderLeftColor: subject?.color ? `var(--${subject.color})` : '#3b82f6' }}
+                          className={cn(
+                            "px-2 py-1 rounded text-xs truncate cursor-pointer font-medium border transition-all",
+                            statusColor,
+                            "bg-muted/50 dark:bg-white/10 border-border dark:border-white/10 hover:border-primary/50 hover:shadow-md"
+                          )}
+                          style={{ borderColor: subject?.color ? `var(--${subject.color})` : undefined }}
                           title={assignment.title}
                         >
-                           <div className="flex items-center gap-1">
-                              {subject && <span className={`w-1.5 h-1.5 rounded-full ${subject.color}`}></span>}
-                              <span className="truncate text-slate-700 dark:text-slate-200">{assignment.title}</span>
-                           </div>
+                          <div className="flex items-center gap-1">
+                            {subject && <span className={cn("w-1.5 h-1.5 rounded-full", subject.color)}></span>}
+                            <span className="truncate text-foreground/80 dark:text-slate-200">{assignment.title}</span>
+                          </div>
                         </motion.div>
                       );
                     })}
@@ -132,7 +136,7 @@ const Calendar = () => {
             );
           })}
         </div>
-      </div>
+      </GlassCard>
     </div>
   );
 };
