@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.3.0
-**Last Updated:** 2024-12-23
+**Version:** 0.5.0
+**Last Updated:** 2025-12-31
 **Status:** Active Development
 
 ---
@@ -33,6 +33,7 @@
 | Delete Assignment | ✅ Complete | With confirmation |
 | Toggle Assignment Status | ✅ Complete | Pending ↔ In Progress ↔ Completed |
 | View Assignment Details | ✅ Complete | Read-only modal |
+| Kanban View | ✅ Complete | Trello-style board for assignments |
 | Add Subject | ✅ Complete | With color picker |
 | Edit Subject | ✅ Complete | Name and color |
 | Delete Subject | ✅ Complete | With assignment handling check |
@@ -75,31 +76,24 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Responsive Design | ✅ Complete | Mobile & desktop |
-| Dark/Light Theme | ✅ Complete | With localStorage persistence |
+| Dark/Light Theme | ✅ Complete | With CSS variables & localStorage |
 | Sidebar Navigation | ✅ Complete | Collapsible on mobile |
+| Avant-Garde UI | ✅ Complete | Premium glassmorphism & gradients |
+| Core UI Library | ✅ Complete | Reusable components (Bento, Neon, etc.) |
 | Loading States | ✅ Complete | Proper feedback |
 | Error Messages | ✅ Complete | User-friendly Firebase errors |
 | Animations | ✅ Complete | Framer Motion |
-| Material Symbols | ✅ Complete | Icons throughout |
+| Lucide Icons | ✅ Complete | Migrated from Material Symbols |
 
 ---
 
 ## Technical Debt & Improvements
 
 ### Completed ✅
-- [x] Fix UTF-16 encoding in `.env` file
-- [x] Add comprehensive error handling to auth functions
-- [x] Extract `GoogleIcon` to reusable component
-- [x] Fix memory leak in `AvatarUpload` component
-- [x] Add file validation (size, type) to avatar upload
-- [x] Remove duplicate Tailwind CDN
-- [x] Remove import map from `index.html`
-- [x] Add `createdAt` to `Subject` interface
-- [x] Implement proper loading states with `try/finally` blocks
-- [x] Add `useCallback` to event handlers
-
-### In Progress 🟡
-- [ ] Consider code splitting for large bundles (1.27 MB warning)
+- [x] Fix AvatarUpload props interface and size support
+- [x] Migrate Calendar to Lucide icons
+- [x] Hardened TypeScript types in context.tsx
+- [ ] Consider code splitting for large bundles (1.38 MB currently)
 
 ### Future Improvements 📋
 - [ ] Add unit tests

@@ -38,6 +38,9 @@ UniAssignment is a university assignment management application with both web an
 | Tailwind CSS | 3.4.17 | Styling |
 | Framer Motion | 12.23.25 | Animations |
 | React Router | 7.10.1 | Navigation |
+| Lucide React | 0.447.0 | Icon Library |
+| Geist Sans | - | Modern UI Typography |
+| Space Grotesk | - | Display Typography |
 | Recharts | 3.5.1 | Data Visualization |
 | Firebase SDK | 12.6.0 | Backend Client |
 
@@ -170,12 +173,25 @@ src/
 │   └── Settings.tsx
 │
 ├── components/               # Reusable components
+│   ├── ui/                   # Primitive UI components (Bento, Neon, Table, etc.)
+│   │   ├── Badge.tsx
+│   │   ├── Button.tsx
+│   │   ├── Card.tsx
+│   │   ├── Dialog.tsx
+│   │   ├── Input.tsx
+│   │   ├── Table.tsx
+│   │   └── ...
+│   ├── KanbanView.tsx        # Trello-style board
+│   ├── ViewSwitcher.tsx      # Toggle between List/Kanban
 │   ├── Logo.tsx
 │   ├── GoogleIcon.tsx
-│   ├── AvatarUpload.tsx
-│   ├── TelegramPromptModal.tsx
-│   ├── Sidebar.tsx
+│   ├── AvatarUpload.tsx      # Multi-size profile picture upload
+│   ├── TelegramPromptModal.tsx # Smart link prompt
+│   ├── Sidebar.tsx           # Navigation with theme toggle
 │   └── ...
+│
+├── utils/                   # Utility functions
+│   └── cn.ts                 # Tailwind class merger
 │
 ├── context.tsx              # App state management
 ├── firebase.ts              # Firebase initialization
@@ -188,13 +204,13 @@ src/
 
 ```
 api/
-└── telegram.ts              # Vercel webhook handler
+└── telegram.ts              # Telegram Vercel Webhook Handler (Active)
 
 functions/
 └── src/
-    └── index.ts             # Firebase Functions
-        ├── telegramWebhook  # Webhook endpoint
-        └── checkDeadlines   # Scheduled notification (every 1 hour)
+    └── index.ts             # Firebase Cloud Functions
+        ├── telegramWebhook  # Experimental/Secondary Webhook
+        └── checkDeadlines   # Scheduled Notifications (every 15 min)
 ```
 
 ## Security Considerations
