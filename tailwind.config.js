@@ -19,7 +19,7 @@ export default {
         },
         extend: {
             fontFamily: {
-                sans: ["Geist", "Inter", "sans-serif"],
+                sans: ["Inter", "sans-serif"],
                 display: ["Space Grotesk", "sans-serif"],
             },
             colors: {
