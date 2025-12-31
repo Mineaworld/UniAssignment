@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context';
 import { ToastProvider } from './components/ToastContext';
 import Sidebar from './components/Sidebar';
@@ -18,8 +18,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
       </div>
     );
   }
@@ -30,9 +30,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppLayout = () => {
   return (
-    <div className="flex min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-white transition-colors duration-300">
+    <div className="flex min-h-screen bg-background text-foreground font-sans antialiased relative overflow-hidden">
+      {/* Global Atmospheric Environment */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 dark:bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[0%] right-[-5%] w-[35%] h-[35%] bg-purple-500/20 dark:bg-purple-500/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[20%] right-[10%] w-[25%] h-[25%] bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-[100px]" />
+      </div>
+
       <Sidebar />
-      <div className="flex-1 min-w-0 overflow-auto h-screen relative pb-20 md:pb-0">
+      <main className="flex-1 min-w-0 overflow-auto h-screen relative pb-20 md:pb-0 z-10">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/assignments" element={<Assignments />} />
@@ -41,7 +48,7 @@ const AppLayout = () => {
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </div>
+      </main>
       <MobileNav />
     </div>
   );
