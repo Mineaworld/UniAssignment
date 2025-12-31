@@ -120,7 +120,6 @@ const Calendar = () => {
                             statusColor,
                             "bg-muted/50 dark:bg-white/10 border-border dark:border-white/10 hover:border-primary/50 hover:shadow-md"
                           )}
-                          style={{ borderColor: subject?.color ? `var(--${subject.color})` : undefined }}
                           title={assignment.title}
                         >
                           <div className="flex items-center gap-1">
