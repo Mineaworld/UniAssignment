@@ -1,96 +1,114 @@
 import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useApp } from '../context';
-import { motion } from 'framer-motion';
-import Logo from './Logo';
+import {
+  LayoutGrid,
+  FileText,
+  Calendar as CalendarIcon,
+  Book,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+  ChevronsUpDown
+} from 'lucide-react';
+import { cn } from '../utils/cn';
+import { Button } from './ui/Button';
 
 const Sidebar = () => {
   const { user, logout, theme, toggleTheme } = useApp();
-  const navigate = useNavigate();
   const location = useLocation();
 
   if (!user) return null;
 
   const links = [
-    { name: 'Dashboard', icon: 'dashboard', path: '/' },
-    { name: 'Assignments', icon: 'assignment', path: '/assignments' },
-    { name: 'Calendar', icon: 'calendar_month', path: '/calendar' },
-    { name: 'Subjects', icon: 'book', path: '/subjects' },
-    { name: 'Settings', icon: 'settings', path: '/settings' },
+    { name: 'Dashboard', icon: LayoutGrid, path: '/' },
+    { name: 'Assignments', icon: FileText, path: '/assignments' },
+    { name: 'Calendar', icon: CalendarIcon, path: '/calendar' },
+    { name: 'Subjects', icon: Book, path: '/subjects' },
+    { name: 'Settings', icon: Settings, path: '/settings' },
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-[#101622]/95 border-r border-gray-200 dark:border-white/10 h-screen sticky top-0 backdrop-blur-md z-30">
-      <div className="flex flex-col flex-grow p-4 gap-6">
-        {/* Brand */}
-        <div className="flex items-center gap-3 px-2 py-1">
-          <Logo size="xs" />
-          <h1 className="text-slate-900 dark:text-white text-lg font-bold tracking-tight">Uni Assignment</h1>
-        </div>
-
-        {/* User Profile */}
-        <div className="flex items-center gap-3 px-3 py-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5 shadow-sm">
-          <div
-            className="w-10 h-10 rounded-full bg-cover bg-center border-2 border-white dark:border-white/10 shadow-sm"
-            style={{ backgroundImage: `url(${user.avatar})` }}
-          />
-          <div className="flex flex-col overflow-hidden">
-            <h2 className="text-slate-900 dark:text-white text-sm font-bold truncate">{user.name}</h2>
-            <p className="text-slate-500 dark:text-white/60 text-xs truncate">{user.major}</p>
+    <aside className="hidden md:flex flex-col w-[280px] border-r border-black/5 dark:border-white/10 bg-white/70 dark:bg-black/40 backdrop-blur-xl h-screen sticky top-0 z-30 transition-all duration-300 ease-in-out">
+      {/* Header / User */}
+      <div className="p-4 pl-6">
+        <div className="p-6 md:p-8 flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
+            U
           </div>
+          <span className="font-bold text-lg tracking-tight text-foreground">Uni Assignment</span>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex flex-col gap-1.5">
+        <button className="flex items-center gap-3 w-full p-2 -ml-2 rounded-lg hover:bg-muted/50 transition-colors text-left group">
+          <div className="h-9 w-9 rounded-full bg-muted border border-border overflow-hidden shrink-0">
+            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium leading-none truncate group-hover:text-primary transition-colors">{user.name}</p>
+            <p className="text-xs text-muted-foreground truncate mt-1">{user.major || 'Student'}</p>
+          </div>
+          <ChevronsUpDown className="h-3 w-3 text-muted-foreground opacity-50" />
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex-1 px-4 pl-6 py-2 overflow-y-auto custom-scrollbar">
+        <nav className="flex flex-col gap-1">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 pl-2">Workspace</p>
           {links.map((link) => {
+            const Icon = link.icon;
             const isActive = location.pathname === link.path;
+
             return (
               <NavLink
                 key={link.path}
                 to={link.path}
-                className={({ isActive }) => `
-                  relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group overflow-hidden
-                  ${isActive
-                    ? 'text-primary font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
-                  }
-                `}
+                className={({ isActive }) => cn(
+                  "group relative flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all duration-200",
+                  isActive
+                    ? "bg-primary/5 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )}
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute inset-0 bg-primary/10 rounded-xl"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 bg-primary rounded-r-full" />
                 )}
-                <span className={`material-symbols-outlined z-10 text-[20px] ${isActive ? 'fill' : ''}`}>{link.icon}</span>
-                <span className="z-10 text-sm">{link.name}</span>
+                <Icon strokeWidth={isActive ? 2 : 1.75} className={cn("h-4 w-4 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                {link.name}
               </NavLink>
             );
           })}
         </nav>
       </div>
 
-      {/* Logout */}
-      <div className="p-4 border-t border-gray-200 dark:border-white/10 flex items-center gap-2">
-        <button
-          onClick={logout}
-          className="flex-1 flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400 rounded-xl transition-colors"
-        >
-          <span className="material-symbols-outlined text-[20px]">logout</span>
-          <span className="font-medium text-sm">Sign Out</span>
-        </button>
+      {/* Footer */}
+      <div className="p-4 pl-6 border-t border-border/50 bg-background/50">
+        <div className="grid gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="justify-start gap-3 w-full px-2 font-normal text-muted-foreground hover:text-foreground"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <span className="text-xs">Switch Theme</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={logout}
+            className="justify-start gap-3 w-full px-2 font-normal text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-xs">Log Out</span>
+          </Button>
 
-        <button
-          onClick={toggleTheme}
-          className="p-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
-          aria-label="Toggle theme"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-          </span>
-        </button>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground px-2 pt-2 opacity-50">
+            <span>v2.0.0</span>
+            <span>UniWorks © 2024</span>
+          </div>
+        </div>
       </div>
     </aside>
   );

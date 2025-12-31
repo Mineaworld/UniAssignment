@@ -367,8 +367,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
    * @param obj - The object to sanitize
    * @returns A new object with all undefined values removed
    */
-  const sanitizeForFirestore = <T extends Record<string, any>>(obj: T): Partial<T> => {
-    const sanitized: Record<string, any> = {};
+  const sanitizeForFirestore = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
+    const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
       // Skip undefined values entirely
@@ -378,7 +378,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Recursively sanitize nested objects
       if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-        const nestedSanitized = sanitizeForFirestore(value);
+        const nestedSanitized = sanitizeForFirestore(value as Record<string, unknown>);
         // Only include the nested object if it has properties after sanitization
         if (Object.keys(nestedSanitized).length > 0) {
           sanitized[key] = nestedSanitized;
@@ -390,7 +390,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .filter(item => item !== undefined)
           .map(item =>
             item !== null && typeof item === 'object' && !Array.isArray(item)
-              ? sanitizeForFirestore(item)
+              ? sanitizeForFirestore(item as Record<string, unknown>)
               : item
           );
       }

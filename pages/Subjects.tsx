@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../context';
-import { motion, AnimatePresence } from 'framer-motion';
 import CreateSubjectModal from '../components/CreateSubjectModal';
 import EditSubjectModal from '../components/EditSubjectModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import { Subject } from '../types';
+import { GlassCard } from '../components/ui/GlassCard';
+import { NeonButton } from '../components/ui/NeonButton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
+import { Plus, FolderIcon, Edit, Trash2 } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 const Subjects = () => {
   const { subjects, deleteSubject } = useApp();
@@ -27,7 +31,7 @@ const Subjects = () => {
   };
 
   return (
-    <div className="flex-1 w-full max-w-5xl mx-auto p-8">
+    <div className="flex-1 w-full max-w-4xl mx-auto p-8 space-y-8">
       <CreateSubjectModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <EditSubjectModal
         isOpen={!!editingSubject}
@@ -44,78 +48,79 @@ const Subjects = () => {
         loading={deleteLoading}
       />
 
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Subject Management</h1>
-          <p className="text-slate-500 dark:text-white/60 mt-1">Create, edit, and delete your course subjects.</p>
+          <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/40">Subjects</h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage your course subjects.</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold transition-all"
-        >
-          <span className="material-symbols-outlined">add</span>
-          Add New Subject
-        </button>
+        <NeonButton onClick={() => setIsModalOpen(true)} className="gap-2" variant="primary" glow>
+          <Plus className="h-4 w-4" />
+          Add Subject
+        </NeonButton>
       </div>
 
-      <div className="bg-white dark:bg-[#101622]/50 border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/40 w-20">Color</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/40">Subject Name</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/40">Last Updated</th>
-              <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/40">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-white/5">
-            <AnimatePresence>
+      <GlassCard className="p-0 overflow-hidden rounded-2xl">
+        <div className="rounded-md border-0">
+          <Table>
+            <TableHeader className="bg-muted/30 dark:bg-white/5">
+              <TableRow className="border-border dark:border-white/5 hover:bg-transparent">
+                <TableHead className="w-20 text-muted-foreground">Color</TableHead>
+                <TableHead className="text-muted-foreground">Subject Name</TableHead>
+                <TableHead className="text-muted-foreground">Last Updated</TableHead>
+                <TableHead className="text-right text-muted-foreground">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {subjects.map((subject) => (
-                <motion.tr
-                  key={subject.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`h-4 w-4 rounded-full ${subject.color}`}></div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white">
+                <TableRow key={subject.id} className="group hover:bg-muted/30 dark:hover:bg-white/5 border-border dark:border-white/5 transition-colors">
+                  <TableCell>
+                    <div className={cn("h-4 w-4 rounded-full shadow-[0_0_10px_currentColor] opacity-90", subject.color)}></div>
+                  </TableCell>
+                  <TableCell className="font-medium text-foreground">
                     {subject.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-white/60">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {subject.lastUpdated}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <NeonButton
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-white/10 text-muted-foreground hover:text-primary"
                         onClick={() => setEditingSubject(subject)}
-                        className="text-slate-400 hover:text-primary transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
-                      </button>
-                      <button
+                        <Edit className="h-4 w-4" />
+                      </NeonButton>
+                      <NeonButton
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                         onClick={() => setDeletingSubject(subject)}
-                        className="text-slate-400 hover:text-red-500 transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[20px]">delete</span>
-                      </button>
+                        <Trash2 className="h-4 w-4" />
+                      </NeonButton>
                     </div>
-                  </td>
-                </motion.tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </AnimatePresence>
-          </tbody>
-        </table>
 
-        {subjects.length === 0 && (
-          <div className="p-12 flex flex-col items-center justify-center text-center">
-            <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-700 mb-4">folder_off</span>
-            <p className="text-slate-900 dark:text-white font-bold">No Subjects Found</p>
-          </div>
-        )}
-      </div>
+              {subjects.length === 0 && (
+                <TableRow className="hover:bg-transparent border-white/5">
+                  <TableCell colSpan={4} className="h-48 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="h-12 w-12 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                        <FolderIcon className="h-6 w-6 text-white/20" />
+                      </div>
+                      <p className="text-muted-foreground text-sm font-medium">No subjects found</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </GlassCard>
     </div>
   );
 };

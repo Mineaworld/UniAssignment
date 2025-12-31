@@ -2,23 +2,46 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
-## [Unreleased]
+## [0.5.0] - 2025-12-31
+
+### Added
+- **Revolutionary UI Redesign**: Modern "Avant-Garde" aesthetic with glassmorphism, refined gradients, and interactive components.
+- **Kanban View**: New Trello-style board for managing assignments by status.
+- **View Switcher**: Seamlessly toggle between List and Kanban views.
+- **Core UI Components**: Added `GlassCard`, `BentoCard`, `NeonButton`, `Badge`, `ScrollArea`, `Tabs`, `Table`, `Input` and `Dialog`.
+- **New Typography**: Integration of `Geist` and `Space Grotesk` fonts for a premium feel.
+- **Utility Functions**: Added `cn` utility for Tailwind class merging.
+
+### Changed
+- **Design System**: Full migration to a theme-adaptive design system using CSS variables.
+- **Improved Layouts**: Enhanced responsiveness and spacing across all pages.
+- **Refined Transitions**: Smoother animations using Framer Motion and Lucide icons.
 
 ### Fixed
-- Assignment reminder toggle button now stays within bounds (Issue #3)
-- Assignment updates properly delete optional fields when set to undefined (Issue #2)
-- Assignment title text wrapping and spacing to prevent overlap with action buttons
-- Modern React imports: use direct FormEvent import instead of React namespace
-
-### Planned
-- Enhanced assignment statistics dashboard
-- Calendar view for assignments
-- Subject-specific grade tracking
-- Export assignments to PDF/iCal
+- Assignment reminder toggle button bounds (Issue #3).
+- Optional fields deletion in Firebase updates (Issue #2).
+- Font rendering and visual consistency issues.
 
 ---
 
-## [0.3.0] - 2024-12-23
+## [0.4.0] - 2025-12-31
+
+### Added
+- Comprehensive Architecture documentation in `docs/Architecture.md`
+
+### Changed
+- **Component Hygiene**: Fixed `AvatarUpload` props interface (`onFileSelect` → `onUpload`) and added `size` prop support.
+- **Icon Standardization**: Migrated `Calendar.tsx` from Material Symbols to Lucide React icons for visual consistency.
+- **Code Hardening**: Replaced `any` with `unknown` in `context.tsx` sanitization logic with proper type assertions.
+- **Cleanup**: Removed unused imports (`Logo`, `framer-motion`) across multiple components and pages.
+
+### Fixed
+- Assignment reminder toggle bounds in UI.
+- Memory leak in `AvatarUpload` during file selection previews.
+
+---
+
+## [0.3.0] - 2025-12-23
 
 ### Added
 - Smart Telegram link prompt modal with:
@@ -43,7 +66,7 @@ All notable changes to the UniAssignment project will be documented in this file
 
 ---
 
-## [0.2.0] - 2024-12-23
+## [0.2.0] - 2025-12-23
 
 ### Added
 - Google OAuth authentication support (`loginWithGoogle`)
@@ -87,7 +110,7 @@ All notable changes to the UniAssignment project will be documented in this file
 
 ---
 
-## [0.1.0] - 2024-12-20
+## [0.1.0] - 2025-12-20
 
 ### Added
 - Initial project setup with React 19 + Vite

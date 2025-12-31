@@ -14,7 +14,8 @@ const UI_AVATARS_BASE_URL = 'https://ui-avatars.com/api/?name=';
 interface AvatarUploadProps {
   currentAvatarUrl?: string;
   name?: string;
-  onFileSelect: (file: File) => void;
+  onUpload: (file: File) => void;
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
@@ -25,9 +26,15 @@ interface AvatarUploadProps {
 const AvatarUpload: React.FC<AvatarUploadProps> = ({
   currentAvatarUrl,
   name = 'User',
-  onFileSelect,
+  onUpload,
+  size = 'md',
   className = ''
 }) => {
+  const sizeClasses = {
+    sm: 'w-16 h-16',
+    md: 'w-24 h-24',
+    lg: 'w-32 h-32',
+  };
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,14 +84,14 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
     const blobUrl = URL.createObjectURL(file);
     blobUrlRef.current = blobUrl;
     setAvatarPreview(blobUrl);
-    onFileSelect(file);
-  }, [onFileSelect]);
+    onUpload(file);
+  }, [onUpload]);
 
   const avatarSrc = avatarPreview || currentAvatarUrl || `${UI_AVATARS_BASE_URL}${encodeURIComponent(name)}`;
 
   return (
     <div className={`relative group ${className}`}>
-      <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-slate-800 border-4 border-white dark:border-[#1e293b] shadow-lg transition-transform hover:scale-105 duration-300">
+      <div className={`relative ${sizeClasses[size]} rounded-full overflow-hidden bg-gray-100 dark:bg-slate-800 border-4 border-white dark:border-[#1e293b] shadow-lg transition-transform hover:scale-105 duration-300`}>
         <img
           src={avatarSrc}
           alt={`${name} profile`}
