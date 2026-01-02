@@ -9,10 +9,11 @@ interface CreateSubjectModalProps {
 }
 
 const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose }) => {
-  const { addSubject } = useApp();
+  const { addSubject, subjects } = useApp();
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState('bg-blue-500');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const colors = [
     'bg-blue-500', 'bg-green-500', 'bg-red-500',
@@ -24,6 +25,7 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
   const handleClose = () => {
     setName('');
     setSelectedColor('bg-blue-500');
+    setError('');
     onClose();
   };
 
@@ -31,10 +33,22 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
     e.preventDefault();
     if (!name) return;
 
+    // Check for duplicate subject name
+    const trimmedName = name.trim();
+    const isDuplicate = subjects.some(
+      (subject) => subject.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setError(`A subject named "${trimmedName}" already exists.`);
+      return;
+    }
+
+    setError('');
     setLoading(true);
     try {
       await addSubject({
-        name,
+        name: trimmedName,
         color: selectedColor
       });
 
@@ -86,8 +100,14 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
                     placeholder="e.g., Advanced Calculus"
                     className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={e => {
+                      setName(e.target.value);
+                      if (error) setError('');
+                    }}
                   />
+                  {error && (
+                    <p className="mt-2 text-sm text-red-500 dark:text-red-400">{error}</p>
+                  )}
                 </label>
 
                 <div>
