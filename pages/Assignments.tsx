@@ -133,7 +133,7 @@ const Assignments = () => {
       </div>
 
       {/* Filter Island */}
-      <GlassCard className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2 -mx-2 px-4 py-3 custom-scrollbar rounded-2xl">
+      <GlassCard className="flex flex-wrap items-center gap-x-2 gap-y-2.5 overflow-x-auto pb-2 -mx-2 px-4 py-3 custom-scrollbar rounded-2xl">
         <div className="flex items-center gap-1.5 pr-4 border-r border-border mr-2 text-muted-foreground">
           <Filter className="h-3.5 w-3.5" />
           <span className="text-xs font-medium uppercase tracking-wider">Filters</span>
@@ -148,7 +148,7 @@ const Assignments = () => {
             onClick={() => setFilterStatus(filterStatus === s ? null : s)}
             className={cn(
               "h-8 text-xs font-medium border transition-colors",
-              filterStatus !== s && "border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground"
+              filterStatus !== s && "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
             )}
             glow={filterStatus === s}
           >
@@ -170,7 +170,7 @@ const Assignments = () => {
             onClick={() => setFilterPriority(filterPriority === p ? null : p)}
             className={cn(
               "h-8 text-xs font-medium border transition-colors",
-              filterPriority !== p && "border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground"
+              filterPriority !== p && "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
             )}
             glow={filterPriority === p}
           >
@@ -190,8 +190,8 @@ const Assignments = () => {
             className={cn(
               "h-8 text-xs font-medium border transition-colors whitespace-nowrap",
               filterSubject.includes(s.id)
-                ? "bg-white/20 text-white border-white/30"
-                : "border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground"
+                ? "bg-primary/10 text-foreground border-primary/30 dark:bg-white/20 dark:text-white dark:border-white/30"
+                : "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
             )}
             style={{
               borderColor: filterSubject.includes(s.id) ? `var(--${s.color})` : undefined,
