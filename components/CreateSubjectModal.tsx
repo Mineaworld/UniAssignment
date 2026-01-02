@@ -31,10 +31,13 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
 
     // Check for duplicate subject name
     const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError('Subject name cannot be empty.');
+      return;
+    }
     const isDuplicate = subjects.some(
       (subject) => subject.name.toLowerCase() === trimmedName.toLowerCase()
     );
