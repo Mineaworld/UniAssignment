@@ -39,7 +39,7 @@ UniAssignment is a university assignment management application with both web an
 | Framer Motion | 12.23.25 | Animations |
 | React Router | 7.10.1 | Navigation |
 | Lucide React | 0.447.0 | Icon Library |
-| Geist Sans | - | Modern UI Typography |
+| Inter | - | Primary Typography |
 | Space Grotesk | - | Display Typography |
 | Recharts | 3.5.1 | Data Visualization |
 | Firebase SDK | 12.6.0 | Backend Client |
@@ -192,6 +192,15 @@ src/
 │
 ├── utils/                   # Utility functions
 │   └── cn.ts                 # Tailwind class merger
+│
+├── components/landing/       # Landing page components
+│   ├── SpotlightHero.tsx     # Hero with spotlight effect
+│   ├── FeatureTabs.tsx       # Tabbed feature showcase
+│   ├── BenefitsGrid.tsx      # Benefits grid section
+│   ├── ProductShowcase.tsx   # Product demo section
+│   ├── Pricing.tsx           # Pricing plans
+│   ├── TestimonialsMarquee.tsx  # Testimonial carousel
+│   └── SiteFooter.tsx        # Landing footer
 │
 ├── context.tsx              # App state management
 ├── firebase.ts              # Firebase initialization

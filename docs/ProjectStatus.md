@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.5.0
-**Last Updated:** 2025-12-31
+**Version:** 0.6.0
+**Last Updated:** 2026-01-03
 **Status:** Active Development
 
 ---
@@ -34,6 +34,7 @@
 | Toggle Assignment Status | ✅ Complete | Pending ↔ In Progress ↔ Completed |
 | View Assignment Details | ✅ Complete | Read-only modal |
 | Kanban View | ✅ Complete | Trello-style board for assignments |
+| Calendar View | ✅ Complete | Month view with assignments |
 | Add Subject | ✅ Complete | With color picker |
 | Edit Subject | ✅ Complete | Name and color |
 | Delete Subject | ✅ Complete | With assignment handling check |
@@ -49,6 +50,21 @@
 | Recent Assignments | ✅ Complete | Quick access list |
 | Subject Distribution | ✅ Complete | Visual breakdown |
 | Telegram Link Prompt | ✅ Complete | Smart modal with 5-day cooldown |
+
+---
+
+### Landing Page ✅ Complete (NEW)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| SpotlightHero | ✅ Complete | Mouse-tracking gradient effect |
+| FeatureTabs | ✅ Complete | ARIA-compliant tabbed showcase |
+| BenefitsGrid | ✅ Complete | Animated feature cards |
+| ProductShowcase | ✅ Complete | Visual product demo |
+| Pricing | ✅ Complete | Tiered pricing plans |
+| TestimonialsMarquee | ✅ Complete | Auto-scrolling customer reviews |
+| SiteFooter | ✅ Complete | Navigation and links |
+| Theme Toggle | ✅ Complete | Dark/light mode switching |
 
 ---
 
@@ -139,7 +155,8 @@ None. All dependencies are up to date.
 ## Next Steps
 
 1. **Short Term** (Week)
-   - [ ] Add calendar view for assignments
+   - [x] Add calendar view for assignments ✅
+   - [x] Add landing page ✅
    - [ ] Implement assignment search/filter
    - [ ] Add assignment tags/labels
 
@@ -148,6 +165,7 @@ None. All dependencies are up to date.
    - [ ] GPA calculator
    - [ ] Export to PDF/iCal
    - [ ] Add unit tests
+   - [ ] Complete Material Symbols to Lucide migration
 
 3. **Long Term** (Quarter)
    - [ ] Mobile app (React Native)

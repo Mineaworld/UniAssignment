@@ -2,6 +2,36 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.6.0] - 2026-01-03
+
+### Added
+- **Landing Page**: Complete marketing landing page with modern design
+  - `SpotlightHero` with mouse-tracking gradient effect
+  - `FeatureTabs` with ARIA-compliant tab navigation
+  - `BenefitsGrid` with animated feature cards
+  - `ProductShowcase` with visual demos
+  - `Pricing` section with tiered plans
+  - `TestimonialsMarquee` with auto-scrolling reviews
+  - `SiteFooter` with navigation links
+- **New UI Components**: `ScrollReveal`, `ThemeToggle`, `Avatar`
+- **CSS Utilities**: Animation delays, 3D transforms for landing page effects
+
+### Changed
+- **README**: Cleaned up and removed changelog (moved to docs/Changelog.md)
+- **Font Stack**: Removed Geist font (not imported), using Inter as primary
+- **Typography**: Updated `tailwind.config.js` font configuration
+
+### Fixed
+- **Rules of Hooks**: Fixed `useMotionTemplate` called inside JSX in `SpotlightHero`
+- **Accessibility**: Added ARIA roles to `FeatureTabs` (tablist, tab, tabpanel)
+- **CTA Buttons**: Added navigation handlers to landing page buttons
+- **Button Labels**: Changed "Done" to "Cancel" in `CreateSubjectModal`
+- **Dashboard Greeting**: Fixed `name.split()[1]` for single-word names
+- **Calendar Styles**: Removed broken inline style using invalid CSS variable
+- **"use client" Directives**: Removed Next.js directives from Vite project (`SignUp`, `avatar`)
+
+---
+
 ## [0.5.0] - 2025-12-31
 
 ### Added
@@ -21,6 +51,7 @@ All notable changes to the UniAssignment project will be documented in this file
 - Assignment reminder toggle button bounds (Issue #3).
 - Optional fields deletion in Firebase updates (Issue #2).
 - Font rendering and visual consistency issues.
+- **AvatarUpload**: Applied `sizeClasses` to make `size` prop functional (was hardcoded to `w-24 h-24`).
 
 ---
 
