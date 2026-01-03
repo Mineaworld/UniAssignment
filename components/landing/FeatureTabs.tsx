@@ -35,10 +35,13 @@ const FeatureTabs = () => {
             <div className="max-w-7xl mx-auto px-6">
                 <div className="text-center mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-6">Built on strong foundations</h2>
-                    <div className="inline-flex p-1.5 rounded-full bg-secondary/50 backdrop-blur-sm border border-border">
+                    <div role="tablist" className="inline-flex p-1.5 rounded-full bg-secondary/50 backdrop-blur-sm border border-border">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
+                                role="tab"
+                                aria-selected={activeTab === tab.id}
+                                aria-controls={`tabpanel-${tab.id}`}
                                 onClick={() => setActiveTab(tab.id as keyof typeof features)}
                                 className={cn(
                                     "px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 relative",
@@ -67,7 +70,7 @@ const FeatureTabs = () => {
                             exit={{ opacity: 0, y: -10, scale: 0.98 }}
                             transition={{ duration: 0.4 }}
                         >
-                            <GlassCard className="p-8 md:p-12 aspect-[16/9] flex items-center justify-center relative overflow-hidden bg-background/50">
+                            <GlassCard role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={activeTab} className="p-8 md:p-12 aspect-[16/9] flex items-center justify-center relative overflow-hidden bg-background/50">
                                 <div className={`absolute inset-0 opacity-20 ${features[activeTab].image} blur-[100px] transition-colors duration-500`} />
 
                                 <div className="relative z-10 text-center max-w-2xl">
