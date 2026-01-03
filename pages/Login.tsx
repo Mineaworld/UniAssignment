@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,7 +8,8 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
 import GoogleIcon from '../components/GoogleIcon';
-import { Loader2, Sparkles, ArrowRight, Eye as ViewIcon, EyeOff as ViewOffIcon } from 'lucide-react';
+import { AuthBackground } from '../components/auth/AuthBackground';
+import { Loader2, ArrowRight, Eye as ViewIcon, EyeOff as ViewOffIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Login() {
@@ -54,13 +54,7 @@ export default function Login() {
 
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background">
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 w-full h-full bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
-      <div className="absolute top-0 left-1/2 w-[1000px] h-[500px] -translate-x-1/2 bg-primary/20 blur-[130px] rounded-full opacity-50 pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-purple-500/10 blur-[150px] rounded-full opacity-30 pointer-events-none" />
-
-      {/* Grid Pattern Overlay */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
+      <AuthBackground accentColor="purple" />
 
       <div className="w-full max-w-md p-6 relative z-10 flex flex-col gap-8">
         {/* Brand Header */}
@@ -70,8 +64,10 @@ export default function Login() {
           transition={{ duration: 0.5 }}
           className="text-center space-y-2"
         >
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-4 ring-1 ring-primary/20 shadow-lg shadow-primary/10">
-            <Sparkles className="w-6 h-6 text-primary" />
+          <div className="flex justify-center mb-6">
+            <Link to="/">
+              <img src="/favicon.png" alt="Logo" className="h-16 w-16 object-contain drop-shadow-2xl hover:scale-105 transition-transform" />
+            </Link>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-foreground">
             Welcome back

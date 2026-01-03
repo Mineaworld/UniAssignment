@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context';
+import LandingPage from './pages/LandingPage';
 import { ToastProvider } from './components/ToastContext';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
@@ -12,6 +13,20 @@ import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+
+const ConditionalRoot = () => {
+  const { user, loading } = useApp();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  return user ? <Navigate to="/app" replace /> : <LandingPage />;
+};
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useApp();
@@ -58,13 +73,16 @@ const AppContent = () => {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<ConditionalRoot />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/*" element={
+        <Route path="/app/*" element={
           <ProtectedRoute>
             <AppLayout />
           </ProtectedRoute>
         } />
+        {/* Redirect legacy routes or handle 404 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

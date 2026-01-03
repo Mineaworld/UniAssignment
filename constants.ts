@@ -13,11 +13,11 @@ export const INITIAL_USER: User = {
 };
 
 export const INITIAL_SUBJECTS: Subject[] = [
-  { id: '1', name: 'Advanced Algorithms', color: 'bg-yellow-400', lastUpdated: '2 days ago' },
-  { id: '2', name: 'Quantum Physics', color: 'bg-orange-400', lastUpdated: '5 days ago' },
-  { id: '3', name: 'History of Art', color: 'bg-green-400', lastUpdated: '1 week ago' },
-  { id: '4', name: 'Database Systems', color: 'bg-blue-500', lastUpdated: '1 month ago' },
-  { id: '5', name: 'English Lit 101', color: 'bg-purple-500', lastUpdated: '2 days ago' },
+  { id: '1', name: 'Advanced Algorithms', color: 'bg-yellow-400', createdAt: new Date().toISOString(), lastUpdated: '2 days ago' },
+  { id: '2', name: 'Quantum Physics', color: 'bg-orange-400', createdAt: new Date().toISOString(), lastUpdated: '5 days ago' },
+  { id: '3', name: 'History of Art', color: 'bg-green-400', createdAt: new Date().toISOString(), lastUpdated: '1 week ago' },
+  { id: '4', name: 'Database Systems', color: 'bg-blue-500', createdAt: new Date().toISOString(), lastUpdated: '1 month ago' },
+  { id: '5', name: 'English Lit 101', color: 'bg-purple-500', createdAt: new Date().toISOString(), lastUpdated: '2 days ago' },
 ];
 
 export const INITIAL_ASSIGNMENTS: Assignment[] = [
