@@ -32,6 +32,9 @@ const SpotlightHero = () => {
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 
+    // Spotlight gradient - must be at top level (hooks rule)
+    const spotlightBackground = useMotionTemplate`radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(var(--foreground-rgb),0.06), transparent 40%)`;
+
     // Magnetic Button Logic
     const btnRef = useRef<HTMLButtonElement>(null);
     const btnX = useMotionValue(0);
@@ -78,7 +81,7 @@ const SpotlightHero = () => {
             <motion.div
                 className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition duration-300 z-20 mix-blend-soft-light"
                 style={{
-                    background: useMotionTemplate`radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(var(--foreground-rgb),0.06), transparent 40%)`
+                    background: spotlightBackground
                 }}
             />
 
