@@ -134,8 +134,17 @@ const LandingPage = () => {
                                 Join thousands of students who have already switched to the most intuitive workspace built for higher education.
                             </p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <Button size="lg" className="rounded-full px-8 text-lg shadow-xl shadow-primary/25">Start for Free</Button>
-                                <Button variant="outline" size="lg" className="rounded-full px-8 text-lg bg-background/50 backdrop-blur-sm">View Demo</Button>
+                                <a href="/signup">
+                                    <Button size="lg" className="rounded-full px-8 text-lg shadow-xl shadow-primary/25">Start for Free</Button>
+                                </a>
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    className="rounded-full px-8 text-lg bg-background/50 backdrop-blur-sm"
+                                    onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                                >
+                                    View Demo
+                                </Button>
                             </div>
                         </div>
                     </ScrollReveal>
