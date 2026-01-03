@@ -99,6 +99,10 @@ export default {
                 blob: "blob 7s infinite",
                 marquee: 'marquee var(--duration) linear infinite',
             },
+            animationDelay: {
+                '2000': '2s',
+                '4000': '4s',
+            },
         },
     },
     plugins: [require("tailwindcss-animate")],
