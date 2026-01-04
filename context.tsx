@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db, storage } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   collection,
@@ -103,6 +103,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return unsubscribe;
+  }, []);
+
+  // Handle Google Sign-In redirect result (when popup fallback is used)
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          // User document will be created/fetched by the onAuthStateChanged listener
+          // and User Profile Sync effect
+          console.log('Google Sign-In redirect completed successfully');
+        }
+      } catch (error) {
+        console.error('Error handling Google Sign-In redirect:', error);
+      }
+    };
+
+    handleRedirectResult();
   }, []);
 
   // =========================================================================
@@ -266,38 +284,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  /**
+   * Helper function to handle Google Sign-In result (shared between popup and redirect flows)
+   */
+  const handleGoogleSignInResult = async (firebaseUser: import('firebase/auth').User): Promise<void> => {
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      const userData: User = {
+        uid: firebaseUser.uid,
+        name: firebaseUser.displayName || DEFAULT_USER.name,
+        email: firebaseUser.email || DEFAULT_USER.email,
+        major: DEFAULT_USER.major,
+        avatar: firebaseUser.photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(firebaseUser.displayName || 'Student')}`,
+        telegramLinked: false,
+        telegramLinkedAt: null,
+        telegramPromptLastShown: null,
+        telegramPromptDismissed: false,
+      };
+      await setDoc(userDocRef, userData);
+      setUser(userData);
+    } else {
+      // User exists, update local state from Firestore
+      const existingData = userDoc.data() as User;
+      setUser(existingData);
+    }
+  };
+
   const loginWithGoogle = async (): Promise<void> => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
+      // Try popup first (better UX)
       const result = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
-
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        const userData: User = {
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || DEFAULT_USER.name,
-          email: firebaseUser.email || DEFAULT_USER.email,
-          major: DEFAULT_USER.major,
-          avatar: firebaseUser.photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(firebaseUser.displayName || 'Student')}`,
-          telegramLinked: false,
-          telegramLinkedAt: null,
-          telegramPromptLastShown: null,
-          telegramPromptDismissed: false,
-        };
-        await setDoc(userDocRef, userData);
-        setUser(userData);
-      } else {
-        // User exists, update local state from Firestore
-        const existingData = userDoc.data() as User;
-        setUser(existingData);
-      }
+      await handleGoogleSignInResult(result.user);
     } catch (error) {
       const firebaseError = error as FirebaseError;
+
+      // If popup is blocked or COOP issue, fall back to redirect
+      if (
+        firebaseError.code === 'auth/popup-blocked' ||
+        firebaseError.code === 'auth/popup-closed-by-user' ||
+        firebaseError.message?.includes('Cross-Origin')
+      ) {
+        // Use redirect as fallback - this will navigate away and return
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
       throw new Error(getFirebaseErrorMessage(firebaseError.code || 'auth/unknown'));
     }
   };

@@ -22,11 +22,11 @@ const Sidebar = () => {
   if (!user) return null;
 
   const links = [
-    { name: 'Dashboard', icon: LayoutGrid, path: '/' },
-    { name: 'Assignments', icon: FileText, path: '/assignments' },
-    { name: 'Calendar', icon: CalendarIcon, path: '/calendar' },
-    { name: 'Subjects', icon: Book, path: '/subjects' },
-    { name: 'Settings', icon: Settings, path: '/settings' },
+    { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard' },
+    { name: 'Assignments', icon: FileText, path: '/dashboard/assignments' },
+    { name: 'Calendar', icon: CalendarIcon, path: '/dashboard/calendar' },
+    { name: 'Subjects', icon: Book, path: '/dashboard/subjects' },
+    { name: 'Settings', icon: Settings, path: '/dashboard/settings' },
   ];
 
   return (
@@ -105,8 +105,7 @@ const Sidebar = () => {
           </Button>
 
           <div className="flex items-center justify-between text-[10px] text-muted-foreground px-2 pt-2 opacity-50">
-            <span>v2.0.0</span>
-            <span>UniWorks © 2024</span>
+            <span>UniAssignment © 2026</span>
           </div>
         </div>
       </div>
