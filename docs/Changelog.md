@@ -2,6 +2,15 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.6.2] - 2026-01-05
+
+### Fixed
+- **Assignment List Scroll** (Issue #16): Fixed scroll not working on Assignments page when many items present
+  - Removed `overflow-hidden` from main content wrapper
+  - Added `overflow-y-auto` to GlassCard container
+
+---
+
 ## [0.6.1] - 2026-01-04
 
 ### Added

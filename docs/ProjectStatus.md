@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.6.1
-**Last Updated:** 2026-01-04
+**Version:** 0.6.2
+**Last Updated:** 2026-01-05
 **Status:** Active Development
 
 ---
@@ -159,6 +159,7 @@ None. All dependencies are up to date.
    - [x] Add landing page ✅
    - [ ] Implement assignment search/filter
    - [ ] Add assignment tags/labels
+   - [ ] **Pomodoro Timer Page** - Focus timer with work/break intervals (25/5/15 min), session tracking, and optional assignment linking
 
 2. **Medium Term** (Month)
    - [ ] Grade tracking per subject
