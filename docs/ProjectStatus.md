@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.6.0
-**Last Updated:** 2026-01-03
+**Version:** 0.6.1
+**Last Updated:** 2026-01-04
 **Status:** Active Development
 
 ---
@@ -17,7 +17,7 @@
 |---------|--------|-------|
 | Email/Password Sign Up | ✅ Complete | With validation and error handling |
 | Email/Password Login | ✅ Complete | With validation and error handling |
-| Google OAuth | ✅ Complete | With popup flow and error handling |
+| Google OAuth | ✅ Complete | Popup with redirect fallback for COOP |
 | Logout | ✅ Complete | Proper cleanup |
 | Profile Picture Upload | ✅ Complete | 5MB limit, image validation |
 | User Profile Management | ✅ Complete | Update name, major, avatar |

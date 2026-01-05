@@ -2,6 +2,26 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.6.1] - 2026-01-04
+
+### Added
+- **Firestore Security Rules**: Added local `firestore.rules` file for version control
+  - User-scoped access for profiles, subjects, and assignments
+  - Read-only access for telegramLinks (write via Cloud Functions only)
+- **Google Sign-In Fallback**: Added redirect-based auth fallback when popup is blocked
+
+### Changed
+- **Routing**: Renamed `/app` route to `/dashboard` to avoid Vite serving `App.tsx` as a file
+- **Navigation Paths**: Updated Sidebar and MobileNav to use `/dashboard/*` paths
+- **Branding**: Updated footer to "UniAssignment © 2026"
+
+### Fixed
+- **Firebase Permission Errors**: Resolved "Missing or insufficient permissions" by deploying proper Firestore rules
+- **Google Sign-In COOP Errors**: Auth popup now falls back to redirect when Cross-Origin-Opener-Policy blocks popup
+- **Nested Route Paths**: Changed from absolute (`/assignments`) to relative (`assignments`) in AppLayout
+
+---
+
 ## [0.6.0] - 2026-01-03
 
 ### Added

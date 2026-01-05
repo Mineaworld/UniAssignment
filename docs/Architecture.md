@@ -234,9 +234,18 @@ functions/
 
 ### Security Rules
 
-- Firestore rules ensure users can only access their own data
-- Authentication required for all data operations
-- Profile pictures stored in Firebase Storage with appropriate rules
+Firestore security rules are defined in `firestore.rules` and deployed via:
+```bash
+firebase deploy --only firestore:rules
+```
+
+**Rules Summary:**
+- `/users/{uid}` - Read/write only by authenticated owner
+- `/users/{uid}/subjects/*` - Read/write only by authenticated owner
+- `/users/{uid}/assignments/*` - Read/write only by authenticated owner
+- `/telegramLinks/{uid}` - Read only by authenticated owner (write via Cloud Functions)
+
+Profile pictures stored in Firebase Storage with user-scoped access rules.
 
 ## Deployment
 
