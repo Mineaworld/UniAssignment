@@ -215,9 +215,9 @@ const Assignments = () => {
       </GlassCard>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden min-h-0">
+      <div className="flex-1 min-h-0">
         {viewMode === 'list' ? (
-          <GlassCard className="rounded-xl shadow-sm overflow-hidden h-full flex flex-col p-1">
+          <GlassCard className="rounded-xl shadow-sm overflow-y-auto h-full flex flex-col p-1">
             <Table>
               <TableHeader className="bg-muted/30 dark:bg-white/5">
                 <TableRow className="hover:bg-transparent border-white/5">
