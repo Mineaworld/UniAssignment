@@ -1,10 +1,4 @@
 {
-    "crons": [
-        {
-            "path": "/api/cron/check-deadlines",
-            "schedule": "*/15 * * * *"
-        }
-    ],
     "rewrites": [
         {
             "source": "/((?!api/.*).*)",
