@@ -114,13 +114,13 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
         month: 'short',
         day: 'numeric',
         year: 'numeric',
-        timeZone: 'Asia/Bangkok',
+        timeZone: 'Asia/Phnom_Penh',
     });
     const timeFormatter = new Intl.DateTimeFormat('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
-        timeZone: 'Asia/Bangkok',
+        timeZone: 'Asia/Phnom_Penh',
     });
 
     const message =
