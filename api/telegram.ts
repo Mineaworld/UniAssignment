@@ -331,6 +331,9 @@ async function handleCallbackQuery(query: any, userUid: string) {
                 { text: "✏️ Edit", callback_data: `edit_menu_${assignmentId}` }
             ],
             [
+                { text: "🔔 Reminder", callback_data: `remind_set_${assignmentId}` }
+            ],
+            [
                 { text: "🗑️ Delete", callback_data: `delete_confirm_${assignmentId}` }
             ],
             [

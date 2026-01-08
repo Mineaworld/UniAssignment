@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReminderPreset, AssignmentReminder } from '../types';
 import { calculateReminderTime, formatReminderText, getPresetShort } from '../utils/reminder';
@@ -64,15 +64,20 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
     }
   };
 
-  const handleCustomSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleCustomSubmit = () => {
     setCustomError('');
-    const formData = new FormData(e.currentTarget);
+
+    // Get form elements manually since we can't use form submission
+    const container = document.getElementById('reminder-custom-form');
+    if (!container) return;
 
     if (customMode === 'relative') {
-      const amountStr = formData.get('amount') as string;
+      const amountInput = container.querySelector<HTMLInputElement>('input[name="amount"]');
+      const unitSelect = container.querySelector<HTMLSelectElement>('select[name="unit"]');
+
+      const amountStr = amountInput?.value || '';
       const amount = parseInt(amountStr, 10);
-      const unit = formData.get('unit') as keyof typeof UNIT_TO_MINUTES;
+      const unit = (unitSelect?.value || 'hours') as keyof typeof UNIT_TO_MINUTES;
 
       // Validate amount is a positive number
       if (!amountStr || isNaN(amount) || amount <= 0) {
@@ -83,8 +88,12 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
       const customMinutes = amount * UNIT_TO_MINUTES[unit];
       onChange({ enabled: true, preset: ReminderPreset.Custom, customMinutes });
     } else {
-      const date = formData.get('date') as string;
-      const time = formData.get('time') as string;
+      const dateInput = container.querySelector<HTMLInputElement>('input[name="date"]');
+      const timeInput = container.querySelector<HTMLInputElement>('input[name="time"]');
+
+      const date = dateInput?.value || '';
+      const time = timeInput?.value || '';
+
       if (date && time) {
         const customTime = new Date(`${date}T${time}`).toISOString();
         onChange({ enabled: true, preset: ReminderPreset.Custom, customTime });
@@ -114,15 +123,13 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
           type="button"
           onClick={handleToggle}
           disabled={disabled}
-          className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${
-            isEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
-          }`}
+          className={`relative w-12 h-6 rounded-full transition-colors overflow-hidden ${isEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
           aria-label={isEnabled ? 'Disable reminder' : 'Enable reminder'}
         >
           <span
-            className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-              isEnabled ? 'translate-x-6' : 'translate-x-0'
-            }`}
+            className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'
+              }`}
           />
         </button>
       </div>
@@ -139,9 +146,8 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
             {/* Preview */}
             {previewText && reminderTime && (
               <div
-                className={`text-xs flex items-center gap-1 ${
-                  isPastDue ? 'text-red-500 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'
-                }`}
+                className={`text-xs flex items-center gap-1 ${isPastDue ? 'text-red-500 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'
+                  }`}
               >
                 <span className="material-symbols-outlined text-[14px]">
                   {isPastDue ? 'warning' : 'schedule'}
@@ -166,11 +172,10 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                       key={preset}
                       type="button"
                       onClick={() => handlePresetSelect(preset)}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        isSelected
-                          ? 'bg-primary text-white ring-1 ring-primary'
-                          : 'bg-gray-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/10'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${isSelected
+                        ? 'bg-primary text-white ring-1 ring-primary'
+                        : 'bg-gray-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/10'
+                        }`}
                       aria-label={`Set reminder ${shortLabel} before due`}
                       aria-pressed={isSelected}
                     >
@@ -186,11 +191,10 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                       onChange({ enabled: true, preset: ReminderPreset.Custom });
                     }
                   }}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    isExpanded && currentPreset === ReminderPreset.Custom
-                      ? 'bg-primary text-white ring-1 ring-primary'
-                      : 'bg-gray-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/10'
-                  }`}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${isExpanded && currentPreset === ReminderPreset.Custom
+                    ? 'bg-primary text-white ring-1 ring-primary'
+                    : 'bg-gray-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-white/10'
+                    }`}
                   aria-label="Set custom reminder time"
                   aria-pressed={isExpanded && currentPreset === ReminderPreset.Custom}
                 >
@@ -212,11 +216,10 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                   <button
                     type="button"
                     onClick={() => { setCustomMode('relative'); setCustomError(''); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      customMode === 'relative'
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'bg-gray-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:bg-gray-300 dark:hover:bg-white/20'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${customMode === 'relative'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-gray-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:bg-gray-300 dark:hover:bg-white/20'
+                      }`}
                     aria-pressed={customMode === 'relative'}
                   >
                     Before due
@@ -224,11 +227,10 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                   <button
                     type="button"
                     onClick={() => { setCustomMode('absolute'); setCustomError(''); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      customMode === 'absolute'
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'bg-gray-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:bg-gray-300 dark:hover:bg-white/20'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${customMode === 'absolute'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-gray-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:bg-gray-300 dark:hover:bg-white/20'
+                      }`}
                     aria-pressed={customMode === 'absolute'}
                   >
                     At specific time
@@ -241,7 +243,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                 )}
 
                 {/* Custom Form */}
-                <form onSubmit={handleCustomSubmit} className="flex gap-2 items-end flex-wrap sm:flex-nowrap">
+                <div id="reminder-custom-form" className="flex gap-2 items-end flex-wrap sm:flex-nowrap">
                   {customMode === 'relative' ? (
                     <>
                       <input
@@ -287,12 +289,13 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                     </>
                   )}
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleCustomSubmit}
                     className="px-4 py-1.5 h-9 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
                   >
                     Set
                   </button>
-                </form>
+                </div>
               </motion.div>
             )}
           </motion.div>
