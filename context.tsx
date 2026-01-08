@@ -457,10 +457,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateAssignment = async (id: string, updates: Partial<Assignment>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
 
+    // If dueDate or reminder settings changed, reset sentAt to allow re-triggering
+    if (updates.dueDate !== undefined || updates.reminder !== undefined) {
+      if (updates.reminder && updates.reminder.enabled) {
+        // Clear sentAt so the reminder can trigger again
+        updates.reminder = {
+          ...updates.reminder,
+          sentAt: undefined,
+        };
+      }
+    }
+
     // Convert undefined values to deleteField() for proper Firestore field deletion
     const processedUpdates: Record<string, any> = {};
     for (const [key, value] of Object.entries(updates)) {
-      processedUpdates[key] = value === undefined ? deleteField() : value;
+      if (key === 'reminder' && value !== undefined) {
+        // Handle nested reminder object - convert nested undefined to deleteField
+        const reminderObj = value as Record<string, any>;
+        const processedReminder: Record<string, any> = {};
+        for (const [rKey, rValue] of Object.entries(reminderObj)) {
+          processedReminder[`reminder.${rKey}`] = rValue === undefined ? deleteField() : rValue;
+        }
+        Object.assign(processedUpdates, processedReminder);
+      } else {
+        processedUpdates[key] = value === undefined ? deleteField() : value;
+      }
     }
 
     await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
