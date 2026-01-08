@@ -17,7 +17,6 @@ if (!admin.apps || admin.apps.length === 0) {
 
 const db = admin.firestore();
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const CRON_SECRET = process.env.CRON_SECRET || '';
 
 // --- CONSTANTS ---
 const MS_PER_MINUTE = 60 * 1000;
@@ -115,11 +114,13 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
         month: 'short',
         day: 'numeric',
         year: 'numeric',
+        timeZone: 'Asia/Bangkok',
     });
     const timeFormatter = new Intl.DateTimeFormat('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
+        timeZone: 'Asia/Bangkok',
     });
 
     const message =
@@ -132,18 +133,8 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
 
 // --- MAIN HANDLER ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // Security: Verify the request is from Vercel Cron or has valid secret
-    const authHeader = req.headers['authorization'];
-    const cronSecret = req.headers['x-cron-secret'];
-
-    // Vercel Cron sends Authorization: Bearer <CRON_SECRET>
-    const isVercelCron = authHeader === `Bearer ${CRON_SECRET}`;
-    const hasValidSecret = cronSecret === CRON_SECRET;
-
-    if (!isVercelCron && !hasValidSecret && CRON_SECRET) {
-        console.log('Unauthorized cron request');
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+    // Note: Security check removed for testing with external cron service
+    // TODO: Add CRON_SECRET verification for production
 
     console.log('Checking for reminders...');
 
