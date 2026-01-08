@@ -2,6 +2,30 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.7.0] - 2026-01-08
+
+### Added
+- **Telegram Reminder System**: Automated reminder notifications via Telegram
+  - New Vercel cron endpoint (`api/cron/check-deadlines.ts`)
+  - External scheduler via cron-job.org (every 15 minutes)
+  - Reminder presets: 1h, 6h, 1d, 3d, 1w before due
+  - Custom reminder support (relative or absolute time)
+  - Timezone-aware notifications (Asia/Phnom_Penh)
+- **Telegram Bot Enhancements**: Added 🔔 Reminder button to assignment view
+
+### Changed
+- **Reminder Re-triggering**: Editing due date or reminder settings now resets `sentAt`, allowing reminders to fire again
+- **ReminderSelector**: Refactored to avoid nested form issue (converted inner `<form>` to `<div>`)
+
+### Fixed
+- **Custom Reminder Bug**: Fixed page reload when clicking "Set" in custom reminder form (nested form issue)
+
+### Technical
+- Uses external cron service (cron-job.org) instead of Vercel Cron (requires Pro plan for <1 day intervals)
+- Reminder window: ±15 minutes for cron tolerance
+
+---
+
 ## [0.6.2] - 2026-01-05
 
 ### Fixed

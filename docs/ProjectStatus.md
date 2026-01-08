@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.6.2
-**Last Updated:** 2026-01-05
+**Version:** 0.7.0
+**Last Updated:** 2026-01-08
 **Status:** Active Development
 
 ---
@@ -76,11 +76,13 @@
 | /start Command | ✅ Complete | Account linking |
 | /add Command | ✅ Complete | Interactive flow |
 | /assignments Command | ✅ Complete | List with inline buttons |
-| View Assignment | ✅ Complete | Detailed view |
+| View Assignment | ✅ Complete | Detailed view with 🔔 Reminder button |
 | Toggle Status | ✅ Complete | Via inline buttons |
 | Edit Assignment | ✅ Complete | Title and due date |
 | Delete Assignment | ✅ Complete | With confirmation |
-| Deadline Reminders | ✅ Complete | Scheduled every 1 hour |
+| **Automated Reminders** | ✅ Complete | Via cron-job.org (every 15 min) |
+| Reminder Presets | ✅ Complete | 1h, 6h, 1d, 3d, 1w before due |
+| Custom Reminders | ✅ Complete | Relative or absolute time |
 | Button Interactions | ✅ Complete | Full callback query handling |
 
 **Note:** Telegram bot requires `TELEGRAM_BOT_TOKEN` to be set in Vercel environment variables.

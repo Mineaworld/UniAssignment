@@ -213,13 +213,12 @@ src/
 
 ```
 api/
-└── telegram.ts              # Telegram Vercel Webhook Handler (Active)
+├── telegram.ts              # Telegram Vercel Webhook Handler
+└── cron/
+    └── check-deadlines.ts   # Reminder notification scheduler (called by cron-job.org)
 
-functions/
-└── src/
-    └── index.ts             # Firebase Cloud Functions
-        ├── telegramWebhook  # Experimental/Secondary Webhook
-        └── checkDeadlines   # Scheduled Notifications (every 15 min)
+External Services:
+└── cron-job.org             # Free HTTP scheduler (pings every 15 min)
 ```
 
 ## Security Considerations
