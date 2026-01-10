@@ -103,7 +103,7 @@ const Dashboard = () => {
             Dashboard
           </h1>
           <p className="text-muted-foreground text-lg font-medium">
-            {getGreeting()}, <span className="text-foreground font-semibold">{user?.name?.split(' ')[0] || 'there'}</span>.
+            {getGreeting()}, <span className="text-foreground font-semibold">{user?.name || 'there'}</span>.
           </p>
         </div>
 
