@@ -2,6 +2,26 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
 import * as chrono from 'chrono-node';
 
+// Telegram API Types
+interface TelegramInlineKeyboardButton {
+    text: string;
+    callback_data?: string;
+    url?: string;
+}
+
+interface TelegramReplyMarkup {
+    inline_keyboard: TelegramInlineKeyboardButton[][];
+}
+
+interface TelegramCallbackQuery {
+    id: string;
+    message: {
+        chat: { id: number };
+        message_id: number;
+    };
+    data: string;
+}
+
 // Initialize Firebase Admin (only once)
 if (!admin.apps || admin.apps.length === 0) {
     // Handle private key - it may have literal \n or escaped \\n
@@ -21,7 +41,7 @@ const db = admin.firestore();
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
 // --- HELPER: Send Telegram Message ---
-async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: any): Promise<void> {
+async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: TelegramReplyMarkup): Promise<void> {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     try {
         await fetch(url, {
@@ -40,7 +60,7 @@ async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: a
 }
 
 // --- HELPER: Edit Telegram Message ---
-async function editTelegramMessage(chatId: string, messageId: number, text: string, replyMarkup?: any): Promise<void> {
+async function editTelegramMessage(chatId: string, messageId: number, text: string, replyMarkup?: TelegramReplyMarkup): Promise<void> {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`;
     try {
         await fetch(url, {
@@ -104,7 +124,7 @@ async function clearState(chatId: string): Promise<void> {
 // --- HANDLERS ---
 async function handleStartIdentifier(chatId: string, userId: string | undefined, text: string) {
     const parts = text.split(" ");
-    if (parts.length > 1) {
+    if (parts.length > 1 && parts[1]) {
         const linkToken = parts[1];
         await db.collection("telegramLinks").doc(linkToken).set({
             chatId: chatId,
@@ -135,7 +155,7 @@ async function handleAssignmentsCommand(chatId: string, userUid: string) {
     if (assignmentsSnapshot.empty) {
         await sendTelegramMessage(chatId, "📚 You have no assignments yet!");
     } else {
-        const inlineKeyboard: any[][] = [];
+        const inlineKeyboard: TelegramInlineKeyboardButton[][] = [];
 
         assignmentsSnapshot.docs.forEach((doc) => {
             const data = doc.data();
@@ -174,7 +194,7 @@ async function showRemindMenu(chatId: string, userUid: string) {
         return;
     }
 
-    const inlineKeyboard: any[][] = [];
+    const inlineKeyboard: TelegramInlineKeyboardButton[][] = [];
     pendingDocs.forEach((doc) => {
         const d = doc.data();
         const hasReminder = d.reminder?.enabled;
@@ -218,7 +238,7 @@ function formatMinutesBeforeDue(minutes: number): string {
     return `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
 }
 
-async function handleCallbackQuery(query: any, userUid: string) {
+async function handleCallbackQuery(query: TelegramCallbackQuery, userUid: string) {
     // Must answer callback query to stop loading state
     const callbackQueryId = query.id;
     const chatId = query.message.chat.id.toString();
@@ -250,8 +270,13 @@ async function handleCallbackQuery(query: any, userUid: string) {
 
     if (data.startsWith('remind_preset_')) {
         const parts = data.split('_');
-        const preset = parts[2];  // 1h, 6h, etc.
-        const assignmentId = parts[3];
+        const preset = parts[2] ?? '';  // 1h, 6h, etc.
+        const assignmentId = parts[3] ?? '';
+
+        if (!preset || !assignmentId) {
+            await editTelegramMessage(chatId, messageId, "❌ Invalid reminder data.");
+            return;
+        }
 
         const docRef = db.doc(`users/${userUid}/assignments/${assignmentId}`);
         const doc = await docRef.get();
@@ -262,6 +287,7 @@ async function handleCallbackQuery(query: any, userUid: string) {
         }
 
         const assignment = doc.data()!;
+        const assignmentTitle = (assignment.title as string) || 'Unknown';
         // Use dot notation to properly delete sentAt while updating other fields
         await docRef.update({
             "reminder.enabled": true,
@@ -271,7 +297,7 @@ async function handleCallbackQuery(query: any, userUid: string) {
 
         await editTelegramMessage(chatId, messageId,
             `✅ <b>Reminder Set!</b>\n\n` +
-            `I'll remind you about <b>${assignment.title}</b> ${formatPresetText(preset)} it's due.\n\n` +
+            `I'll remind you about <b>${assignmentTitle}</b> ${formatPresetText(preset)} it's due.\n\n` +
             `Use /assignments to manage your tasks.`
         );
         return;
@@ -446,7 +472,7 @@ async function handleCallbackQuery(query: any, userUid: string) {
         if (assignmentsSnapshot.empty) {
             await editTelegramMessage(chatId, messageId, "📚 You have no assignments yet!");
         } else {
-            const inlineKeyboard: any[][] = [];
+            const inlineKeyboard: TelegramInlineKeyboardButton[][] = [];
             assignmentsSnapshot.docs.forEach((doc) => {
                 const d = doc.data();
                 const dd = new Date(d.dueDate).toLocaleDateString();
@@ -462,7 +488,12 @@ async function handleCallbackQuery(query: any, userUid: string) {
 }
 
 // --- HELPER: Show Reminder Presets ---
-async function showReminderPresets(chatId: string, messageId: number, assignmentId: string, userUid: string, currentReminder?: any) {
+interface ReminderData {
+    enabled?: boolean;
+    preset?: string;
+}
+
+async function showReminderPresets(chatId: string, messageId: number, assignmentId: string, userUid: string, currentReminder?: ReminderData) {
     // Build keyboard rows
     const keyboard = [
         [
@@ -486,7 +517,7 @@ async function showReminderPresets(chatId: string, messageId: number, assignment
     }
     keyboard.push(bottomRow);
 
-    const currentText = currentReminder?.enabled
+    const currentText = currentReminder?.enabled && currentReminder.preset
         ? `\n\n📍 Current: ${formatPresetText(currentReminder.preset)}`
         : '';
 
@@ -514,7 +545,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 await sendTelegramMessage(chatId, "⚠️ Authentication error.");
                 return res.status(200).send('OK');
             }
-            const userUid = linksSnapshot.docs[0].id;
+            const linkDoc = linksSnapshot.docs[0];
+            if (!linkDoc) {
+                await sendTelegramMessage(chatId, "⚠️ Authentication error.");
+                return res.status(200).send('OK');
+            }
+            const userUid = linkDoc.id;
 
             await handleCallbackQuery(update.callback_query, userUid);
             return res.status(200).send('OK');
@@ -547,6 +583,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const linkDoc = linksSnapshot.docs[0];
+        if (!linkDoc) {
+            await sendTelegramMessage(chatId, "⚠️ Please link your account from the web app settings first.");
+            return res.status(200).send('OK');
+        }
         const userUid = linkDoc.id;
 
         // 3. Global Commands
@@ -699,8 +739,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .get();
 
                 if (!subjectsSnapshot.empty) {
-                    subjectId = subjectsSnapshot.docs[0].id;
-                    finalSubjectName = subjectsSnapshot.docs[0].data().name;
+                    const subjectDoc = subjectsSnapshot.docs[0];
+                    if (subjectDoc) {
+                        subjectId = subjectDoc.id;
+                        finalSubjectName = subjectDoc.data().name as string;
+                    }
                 } else {
                     const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
                         name: subjectName,
