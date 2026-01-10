@@ -85,7 +85,8 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
         return;
       }
 
-      const customMinutes = amount * UNIT_TO_MINUTES[unit];
+      const multiplier = UNIT_TO_MINUTES[unit] ?? 60;
+      const customMinutes = amount * multiplier;
       onChange({ enabled: true, preset: ReminderPreset.Custom, customMinutes });
     } else {
       const dateInput = container.querySelector<HTMLInputElement>('input[name="date"]');
