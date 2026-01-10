@@ -18,6 +18,36 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Split Firebase into its own chunk
+            'vendor-firebase': [
+              'firebase/app',
+              'firebase/auth',
+              'firebase/firestore',
+              'firebase/storage'
+            ],
+            // Split UI/animation libraries
+            'vendor-ui': [
+              'framer-motion',
+              'recharts'
+            ],
+            // Split routing
+            'vendor-router': [
+              'react-router-dom'
+            ],
+            // Split drag-and-drop
+            'vendor-dnd': [
+              '@dnd-kit/core',
+              '@dnd-kit/sortable',
+              '@dnd-kit/utilities'
+            ],
+          }
+        }
+      }
     }
   };
 });

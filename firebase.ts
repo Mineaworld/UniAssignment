@@ -35,9 +35,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase (singleton pattern)
-const app = getApps().length === 0
+const existingApps = getApps();
+const app = existingApps.length === 0
   ? initializeApp(firebaseConfig)
-  : getApps()[0];
+  : existingApps[0]!;
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

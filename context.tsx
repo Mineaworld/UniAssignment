@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db, storage } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -13,7 +13,8 @@ import {
   orderBy,
   getDoc,
   setDoc,
-  deleteField
+  deleteField,
+  FieldValue
 } from 'firebase/firestore';
 import { Assignment, AppContextType, Subject, User } from './types';
 
@@ -68,13 +69,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   useEffect(() => {
+    const syncTheme = (e: MutationRecord[]) => {
+      e.forEach(mutation => {
+        if (mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          if (isDark && theme !== 'dark') setTheme('dark');
+          if (!isDark && theme !== 'light') setTheme('light');
+        }
+      });
+    };
+    
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, [theme]);
+
+  useEffect(() => {
     const root = document.documentElement;
     const isDark = theme === 'dark';
-    root.classList.toggle('dark', isDark);
+    if (isDark && !root.classList.contains('dark')) root.classList.add('dark');
+    if (!isDark && root.classList.contains('dark')) root.classList.remove('dark');
     localStorage.setItem('uni_theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
 
   // =========================================================================
   // Auth State Management
@@ -113,7 +132,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (result?.user) {
           // User document will be created/fetched by the onAuthStateChanged listener
           // and User Profile Sync effect
-          console.log('Google Sign-In redirect completed successfully');
+          if (import.meta.env.DEV) {
+            console.log('Google Sign-In redirect completed successfully');
+          }
         }
       } catch (error) {
         console.error('Error handling Google Sign-In redirect:', error);
@@ -469,18 +490,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // Convert undefined values to deleteField() for proper Firestore field deletion
-    const processedUpdates: Record<string, any> = {};
+    type FirestoreUpdateValue = string | number | boolean | null | FieldValue | object;
+    const processedUpdates: Record<string, FirestoreUpdateValue> = {};
     for (const [key, value] of Object.entries(updates)) {
-      if (key === 'reminder' && value !== undefined) {
+      if (key === 'reminder' && value !== undefined && typeof value === 'object' && value !== null) {
         // Handle nested reminder object - convert nested undefined to deleteField
-        const reminderObj = value as Record<string, any>;
-        const processedReminder: Record<string, any> = {};
+        const reminderObj = value as unknown as Record<string, unknown>;
         for (const [rKey, rValue] of Object.entries(reminderObj)) {
-          processedReminder[`reminder.${rKey}`] = rValue === undefined ? deleteField() : rValue;
+          processedUpdates[`reminder.${rKey}`] = rValue === undefined ? deleteField() : (rValue as FirestoreUpdateValue);
         }
-        Object.assign(processedUpdates, processedReminder);
       } else {
-        processedUpdates[key] = value === undefined ? deleteField() : value;
+        processedUpdates[key] = value === undefined ? deleteField() : (value as FirestoreUpdateValue);
       }
     }
 
@@ -571,7 +591,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Context Value
   // =========================================================================
 
-  const value: AppContextType = {
+  const value: AppContextType = useMemo(() => ({
     user,
     loading,
     assignments,
@@ -590,7 +610,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteSubject,
     updateUserProfile,
     dismissTelegramPrompt,
-  };
+  }), [
+    user,
+    loading,
+    assignments,
+    subjects,
+    theme,
+    toggleTheme,
+    login,
+    loginWithGoogle,
+    signup,
+    logout,
+    addAssignment,
+    updateAssignment,
+    deleteAssignment,
+    addSubject,
+    updateSubject,
+    deleteSubject,
+    updateUserProfile,
+    dismissTelegramPrompt,
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

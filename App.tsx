@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AppProvider, useApp } from './context';
 import LandingPage from './pages/LandingPage';
 import { ToastProvider } from './components/ToastContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import Dashboard from './pages/Dashboard';
@@ -90,11 +91,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AppProvider>
-      <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </AppProvider>
+    </ErrorBoundary>
   );
 };
 
