@@ -4,9 +4,10 @@ import { useApp } from '../context';
 import { NeonButton } from '../components/ui/NeonButton';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
-import { Bell, LogOut, User, Shield } from 'lucide-react';
+import { Bell, LogOut, User, Shield, Loader2 } from 'lucide-react';
 import AvatarUpload from '../components/AvatarUpload';
 import { cn } from '../utils/cn';
+import { generateTelegramLinkUrl } from '../utils/telegramLinkToken';
 
 const Settings = () => {
   const { user, logout, updateUserProfile } = useApp();
@@ -16,6 +17,7 @@ const Settings = () => {
   const [major, setMajor] = useState(user?.major || '');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [telegramLinkLoading, setTelegramLinkLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -44,13 +46,27 @@ const Settings = () => {
     navigate('/login');
   };
 
-  const formatLinkedDate = (dateString: string | null) => {
+const formatLinkedDate = (dateString: string | null) => {
     if (!dateString) return null;
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleConnectTelegram = async () => {
+    if (!user?.uid) return;
+    
+    setTelegramLinkLoading(true);
+    try {
+      const url = await generateTelegramLinkUrl(user.uid);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Failed to generate Telegram link:', error);
+    } finally {
+      setTelegramLinkLoading(false);
+    }
   };
 
   return (
@@ -164,15 +180,20 @@ const Settings = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <NeonButton
+<NeonButton
                 variant="outline"
                 className={cn(
                   "gap-2 rounded-2xl border-border/60 hover:border-primary/40 hover:bg-primary/5",
                   !user?.telegramLinked && "border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
                 )}
-                onClick={() => window.open(`https://t.me/UniAssignmentBot?start=${user?.uid}`, '_blank')}
+                onClick={handleConnectTelegram}
+                disabled={telegramLinkLoading}
               >
-                <Bell className="h-4 w-4" />
+                {telegramLinkLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Bell className="h-4 w-4" />
+                )}
                 {user?.telegramLinked ? 'Open Telegram Bot' : 'Connect Telegram'}
               </NeonButton>
             </div>

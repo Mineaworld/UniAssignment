@@ -24,5 +24,14 @@ service cloud.firestore {
       // Write should only be done by Cloud Functions, not client
       allow write: if false;
     }
+    
+    // Telegram link tokens - temporary tokens for secure account linking
+    // Users can create tokens for themselves, but only Cloud Functions can read/delete
+    match /telegramLinkTokens/{tokenId} {
+      // Allow authenticated users to create tokens, but only if the token contains their UID
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      // Read and delete only allowed from server (Cloud Functions) - not client
+      allow read, update, delete: if false;
+    }
   }
 }
