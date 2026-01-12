@@ -126,7 +126,40 @@ async function handleStartIdentifier(chatId: string, userId: string | undefined,
     const parts = text.split(" ");
     if (parts.length > 1 && parts[1]) {
         const linkToken = parts[1];
-        await db.collection("telegramLinks").doc(linkToken).set({
+        
+        // Validate the temporary token and get the associated UID
+        const tokenDoc = await db.collection("telegramLinkTokens").doc(linkToken).get();
+        
+        if (!tokenDoc.exists) {
+            // Token doesn't exist - could be expired or invalid
+            await sendTelegramMessage(chatId,
+                "⚠️ <b>Invalid or Expired Link</b>\n\n" +
+                "This link has expired or is invalid. Please generate a new link from the UniAssignment web app settings."
+            );
+            return;
+        }
+        
+        const tokenData = tokenDoc.data();
+        const expiresAt = tokenData?.expiresAt?.toDate?.() ?? new Date(0);
+        
+        // Check if token has expired
+        if (new Date() > expiresAt) {
+            // Clean up expired token
+            await db.collection("telegramLinkTokens").doc(linkToken).delete();
+            await sendTelegramMessage(chatId,
+                "⚠️ <b>Link Expired</b>\n\n" +
+                "This link has expired. Please generate a new link from the UniAssignment web app settings."
+            );
+            return;
+        }
+        
+        const userUid = tokenData?.uid as string;
+        
+        // Token is valid - delete it (one-time use) and create the link
+        await db.collection("telegramLinkTokens").doc(linkToken).delete();
+        
+        // Create the Telegram link with the actual UID
+        await db.collection("telegramLinks").doc(userUid).set({
             chatId: chatId,
             telegramUserId: userId,
             linkedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -531,6 +564,17 @@ async function showReminderPresets(chatId: string, messageId: number, assignment
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
         return res.status(200).json({ message: 'UniAssignment Bot Webhook Active' });
+    }
+
+    // Security: Verify Telegram webhook secret token
+    // This header is set by Telegram when you register the webhook with a secret_token
+    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (webhookSecret) {
+        const providedSecret = req.headers['x-telegram-bot-api-secret-token'];
+        if (providedSecret !== webhookSecret) {
+            console.warn('Unauthorized webhook request - invalid secret token');
+            return res.status(401).send('Unauthorized');
+        }
     }
 
     try {

@@ -216,9 +216,42 @@ async function clearState(chatId: string): Promise<void> {
 
 async function handleStartIdentifier(chatId: string, userId: string | undefined, text: string) {
     const parts = text.split(" ");
-    if (parts.length > 1) {
-        const linkToken = parts[1];
-        await db.collection("telegramLinks").doc(linkToken).set({
+    const linkToken = parts[1];
+    if (parts.length > 1 && linkToken) {
+        
+        // Validate the temporary token and get the associated UID
+        const tokenDoc = await db.collection("telegramLinkTokens").doc(linkToken).get();
+        
+        if (!tokenDoc.exists) {
+            // Token doesn't exist - could be expired or invalid
+            await sendTelegramMessage(chatId,
+                "⚠️ <b>Invalid or Expired Link</b>\n\n" +
+                "This link has expired or is invalid. Please generate a new link from the UniAssignment web app settings."
+            );
+            return;
+        }
+        
+        const tokenData = tokenDoc.data();
+        const expiresAt = tokenData?.expiresAt?.toDate?.() ?? new Date(0);
+        
+        // Check if token has expired
+        if (new Date() > expiresAt) {
+            // Clean up expired token
+            await db.collection("telegramLinkTokens").doc(linkToken).delete();
+            await sendTelegramMessage(chatId,
+                "⚠️ <b>Link Expired</b>\n\n" +
+                "This link has expired. Please generate a new link from the UniAssignment web app settings."
+            );
+            return;
+        }
+        
+        const userUid = tokenData?.uid as string;
+        
+        // Token is valid - delete it (one-time use) and create the link
+        await db.collection("telegramLinkTokens").doc(linkToken).delete();
+        
+        // Create the Telegram link with the actual UID
+        await db.collection("telegramLinks").doc(userUid).set({
             chatId: chatId,
             telegramUserId: userId,
             linkedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -297,9 +330,10 @@ async function handleSubjectStep(chatId: string, userUid: string, text: string, 
         .limit(1)
         .get();
 
-    if (!subjectsSnapshot.empty) {
-        subjectId = subjectsSnapshot.docs[0].id;
-        finalSubjectName = subjectsSnapshot.docs[0].data().name;
+    const firstDoc = subjectsSnapshot.docs[0];
+    if (!subjectsSnapshot.empty && firstDoc) {
+        subjectId = firstDoc.id;
+        finalSubjectName = firstDoc.data().name;
     } else {
         // Create new subject automatically
         const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
@@ -353,6 +387,18 @@ async function handleDueDateStep(chatId: string, userUid: string, text: string, 
 // --- MAIN WEBHOOK ---
 
 export const telegramWebhook = onRequest(async (req, res) => {
+    // Security: Verify Telegram webhook secret token
+    // This header is set by Telegram when you register the webhook with a secret_token
+    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (webhookSecret) {
+        const providedSecret = req.headers['x-telegram-bot-api-secret-token'];
+        if (providedSecret !== webhookSecret) {
+            console.warn('Unauthorized webhook request - invalid secret token');
+            res.status(401).send('Unauthorized');
+            return;
+        }
+    }
+
     try {
         const update = req.body;
 
@@ -385,6 +431,11 @@ export const telegramWebhook = onRequest(async (req, res) => {
         }
 
         const linkDoc = linksSnapshot.docs[0];
+        if (!linkDoc) {
+            await sendTelegramMessage(chatId, "⚠️ Please link your account from the web app first.");
+            res.status(200).send("OK");
+            return;
+        }
         const userUid = linkDoc.id;
 
         // 3. Handle Global Commands

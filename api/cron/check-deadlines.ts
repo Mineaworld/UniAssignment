@@ -159,8 +159,24 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
 
 // --- MAIN HANDLER ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // Note: Security check removed for testing with external cron service
-    // TODO: Add CRON_SECRET verification for production
+    // Security: Verify CRON_SECRET to prevent unauthorized access
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = req.headers.authorization;
+    
+    if (!cronSecret) {
+        console.error('CRON_SECRET environment variable is not configured');
+        return res.status(500).json({ error: 'Server configuration error' });
+    }
+    
+    // Check Authorization header (format: "Bearer <secret>")
+    const providedSecret = authHeader?.startsWith('Bearer ') 
+        ? authHeader.slice(7) 
+        : req.headers['x-cron-secret'];
+    
+    if (providedSecret !== cronSecret) {
+        console.warn('Unauthorized cron request attempt');
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     console.log('Checking for reminders...');
 
