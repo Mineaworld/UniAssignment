@@ -15,17 +15,43 @@ const PRESET_MINUTES: Record<ReminderPreset, number> = {
   [ReminderPreset.Custom]: 0,
 };
 
-// Helper: Format time before due with proper pluralization
+// Helper: Format time before due (human-readable)
 function formatTimeBeforeDue(hours: number): string {
-  if (hours < 1) {
-    const minutes = Math.round(hours * 60);
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  const totalMinutes = Math.round(hours * 60);
+
+  if (totalMinutes < 60) {
+    // Less than 1 hour: "X minutes"
+    return `${totalMinutes} minute${totalMinutes !== 1 ? 's' : ''}`;
   }
+
   if (hours < 24) {
-    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    // Between 1-24 hours: "X hours Y minutes"
+    const wholeHours = Math.floor(hours);
+    const remainingMinutes = totalMinutes % 60;
+
+    if (remainingMinutes === 0) {
+      return `${wholeHours} hour${wholeHours !== 1 ? 's' : ''}`;
+    }
+    return `${wholeHours} hour${wholeHours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
   }
-  const days = Math.round(hours / 24);
-  return `${days} day${days !== 1 ? 's' : ''}`;
+
+  // 24+ hours: "X days Y hours Z minutes"
+  const days = Math.floor(hours / 24);
+  const remainingHours = Math.floor(hours % 24);
+  const remainingMinutes = totalMinutes % 60;
+
+  const parts: string[] = [];
+  parts.push(`${days} day${days !== 1 ? 's' : ''}`);
+
+  if (remainingHours > 0) {
+    parts.push(`${remainingHours} hour${remainingHours !== 1 ? 's' : ''}`);
+  }
+
+  if (remainingMinutes > 0) {
+    parts.push(`${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`);
+  }
+
+  return parts.join(' ');
 }
 
 /**
