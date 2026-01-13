@@ -28,10 +28,10 @@ export function MiniChart({ data = defaultData, className, title = "Activity" }:
     const maxValue = Math.max(...data.map((d) => d.value)) || 1
 
     useEffect(() => {
-        if (hoveredIndex !== null) {
+        if (hoveredIndex !== null && data[hoveredIndex]) {
             setDisplayValue(data[hoveredIndex].value)
         }
-    }, [hoveredIndex])
+    }, [hoveredIndex, data])
 
     const handleContainerEnter = () => setIsHovering(true)
     const handleContainerLeave = () => {

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db, storage } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import {
   collection,
   query,
@@ -509,6 +509,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteAssignment = async (id: string): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
+
+    // Clean up associated images from Storage (best effort - don't block deletion)
+    try {
+      const imagesFolderRef = ref(storage, `notes/${user.uid}/${id}`);
+      const imagesList = await listAll(imagesFolderRef);
+
+      if (imagesList.items.length > 0) {
+        await Promise.all(
+          imagesList.items.map(imageRef => deleteObject(imageRef))
+        );
+      }
+    } catch (error) {
+      // Log but don't block assignment deletion if image cleanup fails
+      console.warn('Failed to clean up assignment images:', error);
+    }
+
+    // Delete the assignment document
     await deleteDoc(doc(db, `users/${user.uid}/assignments`, id));
   };
 
@@ -588,6 +605,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // =========================================================================
+  // Note Image Upload
+  // =========================================================================
+
+  const uploadNoteImage = async (assignmentId: string, file: File): Promise<string> => {
+    if (!user?.uid) throw new Error('User not authenticated');
+
+    // Validate file size (5MB limit)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      throw new Error('Image must be less than 5MB');
+    }
+
+    // Validate file type and derive extension from MIME type (more secure than filename)
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+    if (!mimeToExt[file.type]) {
+      throw new Error('Only JPEG, PNG, GIF, and WebP images are allowed');
+    }
+
+    const imageId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    const ext = mimeToExt[file.type];
+    const storagePath = `notes/${user.uid}/${assignmentId}/${imageId}.${ext}`;
+
+    const storageRef = ref(storage, storagePath);
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
+  };
+
+  // =========================================================================
   // Context Value
   // =========================================================================
 
@@ -610,6 +660,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteSubject,
     updateUserProfile,
     dismissTelegramPrompt,
+    uploadNoteImage,
   }), [
     user,
     loading,
@@ -629,6 +680,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteSubject,
     updateUserProfile,
     dismissTelegramPrompt,
+    uploadNoteImage,
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

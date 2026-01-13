@@ -18,8 +18,8 @@ const Calendar = () => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
 
-  const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split('T')[0] ?? '';
   };
 
   const nextMonth = () => {

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status, AssignmentReminder } from '../types';
+import { Priority, Status, AssignmentReminder, NotesContent } from '../types';
 import { useApp } from '../context';
 import { ReminderSelector } from './ReminderSelector';
+import { NotesEditor } from './notes';
 
 // Form data type for type safety
 interface FormData {
@@ -13,26 +14,25 @@ interface FormData {
   date: string;
   time: string;
   priority: Priority;
-  description: string;
+  notes: NotesContent | undefined;
   examType: 'midterm' | 'final' | null;
   reminder: AssignmentReminder | undefined;
 }
 
-const DEFAULT_FORM_DATA: Omit<FormData, 'reminder'> & { reminder: AssignmentReminder | undefined } = {
+const DEFAULT_FORM_DATA: FormData = {
   title: '',
   subjectId: '',
   status: Status.Pending,
   date: '',
   time: '',
   priority: Priority.Medium,
-  description: '',
+  notes: undefined,
   examType: null,
   reminder: undefined,
 };
 
 const getResetFormData = (): FormData => ({
   ...DEFAULT_FORM_DATA,
-  reminder: undefined,
 });
 
 interface CreateAssignmentModalProps {
@@ -61,10 +61,10 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
 
   // Clear success message after 3 seconds
   useEffect(() => {
-    if (subjectSuccess) {
-      const timer = setTimeout(() => setSubjectSuccess(''), 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!subjectSuccess) return;
+
+    const timer = setTimeout(() => setSubjectSuccess(''), 3000);
+    return () => clearTimeout(timer);
   }, [subjectSuccess]);
 
   const handleCreateSubject = async (e: React.FormEvent) => {
@@ -113,7 +113,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
         status: formData.status,
         dueDate: dateTime,
         priority: formData.priority,
-        description: formData.description,
+        notes: formData.notes,
         examType: formData.examType,
         ...(formData.reminder ? { reminder: formData.reminder } : {}),
       });
@@ -426,16 +426,19 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                   onChange={(reminder) => setFormData({ ...formData, reminder })}
                 />
 
-                <label className="block">
-                  <span className="text-sm font-medium text-foreground/80">Description / Notes</span>
-                  <textarea
-                    rows={4}
-                    placeholder="Add details..."
-                    className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/50 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 p-4 transition-all resize-none"
-                    value={formData.description}
-                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </label>
+                <div className="block">
+                  <span className="text-sm font-medium text-foreground/80 mb-2 block">Notes</span>
+                  <div className="rounded-lg border border-border/60 bg-background/80 dark:bg-slate-800/50 overflow-hidden min-h-[150px]">
+                    <NotesEditor
+                      initialContent={formData.notes}
+                      onChange={(notes) => setFormData({ ...formData, notes })}
+                      compact={true}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Images can be added after the assignment is created.
+                  </p>
+                </div>
 
                 {/* Footer Actions */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/20 dark:border-white/10">

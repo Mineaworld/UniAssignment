@@ -68,11 +68,36 @@ Collections use subcollections per user:
 - `/assignments` - List with inline keyboard buttons for view/toggle/edit/delete
 - State stored in `telegramStates` collection with steps: `AWAITING_TITLE`, `AWAITING_SUBJECT`, `AWAITING_DUE_DATE`, `AWAITING_EDIT_VALUE`
 
+### Notes Editor (BlockNote Integration)
+
+**Components** (`components/notes/`):
+- `NotesEditor.tsx` - Lazy-loaded wrapper with Suspense fallback
+- `BlockNoteEditor.tsx` - Core BlockNote integration with theme support
+- `NotesViewer.tsx` - Read-only display component
+- `NotesFullscreenModal.tsx` - Full-screen editing modal with auto-save
+- `EditorSkeleton.tsx` - Loading skeleton for lazy load
+
+**Image Storage** (Firebase Storage):
+```
+notes/{userId}/{assignmentId}/{imageId}.{ext}
+```
+
+- Images uploaded via `uploadNoteImage()` in `context.tsx`
+- MIME type validation (jpeg, png, gif, webp)
+- 5MB size limit
+- Extension derived from MIME type (not filename) for security
+- Images auto-deleted when assignment is deleted
+
+**Migration Utility** (`utils/migrateNotes.ts`):
+- `getNotesContent()` - Returns notes or migrates legacy `description` field
+- Backward compatible with existing assignments
+
 ### Styling
 
 - **Tailwind CSS** with dark mode support
 - **Framer Motion** for animations
 - **Recharts** for data visualization
+- **BlockNote** for rich text editing (lazy-loaded, ~150KB)
 - Path alias: `@/*` maps to root directory
 
 ## Environment Variables
