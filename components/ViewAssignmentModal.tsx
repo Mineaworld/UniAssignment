@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Maximize2 } from 'lucide-react';
 import { Priority, Status, Assignment } from '../types';
 import { useApp } from '../context';
 import { getPriorityColor, getStatusColor } from '../utils/theme';
 import { formatReminderText } from '../utils/reminder';
+import { getNotesContent } from '../utils/migrateNotes';
+import { NotesViewer, NotesFullscreenModal } from './notes';
 
 interface ViewAssignmentModalProps {
     isOpen: boolean;
@@ -13,11 +16,13 @@ interface ViewAssignmentModalProps {
 }
 
 const ViewAssignmentModal: React.FC<ViewAssignmentModalProps> = ({ isOpen, onClose, assignment }) => {
-    const { subjects } = useApp();
+    const { subjects, updateAssignment, uploadNoteImage } = useApp();
+    const [isNotesFullscreen, setIsNotesFullscreen] = useState(false);
 
     if (!assignment) return null;
 
     const subject = subjects.find(s => s.id === assignment.subjectId);
+    const notesContent = getNotesContent(assignment.notes, assignment.description);
 
     return ReactDOM.createPortal(
         <AnimatePresence>
@@ -152,15 +157,22 @@ const ViewAssignmentModal: React.FC<ViewAssignmentModalProps> = ({ isOpen, onClo
                                     </div>
                                 )}
 
-                                {/* Description */}
-                                {assignment.description && (
-                                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-100 dark:border-white/5">
-                                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Description</h3>
-                                        <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                                            {assignment.description}
-                                        </p>
+                                {/* Notes Section */}
+                                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-100 dark:border-white/5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                            Notes
+                                        </h3>
+                                        <button
+                                            onClick={() => setIsNotesFullscreen(true)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                                        >
+                                            <Maximize2 className="w-4 h-4" />
+                                            Edit
+                                        </button>
                                     </div>
-                                )}
+                                    <NotesViewer content={notesContent} maxHeight="250px" />
+                                </div>
 
                             </div>
 
@@ -175,6 +187,18 @@ const ViewAssignmentModal: React.FC<ViewAssignmentModalProps> = ({ isOpen, onClo
                             </div>
                         </motion.div>
                     </div>
+
+                    {/* Fullscreen Notes Editor */}
+                    <NotesFullscreenModal
+                        isOpen={isNotesFullscreen}
+                        onClose={() => setIsNotesFullscreen(false)}
+                        initialContent={notesContent}
+                        onSave={async (content) => {
+                            await updateAssignment(assignment.id, { notes: content });
+                        }}
+                        uploadImage={(file) => uploadNoteImage(assignment.id, file)}
+                        assignmentTitle={assignment.title}
+                    />
                 </>
             )}
         </AnimatePresence>,

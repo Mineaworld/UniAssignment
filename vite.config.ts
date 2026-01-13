@@ -45,6 +45,12 @@ export default defineConfig(({ mode }) => {
               '@dnd-kit/sortable',
               '@dnd-kit/utilities'
             ],
+            // Split BlockNote editor (lazy loaded)
+            'vendor-blocknote': [
+              '@blocknote/core',
+              '@blocknote/react',
+              '@blocknote/mantine'
+            ],
           }
         }
       }

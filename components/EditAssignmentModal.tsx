@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status, Assignment, AssignmentReminder } from '../types';
+import { Priority, Status, Assignment, AssignmentReminder, NotesContent } from '../types';
 import { useApp } from '../context';
 import { ReminderSelector } from './ReminderSelector';
+import { NotesEditor } from './notes';
+import { getNotesContent } from '../utils/migrateNotes';
 
 // Form data type for type safety
 interface FormData {
@@ -13,26 +15,25 @@ interface FormData {
     date: string;
     time: string;
     priority: Priority;
-    description: string;
+    notes: NotesContent | undefined;
     examType: 'midterm' | 'final' | null;
     reminder: AssignmentReminder | undefined;
 }
 
-const DEFAULT_FORM_DATA: Omit<FormData, 'reminder'> & { reminder: AssignmentReminder | undefined } = {
+const DEFAULT_FORM_DATA: FormData = {
     title: '',
     subjectId: '',
     status: Status.Pending,
     date: '',
     time: '',
     priority: Priority.Medium,
-    description: '',
+    notes: undefined,
     examType: null,
     reminder: undefined,
 };
 
 const getResetFormData = (): FormData => ({
     ...DEFAULT_FORM_DATA,
-    reminder: undefined,
 });
 
 // Convert assignment to form data
@@ -43,7 +44,7 @@ const assignmentToFormData = (assignment: Assignment): FormData => ({
     date: new Date(assignment.dueDate).toISOString().split('T')[0],
     time: new Date(assignment.dueDate).toTimeString().slice(0, 5),
     priority: assignment.priority,
-    description: assignment.description || '',
+    notes: getNotesContent(assignment.notes, assignment.description),
     examType: assignment.examType || null,
     reminder: assignment.reminder,
 });
@@ -85,7 +86,7 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                 status: formData.status,
                 dueDate: dateTime,
                 priority: formData.priority,
-                description: formData.description,
+                notes: formData.notes,
                 examType: formData.examType,
                 reminder: formData.reminder,
             });
@@ -299,16 +300,16 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                                     onChange={(reminder) => setFormData({ ...formData, reminder })}
                                 />
 
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Description / Notes</span>
-                                    <textarea
-                                        rows={4}
-                                        placeholder="Add details..."
-                                        className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 p-4"
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    />
-                                </label>
+                                <div className="block">
+                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">Notes</span>
+                                    <div className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 overflow-hidden min-h-[150px]">
+                                        <NotesEditor
+                                            initialContent={formData.notes}
+                                            onChange={(notes) => setFormData({ ...formData, notes })}
+                                            compact={true}
+                                        />
+                                    </div>
+                                </div>
 
                                 {/* Footer Actions */}
                                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
