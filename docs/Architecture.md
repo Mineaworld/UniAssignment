@@ -57,7 +57,7 @@ UniAssignment is a university assignment management application with both web an
 |---------|---------|
 | Firebase Auth | User Authentication |
 | Firestore | NoSQL Database |
-| Firebase Storage | File Storage (Profile Pictures) |
+| Firebase Storage | File Storage (Profile Pictures, Note Images) |
 | Telegram Bot API | Chatbot Interface |
 
 ## Data Flow
@@ -140,7 +140,10 @@ uni-assignment-f0fbe/
 │           ├── dueDate: string (ISO)
 │           ├── status: "Pending" | "In Progress" | "Completed"
 │           ├── priority: "Low" | "Medium" | "High"
-│           ├── description: string | undefined
+│           ├── description: string | undefined (deprecated)
+│           ├── notes: NotesContent | undefined   # Rich text notes
+│           │   ├── version: 1
+│           │   └── blocks: Block[]               # BlockNote format
 │           ├── examType: "midterm" | "final" | null
 │           └── createdAt: string (ISO)
 │
@@ -187,6 +190,12 @@ src/
 │   ├── GoogleIcon.tsx
 │   ├── AvatarUpload.tsx      # Multi-size profile picture upload
 │   ├── TelegramPromptModal.tsx # Smart link prompt
+│   ├── notes/                 # Rich text notes editor
+│   │   ├── NotesEditor.tsx     # Lazy-loaded wrapper
+│   │   ├── BlockNoteEditor.tsx # Core BlockNote integration
+│   │   ├── NotesViewer.tsx     # Read-only display
+│   │   ├── NotesFullscreenModal.tsx # Fullscreen editing
+│   │   └── EditorSkeleton.tsx  # Loading skeleton
 │   ├── Sidebar.tsx           # Navigation with theme toggle
 │   └── ...
 │

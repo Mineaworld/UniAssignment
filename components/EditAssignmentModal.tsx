@@ -37,17 +37,20 @@ const getResetFormData = (): FormData => ({
 });
 
 // Convert assignment to form data
-const assignmentToFormData = (assignment: Assignment): FormData => ({
-    title: assignment.title,
-    subjectId: assignment.subjectId,
-    status: assignment.status,
-    date: new Date(assignment.dueDate).toISOString().split('T')[0],
-    time: new Date(assignment.dueDate).toTimeString().slice(0, 5),
-    priority: assignment.priority,
-    notes: getNotesContent(assignment.notes, assignment.description),
-    examType: assignment.examType || null,
-    reminder: assignment.reminder,
-});
+const assignmentToFormData = (assignment: Assignment): FormData => {
+    const dueDate = new Date(assignment.dueDate);
+    return {
+        title: assignment.title,
+        subjectId: assignment.subjectId,
+        status: assignment.status,
+        date: dueDate.toISOString().split('T')[0] ?? '',
+        time: dueDate.toTimeString().slice(0, 5),
+        priority: assignment.priority,
+        notes: getNotesContent(assignment.notes, assignment.description),
+        examType: assignment.examType ?? null,
+        reminder: assignment.reminder,
+    };
+};
 
 interface EditAssignmentModalProps {
     isOpen: boolean;

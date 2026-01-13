@@ -2,6 +2,39 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.8.0] - 2026-01-13
+
+### Added
+- **Rich Notes Editor**: Notion-like block editor for assignment notes
+  - BlockNote integration with lazy loading (~150KB deferred)
+  - Support for text, headings, lists, code blocks, and images
+  - Fullscreen editing mode with auto-save
+  - Read-only viewer for assignment details
+  - Dark/light theme support
+- **Note Image Storage**: Images uploaded to Firebase Storage
+  - Path: `notes/{userId}/{assignmentId}/{imageId}.{ext}`
+  - 5MB size limit with MIME type validation
+  - Auto-cleanup when assignment is deleted
+- **Legacy Migration**: Automatic migration of old `description` field to new notes format
+
+### Changed
+- **Assignment Schema**: Added `notes: NotesContent` field (deprecates `description`)
+- **CreateAssignmentModal**: Now uses NotesEditor instead of textarea
+- **EditAssignmentModal**: Now uses NotesEditor with legacy content migration
+- **ViewAssignmentModal**: Shows NotesViewer with fullscreen edit button
+
+### Fixed
+- **Stale Closure**: Fixed ESC key handler in NotesFullscreenModal
+- **Error Handling**: Auto-save now shows errors and prevents close on failure
+- **Security**: File extension derived from MIME type instead of filename
+
+### Technical
+- New components: `NotesEditor`, `BlockNoteEditor`, `NotesViewer`, `NotesFullscreenModal`, `EditorSkeleton`
+- New utilities: `migrateNotes.ts`, `debounce.ts`
+- Bundle split: BlockNote in separate chunk for optimal loading
+
+---
+
 ## [0.7.0] - 2026-01-08
 
 ### Added

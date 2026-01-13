@@ -61,10 +61,10 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
 
   // Clear success message after 3 seconds
   useEffect(() => {
-    if (subjectSuccess) {
-      const timer = setTimeout(() => setSubjectSuccess(''), 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!subjectSuccess) return;
+
+    const timer = setTimeout(() => setSubjectSuccess(''), 3000);
+    return () => clearTimeout(timer);
   }, [subjectSuccess]);
 
   const handleCreateSubject = async (e: React.FormEvent) => {
@@ -435,6 +435,9 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                       compact={true}
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Images can be added after the assignment is created.
+                  </p>
                 </div>
 
                 {/* Footer Actions */}

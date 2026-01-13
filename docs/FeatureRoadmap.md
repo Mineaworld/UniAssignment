@@ -12,7 +12,7 @@ These features directly improve the daily experience for active users. Low effor
 
 ### 1.1 Quick Add via Telegram `/quick`
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** High
 **Effort:** Small
 
@@ -43,7 +43,7 @@ One-line assignment creation without multi-step flow.
 
 ### 1.2 Quick Status Commands `/today` `/week`
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** High
 **Effort:** Small
 
@@ -88,7 +88,7 @@ Instant view of upcoming deadlines without navigating menus.
 
 ### 1.3 Weekly Digest (Automated Sunday Message)
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** High
 **Effort:** Medium
 
@@ -137,7 +137,7 @@ You have 5 assignments due this week.
 
 ### 1.4 Daily Morning Reminder (Optional)
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** Medium
 **Effort:** Small
 
@@ -175,7 +175,7 @@ Have a productive day!
 
 ### 2.1 Notion-like Notes Editor
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** High
 **Effort:** Large
 
@@ -212,12 +212,12 @@ Rich content notes attached to each assignment. Supports text, code blocks, and 
 - Mobile-responsive editor
 
 **Success Criteria:**
-- [ ] Editor loads without page jank
-- [ ] Code blocks have syntax highlighting
-- [ ] Images upload and display correctly
-- [ ] Fullscreen mode works on desktop and mobile
-- [ ] Content persists correctly
-- [ ] Auto-save with visual indicator
+- [x] Editor loads without page jank
+- [x] Code blocks have syntax highlighting
+- [x] Images upload and display correctly
+- [x] Fullscreen mode works on desktop and mobile
+- [x] Content persists correctly
+- [x] Auto-save with visual indicator
 
 ---
 
@@ -225,7 +225,7 @@ Rich content notes attached to each assignment. Supports text, code blocks, and 
 
 ### 3.1 Guest/Demo Mode
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** Medium
 **Effort:** Medium
 
@@ -242,7 +242,7 @@ Allow visitors to try the app without signing up. Pre-populated with sample data
 
 ### 3.2 Landing Page Demo Video/GIF
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** Medium
 **Effort:** Small
 
@@ -258,7 +258,7 @@ Add visual demo of the app in action to landing page.
 
 ### 3.3 Case Study Documentation
 
-**Status:** Planned
+**Status:** ✅ Completed (v0.8.0)
 **Priority:** Low
 **Effort:** Small
 
@@ -294,6 +294,7 @@ These are larger features to consider after core functionality is polished.
 See [Changelog.md](./Changelog.md) for full history.
 
 ### Recently Completed
+- [x] Rich notes editor with BlockNote (v0.8.0)
 - [x] Automated Telegram reminders (v0.7.0)
 - [x] Landing page (v0.6.0)
 - [x] Kanban view (v0.5.0)

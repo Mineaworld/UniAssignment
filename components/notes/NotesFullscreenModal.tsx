@@ -25,26 +25,16 @@ export const NotesFullscreenModal: React.FC<NotesFullscreenModalProps> = ({
   const [content, setContent] = useState<NotesContent | undefined>(initialContent);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Sync initial content when modal opens
   useEffect(() => {
     if (isOpen) {
       setContent(initialContent);
       setHasUnsavedChanges(false);
+      setSaveError(null);
     }
   }, [isOpen, initialContent]);
-
-  // ESC key handler
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isOpen, hasUnsavedChanges]);
 
   // Lock body scroll
   useEffect(() => {
@@ -61,14 +51,20 @@ export const NotesFullscreenModal: React.FC<NotesFullscreenModalProps> = ({
   const handleChange = useCallback((newContent: NotesContent) => {
     setContent(newContent);
     setHasUnsavedChanges(true);
+    setSaveError(null);
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!content) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!content) return false;
     setIsSaving(true);
+    setSaveError(null);
     try {
       await onSave(content);
       setHasUnsavedChanges(false);
+      return true;
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save notes');
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -77,10 +73,26 @@ export const NotesFullscreenModal: React.FC<NotesFullscreenModalProps> = ({
   const handleClose = useCallback(async () => {
     if (hasUnsavedChanges && content) {
       // Auto-save before closing
-      await handleSave();
+      const saved = await handleSave();
+      if (!saved) {
+        // Save failed - don't close, let user see the error
+        return;
+      }
     }
     onClose();
   }, [hasUnsavedChanges, content, handleSave, onClose]);
+
+  // ESC key handler
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, handleClose]);
 
   const modalContent = (
     <AnimatePresence>
@@ -116,7 +128,13 @@ export const NotesFullscreenModal: React.FC<NotesFullscreenModalProps> = ({
               </div>
 
               <div className="flex items-center gap-3">
-                {hasUnsavedChanges && (
+                {saveError && (
+                  <span className="text-xs text-red-500 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-500 rounded-full" />
+                    {saveError}
+                  </span>
+                )}
+                {hasUnsavedChanges && !saveError && (
                   <span className="text-xs text-amber-500 flex items-center gap-1">
                     <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
                     Unsaved
