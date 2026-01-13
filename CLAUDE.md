@@ -270,9 +270,24 @@ History rewrites (`git-filter-repo`, `git rebase -i`) should be **last resort** 
 - After any file deletion, always run `npm run build`
 - Missing files show up first in clean build environments (Vercel, CI)
 
+### Git Commit Guidelines
+
+**DO NOT include `Co-Authored-By` lines in commits or PRs.**
+
+This project is solo-developed with AI assistance. The commit author is sufficient attribution.
+
+```bash
+# ❌ BAD - Don't add this
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+# ✅ GOOD - Just the commit message
+docs: add feature roadmap
+```
+
 ### Pre-PR Checklist
 
 1. Ensure `main` branch is healthy before merging
 2. Run `npm run build` locally before pushing
 3. Verify base branch (`main`) has all required files
 4. Check `.env.example` is up to date with new env vars
+5. **No `Co-Authored-By` lines in commit messages**
