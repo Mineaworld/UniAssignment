@@ -7,6 +7,9 @@ import { Label } from '../components/ui/Label';
 import { Bell, LogOut, User, Shield } from 'lucide-react';
 import AvatarUpload from '../components/AvatarUpload';
 import { cn } from '../utils/cn';
+import DailyReminderSettings from '../components/settings/DailyReminderSettings';
+import WeeklyDigestSettings from '../components/settings/WeeklyDigestSettings';
+import type { DailyReminderSettings as DailyReminderSettingsType, WeeklyDigestSettings as WeeklyDigestSettingsType } from '../types';
 
 const Settings = () => {
   const { user, logout, updateUserProfile } = useApp();
@@ -51,6 +54,14 @@ const Settings = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const handleSaveDailyReminder = async (settings: DailyReminderSettingsType) => {
+    await updateUserProfile({ dailyReminder: settings });
+  };
+
+  const handleSaveWeeklyDigest = async (settings: WeeklyDigestSettingsType) => {
+    await updateUserProfile({ weeklyDigest: settings });
   };
 
   return (
@@ -175,6 +186,29 @@ const Settings = () => {
                 <Bell className="h-4 w-4" />
                 {user?.telegramLinked ? 'Open Telegram Bot' : 'Connect Telegram'}
               </NeonButton>
+            </div>
+
+            {/* Scheduled Notifications */}
+            <div className="border-t border-border/40 pt-6 mt-6 space-y-6">
+              <h3 className="text-lg font-semibold text-foreground">Scheduled Notifications</h3>
+
+              {/* Daily Morning Reminder */}
+              <div className="bg-background/50 border border-border/40 rounded-2xl p-5">
+                <DailyReminderSettings
+                  settings={user?.dailyReminder}
+                  onSave={handleSaveDailyReminder}
+                  telegramLinked={user?.telegramLinked ?? false}
+                />
+              </div>
+
+              {/* Weekly Digest */}
+              <div className="bg-background/50 border border-border/40 rounded-2xl p-5">
+                <WeeklyDigestSettings
+                  settings={user?.weeklyDigest}
+                  onSave={handleSaveWeeklyDigest}
+                  telegramLinked={user?.telegramLinked ?? false}
+                />
+              </div>
             </div>
           </div>
         </div>
