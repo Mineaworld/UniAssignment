@@ -77,6 +77,26 @@ export interface WeeklyDigestSettings {
   lastSentWeek?: string;  // ISO week: "2026-W02"
 }
 
+// Pomodoro timer types
+export type PomodoroSessionType = 'work' | 'shortBreak' | 'longBreak';
+
+export interface PomodoroSession {
+  id: string;
+  assignmentId: string | null;
+  assignmentTitle?: string;
+  type: PomodoroSessionType;
+  duration: number;          // Duration in minutes
+  completedAt: string;       // ISO string
+}
+
+export interface PomodoroStats {
+  totalSessions: number;
+  totalMinutes: number;
+  todaySessions: number;
+  todayMinutes: number;
+  lastSessionDate?: string;  // ISO date string (YYYY-MM-DD)
+}
+
 export interface User {
   uid: string;
   name: string;
@@ -91,6 +111,8 @@ export interface User {
   // Scheduled notification settings
   dailyReminder?: DailyReminderSettings;
   weeklyDigest?: WeeklyDigestSettings;
+  // Pomodoro stats
+  pomodoroStats?: PomodoroStats;
 }
 
 export interface AppContextType {
@@ -113,4 +135,10 @@ export interface AppContextType {
   updateUserProfile: (updates: Partial<User>, avatarFile?: File) => Promise<void>;
   dismissTelegramPrompt: (permanent: boolean) => Promise<void>;
   uploadNoteImage: (assignmentId: string, file: File) => Promise<string>;
+  recordPomodoroSession: (
+    type: PomodoroSessionType,
+    assignmentId: string | null,
+    duration: number,
+    assignmentTitle?: string
+  ) => Promise<void>;
 }
