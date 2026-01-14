@@ -1,43 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import admin from 'firebase-admin';
+import { db } from '../lib/firebaseAdmin';
+import { sendTelegramMessage } from '../lib/telegram';
+import type { AssignmentWithDate } from '../types';
+import { ASSIGNMENT_STATUS } from '../types';
 
-if (!admin.apps || admin.apps.length === 0) {
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-    privateKey = privateKey.replace(/\\n/g, '\n');
-
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: privateKey,
-        } as admin.ServiceAccount),
-    });
-}
-
-const db = admin.firestore();
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CRON_SECRET = process.env.CRON_SECRET || '';
-
-const ASSIGNMENT_STATUS = {
-    COMPLETED: 'Completed',
-} as const;
-
-async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    try {
-        await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: text,
-                parse_mode: 'HTML'
-            })
-        });
-    } catch (e) {
-        console.error("Failed to send telegram message", e);
-    }
-}
 
 function getCurrentTimeInTimezone(timezone: string): { hour: number; minute: number; dayOfWeek: number; isoWeek: string } {
     const now = new Date();
@@ -72,7 +39,6 @@ function getISOWeek(date: Date, timezone: string): string {
     const dateStr = dateFormatter.format(date);
     const localDate = new Date(dateStr);
 
-    // Calculate ISO week
     const target = new Date(localDate.valueOf());
     const dayNr = (localDate.getDay() + 6) % 7;
     target.setDate(target.getDate() - dayNr + 3);
@@ -118,7 +84,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         console.log('[WeeklyDigest] Starting cron job...');
 
-        // Get all users with weekly digest enabled
+        // TODO: For better scalability, add queryable fields for day/hour
+        // and query only users due for notification at the current time.
         const usersSnapshot = await db.collection('users').get();
         let sentCount = 0;
         let skippedCount = 0;
@@ -128,7 +95,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const userData = userDoc.data();
                 const weeklyDigest = userData.weeklyDigest;
 
-                // Skip if not enabled
                 if (!weeklyDigest?.enabled) {
                     continue;
                 }
@@ -136,35 +102,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const userId = userDoc.id;
                 const timezone = weeklyDigest.timezone || 'Asia/Phnom_Penh';
                 const sendTime = weeklyDigest.sendTime || '18:00';
-                const configDayOfWeek = weeklyDigest.dayOfWeek ?? 0; // Sunday default
+                const configDayOfWeek = weeklyDigest.dayOfWeek ?? 0;
 
-                // Get current time in user's timezone
                 const { hour, minute, dayOfWeek, isoWeek } = getCurrentTimeInTimezone(timezone);
 
-                // Check if correct day of week
                 if (dayOfWeek !== configDayOfWeek) {
                     continue;
                 }
 
-                // Parse configured send time
                 const [configHour, configMinute] = sendTime.split(':').map(Number);
 
-                // Check if it's time to send (within 30-minute window)
                 const currentMinutes = hour * 60 + minute;
                 const configMinutes = configHour * 60 + configMinute;
                 const diff = Math.abs(currentMinutes - configMinutes);
 
                 if (diff > 30) {
-                    continue; // Not within send window
+                    continue;
                 }
 
-                // Check idempotency - don't send twice in same week
                 if (weeklyDigest.lastSentWeek === isoWeek) {
                     skippedCount++;
                     continue;
                 }
 
-                // Get user's Telegram chat ID
                 const telegramLink = await db.collection('telegramLinks').doc(userId).get();
                 if (!telegramLink.exists) {
                     continue;
@@ -174,7 +134,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     continue;
                 }
 
-                // Get assignments for the upcoming week
                 const now = new Date();
                 const weekEnd = new Date(now);
                 weekEnd.setDate(weekEnd.getDate() + 7);
@@ -184,12 +143,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .orderBy('dueDate', 'asc')
                     .get();
 
-                const upcomingAssignments: any[] = [];
-                const highPriorityAssignments: any[] = [];
+                const upcomingAssignments: AssignmentWithDate[] = [];
+                const highPriorityAssignments: AssignmentWithDate[] = [];
                 let lastWeekCompleted = 0;
                 let lastWeekTotal = 0;
 
-                // Calculate last week's date range
                 const lastWeekStart = new Date(now);
                 lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
@@ -197,7 +155,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     const data = doc.data();
                     const dueDate = new Date(data.dueDate);
 
-                    // Count last week's stats
                     if (dueDate >= lastWeekStart && dueDate < now) {
                         lastWeekTotal++;
                         if (data.status === ASSIGNMENT_STATUS.COMPLETED) {
@@ -205,12 +162,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         }
                     }
 
-                    // Skip completed for upcoming
                     if (data.status === ASSIGNMENT_STATUS.COMPLETED) continue;
 
-                    // Check if due this week
                     if (dueDate >= now && dueDate <= weekEnd) {
-                        const assignment = { ...data, id: doc.id, dueDate };
+                        const assignment = { ...data, id: doc.id, dueDate } as AssignmentWithDate;
                         upcomingAssignments.push(assignment);
 
                         if (data.priority === 'High') {
@@ -219,7 +174,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     }
                 }
 
-                // Build message
                 const weekRange = getWeekDateRange(timezone);
                 let message = `📊 <b>Week Ahead: ${weekRange}</b>\n\n`;
 
@@ -228,7 +182,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 } else {
                     message += `You have <b>${upcomingAssignments.length}</b> assignment${upcomingAssignments.length !== 1 ? 's' : ''} due this week.\n\n`;
 
-                    // High priority section
                     if (highPriorityAssignments.length > 0) {
                         message += `🔴 <b>High Priority</b> (${highPriorityAssignments.length})\n`;
                         for (const a of highPriorityAssignments) {
@@ -238,7 +191,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         message += "\n";
                     }
 
-                    // Other upcoming
                     const otherAssignments = upcomingAssignments.filter(a => a.priority !== 'High');
                     if (otherAssignments.length > 0) {
                         message += `📅 <b>Upcoming</b>\n`;
@@ -253,7 +205,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     }
                 }
 
-                // Last week's stats
                 if (lastWeekTotal > 0) {
                     const completionRate = Math.round((lastWeekCompleted / lastWeekTotal) * 100);
                     message += `✅ <b>Last Week:</b> Completed ${lastWeekCompleted}/${lastWeekTotal} assignments (${completionRate}%)\n\n`;
@@ -261,10 +212,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 message += "Have a great week! 💪";
 
-                // Send message
                 await sendTelegramMessage(chatId, message);
 
-                // Update lastSentWeek for idempotency
                 await db.collection('users').doc(userId).update({
                     'weeklyDigest.lastSentWeek': isoWeek
                 });
@@ -274,7 +223,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             } catch (userError) {
                 console.error(`[WeeklyDigest] Error processing user ${userDoc.id}:`, userError);
-                // Continue to next user
             }
         }
 

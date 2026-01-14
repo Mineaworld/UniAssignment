@@ -1,43 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import admin from 'firebase-admin';
+import { db, admin } from '../lib/firebaseAdmin';
+import { sendTelegramMessage } from '../lib/telegram';
+import type { AssignmentWithDate } from '../types';
+import { ASSIGNMENT_STATUS } from '../types';
 
-if (!admin.apps || admin.apps.length === 0) {
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-    privateKey = privateKey.replace(/\\n/g, '\n');
-
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: privateKey,
-        } as admin.ServiceAccount),
-    });
-}
-
-const db = admin.firestore();
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CRON_SECRET = process.env.CRON_SECRET || '';
-
-const ASSIGNMENT_STATUS = {
-    COMPLETED: 'Completed',
-} as const;
-
-async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    try {
-        await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: text,
-                parse_mode: 'HTML'
-            })
-        });
-    } catch (e) {
-        console.error("Failed to send telegram message", e);
-    }
-}
 
 function getCurrentTimeInTimezone(timezone: string): { hour: number; minute: number; dayOfWeek: number; dateStr: string } {
     const now = new Date();
@@ -90,7 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         console.log('[DailyReminder] Starting cron job...');
 
-        // Get all users with daily reminder enabled
+        // TODO: For better scalability, add a 'dailyReminder.sendHourUTC' field to user docs
+        // and query only users due for notification at the current UTC hour.
+        // Current approach fetches all users which won't scale well beyond ~1000 users.
         const usersSnapshot = await db.collection('users').get();
         let sentCount = 0;
         let skippedCount = 0;
@@ -100,7 +69,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const userData = userDoc.data();
                 const dailyReminder = userData.dailyReminder;
 
-                // Skip if not enabled
                 if (!dailyReminder?.enabled) {
                     continue;
                 }
@@ -110,33 +78,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const sendTime = dailyReminder.sendTime || '08:00';
                 const skipWeekends = dailyReminder.skipWeekends || false;
 
-                // Get current time in user's timezone
                 const { hour, minute, dayOfWeek, dateStr } = getCurrentTimeInTimezone(timezone);
-
-                // Parse configured send time
                 const [configHour, configMinute] = sendTime.split(':').map(Number);
 
-                // Check if it's time to send (within 30-minute window)
                 const currentMinutes = hour * 60 + minute;
                 const configMinutes = configHour * 60 + configMinute;
                 const diff = Math.abs(currentMinutes - configMinutes);
 
                 if (diff > 30) {
-                    continue; // Not within send window
+                    continue;
                 }
 
-                // Check if weekend and should skip
                 if (skipWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) {
                     continue;
                 }
 
-                // Check idempotency - don't send twice on same day
                 if (dailyReminder.lastSentDate === dateStr) {
                     skippedCount++;
                     continue;
                 }
 
-                // Get user's Telegram chat ID
                 const telegramLink = await db.collection('telegramLinks').doc(userId).get();
                 if (!telegramLink.exists) {
                     continue;
@@ -146,7 +107,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     continue;
                 }
 
-                // Get today's and tomorrow's assignments
                 const now = new Date();
                 const todayBounds = getDayBoundsInTimezone(now, timezone, 0);
                 const tomorrowBounds = getDayBoundsInTimezone(now, timezone, 1);
@@ -156,8 +116,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .orderBy('dueDate', 'asc')
                     .get();
 
-                const todayAssignments: any[] = [];
-                const tomorrowAssignments: any[] = [];
+                const todayAssignments: AssignmentWithDate[] = [];
+                const tomorrowAssignments: AssignmentWithDate[] = [];
 
                 for (const doc of assignmentsSnapshot.docs) {
                     const data = doc.data();
@@ -166,22 +126,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     const dueDate = new Date(data.dueDate);
 
                     if (dueDate >= todayBounds.start && dueDate <= todayBounds.end) {
-                        todayAssignments.push({ ...data, id: doc.id, dueDate });
+                        todayAssignments.push({ ...data, id: doc.id, dueDate } as AssignmentWithDate);
                     } else if (dueDate >= tomorrowBounds.start && dueDate <= tomorrowBounds.end) {
-                        tomorrowAssignments.push({ ...data, id: doc.id, dueDate });
+                        tomorrowAssignments.push({ ...data, id: doc.id, dueDate } as AssignmentWithDate);
                     }
                 }
 
-                // Skip if nothing due
                 if (todayAssignments.length === 0 && tomorrowAssignments.length === 0) {
-                    // Update lastSentDate anyway to prevent repeated checks
                     await db.collection('users').doc(userId).update({
                         'dailyReminder.lastSentDate': dateStr
                     });
                     continue;
                 }
 
-                // Build message
                 let message = "☀️ <b>Good morning!</b>\n\n";
 
                 if (todayAssignments.length > 0) {
@@ -214,10 +171,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 message += "Have a productive day! 🚀";
 
-                // Send message
                 await sendTelegramMessage(chatId, message);
 
-                // Update lastSentDate for idempotency
                 await db.collection('users').doc(userId).update({
                     'dailyReminder.lastSentDate': dateStr
                 });
@@ -227,7 +182,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             } catch (userError) {
                 console.error(`[DailyReminder] Error processing user ${userDoc.id}:`, userError);
-                // Continue to next user
             }
         }
 
