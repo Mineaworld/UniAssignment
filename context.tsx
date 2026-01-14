@@ -16,7 +16,7 @@ import {
   deleteField,
   FieldValue
 } from 'firebase/firestore';
-import { Assignment, AppContextType, Subject, User } from './types';
+import { Assignment, AppContextType, Subject, User, PomodoroSession, PomodoroStats, PomodoroSessionType } from './types';
 
 // ============================================================================
 // Types & Constants
@@ -167,6 +167,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             telegramLinkedAt: data.telegramLinkedAt ?? prev.telegramLinkedAt,
             telegramPromptLastShown: data.telegramPromptLastShown ?? prev.telegramPromptLastShown,
             telegramPromptDismissed: data.telegramPromptDismissed ?? prev.telegramPromptDismissed,
+            dailyReminder: data.dailyReminder ?? prev.dailyReminder,
+            weeklyDigest: data.weeklyDigest ?? prev.weeklyDigest,
+            pomodoroStats: data.pomodoroStats ?? prev.pomodoroStats,
           } : null);
         }
       },
@@ -638,6 +641,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // =========================================================================
+  // Pomodoro Operations
+  // =========================================================================
+
+  const recordPomodoroSession = async (
+    type: PomodoroSessionType,
+    assignmentId: string | null,
+    duration: number,
+    assignmentTitle?: string
+  ): Promise<void> => {
+    if (!user?.uid) throw new Error('User not authenticated');
+
+    // Only record work sessions (not breaks)
+    if (type !== 'work') return;
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // Create session record
+    const session: Omit<PomodoroSession, 'id'> = {
+      assignmentId,
+      assignmentTitle: assignmentTitle || undefined,
+      type,
+      duration,
+      completedAt: now.toISOString(),
+    };
+
+    // Add session to subcollection
+    await addDoc(
+      collection(db, `users/${user.uid}/pomodoroSessions`),
+      sanitizeForFirestore(session as Record<string, unknown>)
+    );
+
+    // Update user stats
+    const currentStats: PomodoroStats = user.pomodoroStats || {
+      totalSessions: 0,
+      totalMinutes: 0,
+      todaySessions: 0,
+      todayMinutes: 0,
+      lastSessionDate: undefined,
+    };
+
+    // Reset today's count if it's a new day
+    const isNewDay = currentStats.lastSessionDate !== todayStr;
+    const todaySessions = isNewDay ? 1 : currentStats.todaySessions + 1;
+    const todayMinutes = isNewDay ? duration : currentStats.todayMinutes + duration;
+
+    const updatedStats: PomodoroStats = {
+      totalSessions: currentStats.totalSessions + 1,
+      totalMinutes: currentStats.totalMinutes + duration,
+      todaySessions,
+      todayMinutes,
+      lastSessionDate: todayStr,
+    };
+
+    await setDoc(
+      doc(db, 'users', user.uid),
+      { pomodoroStats: updatedStats },
+      { merge: true }
+    );
+
+    // Update local state
+    setUser(prev => prev ? { ...prev, pomodoroStats: updatedStats } : null);
+  };
+
+  // =========================================================================
   // Context Value
   // =========================================================================
 
@@ -661,6 +729,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateUserProfile,
     dismissTelegramPrompt,
     uploadNoteImage,
+    recordPomodoroSession,
   }), [
     user,
     loading,
@@ -681,6 +750,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateUserProfile,
     dismissTelegramPrompt,
     uploadNoteImage,
+    recordPomodoroSession,
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

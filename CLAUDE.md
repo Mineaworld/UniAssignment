@@ -309,6 +309,24 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 docs: add feature roadmap
 ```
 
+**WAIT FOR USER APPROVAL BEFORE COMMITTING**
+
+After implementing a feature or making changes:
+1. Run `npm run build` to verify the code compiles
+2. Show the user a summary of changes made
+3. **DO NOT commit or push until the user explicitly asks**
+4. Wait for the user to review, test, or give the go-ahead
+5. Only then proceed with staging, committing, and pushing
+
+```bash
+# ❌ BAD - Committing immediately after implementation
+# (finish coding) → git add . → git commit → git push
+
+# ✅ GOOD - Wait for user command
+# (finish coding) → npm run build → report to user → WAIT
+# (user says "commit it") → git add . → git commit → git push
+```
+
 ### Pre-PR Checklist
 
 1. Ensure `main` branch is healthy before merging

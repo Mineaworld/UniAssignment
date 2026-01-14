@@ -7,6 +7,7 @@ import { ToastProvider } from './components/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
+import { PomodoroWidget } from './components/pomodoro';
 import Dashboard from './pages/Dashboard';
 import Assignments from './pages/Assignments';
 import Subjects from './pages/Subjects';
@@ -45,6 +46,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppLayout = () => {
+  const { recordPomodoroSession } = useApp();
+
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans antialiased relative overflow-hidden">
       {/* Global Atmospheric Environment */}
@@ -66,6 +69,11 @@ const AppLayout = () => {
         </Routes>
       </main>
       <MobileNav />
+      <PomodoroWidget
+        onSessionComplete={(type, assignmentId, duration, assignmentTitle) => {
+          recordPomodoroSession(type, assignmentId, duration, assignmentTitle || undefined);
+        }}
+      />
     </div>
   );
 };
