@@ -98,7 +98,23 @@ FIREBASE_PROJECT_ID=
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
 TELEGRAM_BOT_TOKEN=
+CRON_SECRET=              # Secret for authenticating cron job requests
 ```
+
+## Cron Jobs
+
+The application includes scheduled notification endpoints:
+
+- `api/cron/daily-reminder.ts` - Sends daily morning reminders
+- `api/cron/weekly-digest.ts` - Sends weekly assignment summaries
+
+**Setup with cron-job.org:**
+1. Create account at cron-job.org
+2. Add new cron jobs pointing to:
+   - `https://your-app.vercel.app/api/cron/daily-reminder`
+   - `https://your-app.vercel.app/api/cron/weekly-digest`
+3. Set Authorization header: `Bearer YOUR_CRON_SECRET`
+4. Schedule: Run every hour (cron checks user timezones internally)
 
 ## Deployment
 

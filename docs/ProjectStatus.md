@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.5.0
-**Last Updated:** 2025-12-31
+**Version:** 0.6.0
+**Last Updated:** 2026-01-14
 **Status:** Active Development
 
 ---
@@ -59,6 +59,11 @@
 | Webhook Handler | ✅ Complete | Vercel API endpoint |
 | /start Command | ✅ Complete | Account linking |
 | /add Command | ✅ Complete | Interactive flow |
+| /quick Command | ✅ Complete | One-line assignment creation |
+| /today Command | ✅ Complete | View today's assignments |
+| /tomorrow Command | ✅ Complete | View tomorrow's assignments |
+| /week Command | ✅ Complete | View this week's assignments |
+| /overdue Command | ✅ Complete | View overdue assignments |
 | /assignments Command | ✅ Complete | List with inline buttons |
 | View Assignment | ✅ Complete | Detailed view |
 | Toggle Status | ✅ Complete | Via inline buttons |
@@ -68,6 +73,20 @@
 | Button Interactions | ✅ Complete | Full callback query handling |
 
 **Note:** Telegram bot requires `TELEGRAM_BOT_TOKEN` to be set in Vercel environment variables.
+
+---
+
+### Notifications ✅ Complete
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Daily Morning Reminder | ✅ Complete | Configurable time, timezone, skip weekends |
+| Weekly Digest | ✅ Complete | Configurable day/time, includes completion stats |
+| Notification Settings UI | ✅ Complete | Settings page components |
+| Cron Endpoints | ✅ Complete | Vercel serverless functions |
+| Idempotency | ✅ Complete | Prevents duplicate notifications |
+
+**Note:** Cron jobs require `CRON_SECRET` for authentication. Set up external cron service (e.g., cron-job.org) to trigger endpoints hourly.
 
 ---
 

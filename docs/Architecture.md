@@ -204,13 +204,27 @@ src/
 
 ```
 api/
-└── telegram.ts              # Telegram Vercel Webhook Handler (Active)
+├── telegram.ts              # Telegram Vercel Webhook Handler
+├── types.ts                 # Shared TypeScript interfaces
+└── cron/
+    ├── daily-reminder.ts    # Daily morning reminder cron endpoint
+    └── weekly-digest.ts     # Weekly digest cron endpoint
 
 functions/
 └── src/
     └── index.ts             # Firebase Cloud Functions
         ├── telegramWebhook  # Experimental/Secondary Webhook
         └── checkDeadlines   # Scheduled Notifications (every 15 min)
+```
+
+### Settings Components
+
+```
+components/settings/
+├── index.ts                 # Module exports
+├── constants.ts             # Shared constants (timezones, time options, days)
+├── DailyReminderSettings.tsx # Daily reminder configuration UI
+└── WeeklyDigestSettings.tsx  # Weekly digest configuration UI
 ```
 
 ## Security Considerations
@@ -222,6 +236,7 @@ functions/
 | `VITE_FIREBASE_*` | `.env` (frontend) | Public (exposed to client) |
 | `TELEGRAM_BOT_TOKEN` | Vercel Dashboard | Server-only |
 | `FIREBASE_PRIVATE_KEY` | Vercel Dashboard | Server-only |
+| `CRON_SECRET` | Vercel Dashboard | Server-only (cron auth) |
 
 ### Security Rules
 

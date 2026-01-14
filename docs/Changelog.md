@@ -2,6 +2,31 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.6.0] - 2026-01-14
+
+### Added
+- **Quick Add Command**: `/quick` command for one-line assignment creation with natural language date parsing
+- **Status Commands**: `/today`, `/tomorrow`, `/week`, `/overdue` commands for quick assignment views
+- **Daily Morning Reminder**: Configurable daily notification with timezone support and weekend skip option
+- **Weekly Digest**: Weekly summary of upcoming assignments with completion stats from previous week
+- **Notification Settings UI**: New settings components for configuring daily reminders and weekly digest
+- **Cron Endpoints**: `api/cron/daily-reminder.ts` and `api/cron/weekly-digest.ts` for scheduled notifications
+- **Shared API Types**: `api/types.ts` with TypeScript interfaces for API layer
+- **Settings Components**: `DailyReminderSettings`, `WeeklyDigestSettings` with shared constants
+
+### Changed
+- **Telegram Bot**: Enhanced with 5 new commands and improved inline keyboard interactions
+- **Settings Page**: Added Notifications section with daily reminder and weekly digest configuration
+- **User Types**: Extended with `DailyReminderSettings` and `WeeklyDigestSettings` interfaces
+
+### Technical
+- Added XSS prevention with `escapeHtml()` function for Telegram messages
+- Added accessibility attributes (ARIA) to toggle switches
+- Extracted shared constants to prevent code duplication
+- Cron jobs use idempotency keys to prevent duplicate sends
+
+---
+
 ## [0.5.0] - 2025-12-31
 
 ### Added
