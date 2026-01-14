@@ -2,6 +2,27 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.9.0] - 2026-01-14
+
+### Added
+- **Pomodoro Timer Widget**: Floating productivity timer for focused work sessions
+  - Classic Pomodoro technique (25min work / 5min short / 15min long break)
+  - Assignment linking to track focus time per task
+  - Visual progress ring with session dot indicators (4-session cycles)
+  - Browser notifications and audio alerts on session complete
+  - Smart dropdown positioning (auto-adjusts based on viewport)
+  - Minimize/expand states with smooth animations
+  - Dark mode support with color-coded modes (rose/emerald/sky)
+
+### Technical
+- New hook: `usePomodoro.ts` for timer state management
+- New utilities: `notifications.ts` for Web Audio API sounds
+- New component: `PomodoroWidget` with `PulsingIndicator` subcomponent
+- Firestore integration: Sessions stored in `users/{uid}/pomodoroSessions`
+- User stats tracking: total/today sessions and minutes
+
+---
+
 ## [0.8.0] - 2026-01-13
 
 ### Added

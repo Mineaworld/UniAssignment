@@ -2,7 +2,7 @@
 
 This document tracks planned features and improvements for UniAssignment.
 
-**Last Updated:** 2026-01-13
+**Last Updated:** 2026-01-14
 
 ---
 
@@ -280,8 +280,8 @@ These are larger features to consider after core functionality is polished.
 
 | Feature | Notes |
 |---------|-------|
-| Pomodoro Timer | Should be assignment-aware, not standalone |
-| Note-taking | Keep scoped to assignments, not a full Notion clone |
+| ~~Pomodoro Timer~~ | ✅ Completed (v0.9.0) - Assignment-aware floating widget |
+| ~~Note-taking~~ | ✅ Completed (v0.8.0) - BlockNote integration |
 | Shared Courses | High value but complex - one person adds, others sync |
 | Grade Tracking | GPA calculator, grade predictions |
 | Calendar Sync | Google Calendar integration |
