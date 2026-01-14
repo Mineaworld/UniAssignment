@@ -14,7 +14,9 @@ A modern academic workspace for university students. Track assignments, manage s
 - **Assignment Tracking** — Create, prioritize, and track assignments with status updates
 - **Subject Management** — Organize by subject with color-coded tags
 - **Calendar View** — Visualize deadlines at a glance
-- **Smart Reminders** — Telegram bot notifications (24h and 1h before deadlines)
+- **Rich Notes Editor** — Notion-like block editor with images and formatting
+- **Pomodoro Timer** — Floating productivity timer with assignment linking
+- **Smart Reminders** — Telegram bot notifications (customizable timing)
 - **Dark/Light Mode** — System-aware theme support
 - **Responsive Design** — Works on desktop, tablet, and mobile
 
