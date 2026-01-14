@@ -286,6 +286,10 @@ History rewrites (`git-filter-repo`, `git rebase -i`) should be **last resort** 
 - After any file deletion, always run `npm run build`
 - Missing files show up first in clean build environments (Vercel, CI)
 
+### Git Commit Messages
+
+**Do NOT include Co-Authored-By lines in commit messages.** Write clean commit messages without any attribution trailers.
+
 ### Pre-PR Checklist
 
 1. Ensure `main` branch is healthy before merging
