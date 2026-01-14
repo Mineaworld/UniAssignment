@@ -59,6 +59,24 @@ export interface Assignment {
   reminder?: AssignmentReminder;
 }
 
+// Daily reminder settings for Telegram notifications
+export interface DailyReminderSettings {
+  enabled: boolean;
+  sendTime: string;       // "08:00" format
+  timezone: string;       // e.g., "Asia/Phnom_Penh"
+  skipWeekends: boolean;
+  lastSentDate?: string;  // Idempotency key: "2026-01-14"
+}
+
+// Weekly digest settings for Telegram notifications
+export interface WeeklyDigestSettings {
+  enabled: boolean;
+  dayOfWeek: number;      // 0=Sunday, 1=Monday, ..., 6=Saturday
+  sendTime: string;       // "18:00" format
+  timezone: string;       // e.g., "Asia/Phnom_Penh"
+  lastSentWeek?: string;  // ISO week: "2026-W02"
+}
+
 export interface User {
   uid: string;
   name: string;
@@ -70,6 +88,9 @@ export interface User {
   // Telegram prompt tracking
   telegramPromptLastShown: string | null;
   telegramPromptDismissed: boolean;
+  // Scheduled notification settings
+  dailyReminder?: DailyReminderSettings;
+  weeklyDigest?: WeeklyDigestSettings;
 }
 
 export interface AppContextType {

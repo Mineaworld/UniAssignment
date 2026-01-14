@@ -7,6 +7,9 @@ import { Label } from '../components/ui/Label';
 import { Bell, LogOut, User, Shield, Loader2 } from 'lucide-react';
 import AvatarUpload from '../components/AvatarUpload';
 import { cn } from '../utils/cn';
+import DailyReminderSettings from '../components/settings/DailyReminderSettings';
+import WeeklyDigestSettings from '../components/settings/WeeklyDigestSettings';
+import type { DailyReminderSettings as DailyReminderSettingsType, WeeklyDigestSettings as WeeklyDigestSettingsType } from '../types';
 import { generateTelegramLinkUrl } from '../utils/telegramLinkToken';
 
 const Settings = () => {
@@ -46,7 +49,7 @@ const Settings = () => {
     navigate('/login');
   };
 
-const formatLinkedDate = (dateString: string | null) => {
+  const formatLinkedDate = (dateString: string | null) => {
     if (!dateString) return null;
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -55,9 +58,17 @@ const formatLinkedDate = (dateString: string | null) => {
     });
   };
 
+  const handleSaveDailyReminder = async (settings: DailyReminderSettingsType) => {
+    await updateUserProfile({ dailyReminder: settings });
+  };
+
+  const handleSaveWeeklyDigest = async (settings: WeeklyDigestSettingsType) => {
+    await updateUserProfile({ weeklyDigest: settings });
+  };
+
   const handleConnectTelegram = async () => {
     if (!user?.uid) return;
-    
+
     setTelegramLinkLoading(true);
     try {
       const url = await generateTelegramLinkUrl(user.uid);
@@ -180,7 +191,7 @@ const formatLinkedDate = (dateString: string | null) => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-<NeonButton
+              <NeonButton
                 variant="outline"
                 className={cn(
                   "gap-2 rounded-2xl border-border/60 hover:border-primary/40 hover:bg-primary/5",
@@ -196,6 +207,29 @@ const formatLinkedDate = (dateString: string | null) => {
                 )}
                 {user?.telegramLinked ? 'Open Telegram Bot' : 'Connect Telegram'}
               </NeonButton>
+            </div>
+
+            {/* Scheduled Notifications */}
+            <div className="border-t border-border/40 pt-6 mt-6 space-y-6">
+              <h3 className="text-lg font-semibold text-foreground">Scheduled Notifications</h3>
+
+              {/* Daily Morning Reminder */}
+              <div className="bg-background/50 border border-border/40 rounded-2xl p-5">
+                <DailyReminderSettings
+                  settings={user?.dailyReminder}
+                  onSave={handleSaveDailyReminder}
+                  telegramLinked={user?.telegramLinked ?? false}
+                />
+              </div>
+
+              {/* Weekly Digest */}
+              <div className="bg-background/50 border border-border/40 rounded-2xl p-5">
+                <WeeklyDigestSettings
+                  settings={user?.weeklyDigest}
+                  onSave={handleSaveWeeklyDigest}
+                  telegramLinked={user?.telegramLinked ?? false}
+                />
+              </div>
             </div>
           </div>
         </div>
