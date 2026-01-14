@@ -22,6 +22,11 @@ type DropdownPosition = 'below' | 'above' | 'left';
 const ICON_BUTTON_STYLES = `p-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800
   hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors`;
 
+// Dropdown positioning constants
+const DROPDOWN_VIEWPORT_MARGIN = 20;
+const MIN_DROPDOWN_HEIGHT = 200;
+const DROPDOWN_WIDTH = 260;
+
 // Pulsing indicator component to avoid duplication
 const PulsingIndicator: React.FC<{ colorClass: string; isAnimating: boolean }> = ({
   colorClass,
@@ -205,13 +210,9 @@ export const PomodoroWidget: React.FC<PomodoroWidgetProps> = ({ onSessionComplet
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAssignmentPicker]);
 
-  // Filter assignments - exclude completed ones (more robust than explicit include)
+  // Filter assignments - exclude completed ones
   const activeAssignments = useMemo(() => {
-    return assignments.filter(a => {
-      // Handle both enum values and potential string variations
-      const status = a.status?.toString?.() ?? a.status;
-      return status !== Status.Completed && status !== 'Completed';
-    });
+    return assignments.filter(a => a.status !== Status.Completed);
   }, [assignments]);
 
   // Calculate dropdown position based on available space
@@ -223,21 +224,16 @@ export const PomodoroWidget: React.FC<PomodoroWidgetProps> = ({ onSessionComplet
     const viewportHeight = window.innerHeight;
 
     // Space available in each direction
-    const spaceBelow = viewportHeight - buttonRect.bottom - 20; // 20px margin
-    const spaceAbove = buttonRect.top - 20;
-    const spaceLeft = widgetRect.left - 20;
-
-    // Dropdown needs ~200px height for comfortable scrolling
-    const minDropdownHeight = 200;
-    // Dropdown width is roughly 280px (widget width)
-    const dropdownWidth = 260;
+    const spaceBelow = viewportHeight - buttonRect.bottom - DROPDOWN_VIEWPORT_MARGIN;
+    const spaceAbove = buttonRect.top - DROPDOWN_VIEWPORT_MARGIN;
+    const spaceLeft = widgetRect.left - DROPDOWN_VIEWPORT_MARGIN;
 
     // Priority: below > above > left
-    if (spaceBelow >= minDropdownHeight) {
+    if (spaceBelow >= MIN_DROPDOWN_HEIGHT) {
       return 'below';
-    } else if (spaceAbove >= minDropdownHeight) {
+    } else if (spaceAbove >= MIN_DROPDOWN_HEIGHT) {
       return 'above';
-    } else if (spaceLeft >= dropdownWidth) {
+    } else if (spaceLeft >= DROPDOWN_WIDTH) {
       return 'left';
     }
 
@@ -609,5 +605,3 @@ export const PomodoroWidget: React.FC<PomodoroWidgetProps> = ({ onSessionComplet
     </AnimatePresence>
   );
 };
-
-export default PomodoroWidget;

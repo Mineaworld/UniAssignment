@@ -674,11 +674,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     // Update user stats
-    const currentStats = user.pomodoroStats || {
+    const currentStats: PomodoroStats = user.pomodoroStats || {
       totalSessions: 0,
       totalMinutes: 0,
       todaySessions: 0,
       todayMinutes: 0,
+      lastSessionDate: undefined,
     };
 
     // Reset today's count if it's a new day

@@ -57,6 +57,8 @@ export function usePomodoro(
         return SHORT_BREAK_DURATION * 60;
       case 'longBreak':
         return LONG_BREAK_DURATION * 60;
+      default:
+        throw new Error(`Unknown Pomodoro session type: ${type}`);
     }
   }, []);
 
