@@ -1,4 +1,6 @@
 
+import type { Block } from '@blocknote/core';
+
 export enum Priority {
   Low = 'Low',
   Medium = 'Medium',
@@ -36,6 +38,12 @@ export interface AssignmentReminder {
   sentAt?: string;          // When reminder was sent
 }
 
+/** Rich text notes content using BlockNote format */
+export interface NotesContent {
+  version: 1;
+  blocks: Block[];
+}
+
 export interface Assignment {
   id: string;
   title: string;
@@ -43,7 +51,9 @@ export interface Assignment {
   dueDate: string; // ISO string
   status: Status;
   priority: Priority;
+  /** @deprecated Use notes instead */
   description?: string;
+  notes?: NotesContent;
   examType?: 'midterm' | 'final' | null;
   createdAt: string;
   reminder?: AssignmentReminder;
@@ -102,4 +112,5 @@ export interface AppContextType {
   deleteSubject: (id: string) => Promise<void>;
   updateUserProfile: (updates: Partial<User>, avatarFile?: File) => Promise<void>;
   dismissTelegramPrompt: (permanent: boolean) => Promise<void>;
+  uploadNoteImage: (assignmentId: string, file: File) => Promise<string>;
 }

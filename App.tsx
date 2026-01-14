@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AppProvider, useApp } from './context';
 import LandingPage from './pages/LandingPage';
 import { ToastProvider } from './components/ToastContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import Dashboard from './pages/Dashboard';
@@ -25,7 +26,7 @@ const ConditionalRoot = () => {
     );
   }
 
-  return user ? <Navigate to="/app" replace /> : <LandingPage />;
+  return user ? <Navigate to="/dashboard" replace /> : <LandingPage />;
 };
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -57,11 +58,11 @@ const AppLayout = () => {
       <main className="flex-1 min-w-0 overflow-auto h-screen relative pb-20 md:pb-0 z-10">
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/assignments" element={<Assignments />} />
-          <Route path="/subjects" element={<Subjects />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="assignments" element={<Assignments />} />
+          <Route path="subjects" element={<Subjects />} />
+          <Route path="calendar" element={<Calendar />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
       <MobileNav />
@@ -76,7 +77,7 @@ const AppContent = () => {
         <Route path="/" element={<ConditionalRoot />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/app/*" element={
+        <Route path="/dashboard/*" element={
           <ProtectedRoute>
             <AppLayout />
           </ProtectedRoute>
@@ -90,11 +91,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AppProvider>
-      <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </AppProvider>
+    </ErrorBoundary>
   );
 };
 

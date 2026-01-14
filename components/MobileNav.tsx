@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 
 const MobileNav = () => {
   const links = [
-    { name: 'Home', icon: 'dashboard', path: '/' },
-    { name: 'Tasks', icon: 'assignment', path: '/assignments' },
-    { name: 'Calendar', icon: 'calendar_month', path: '/calendar' },
-    { name: 'Subjects', icon: 'book', path: '/subjects' },
-    { name: 'Settings', icon: 'settings', path: '/settings' },
+    { name: 'Home', icon: 'dashboard', path: '/dashboard' },
+    { name: 'Tasks', icon: 'assignment', path: '/dashboard/assignments' },
+    { name: 'Calendar', icon: 'calendar_month', path: '/dashboard/calendar' },
+    { name: 'Subjects', icon: 'book', path: '/dashboard/subjects' },
+    { name: 'Settings', icon: 'settings', path: '/dashboard/settings' },
   ];
 
   return (
@@ -20,8 +20,8 @@ const MobileNav = () => {
             to={link.path}
             className={({ isActive }) => `
               relative flex flex-col items-center gap-1 p-2 rounded-lg transition-colors
-              ${isActive 
-                ? 'text-primary' 
+              ${isActive
+                ? 'text-primary'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }
             `}

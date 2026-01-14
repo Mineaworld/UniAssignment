@@ -68,11 +68,36 @@ Collections use subcollections per user:
 - `/assignments` - List with inline keyboard buttons for view/toggle/edit/delete
 - State stored in `telegramStates` collection with steps: `AWAITING_TITLE`, `AWAITING_SUBJECT`, `AWAITING_DUE_DATE`, `AWAITING_EDIT_VALUE`
 
+### Notes Editor (BlockNote Integration)
+
+**Components** (`components/notes/`):
+- `NotesEditor.tsx` - Lazy-loaded wrapper with Suspense fallback
+- `BlockNoteEditor.tsx` - Core BlockNote integration with theme support
+- `NotesViewer.tsx` - Read-only display component
+- `NotesFullscreenModal.tsx` - Full-screen editing modal with auto-save
+- `EditorSkeleton.tsx` - Loading skeleton for lazy load
+
+**Image Storage** (Firebase Storage):
+```
+notes/{userId}/{assignmentId}/{imageId}.{ext}
+```
+
+- Images uploaded via `uploadNoteImage()` in `context.tsx`
+- MIME type validation (jpeg, png, gif, webp)
+- 5MB size limit
+- Extension derived from MIME type (not filename) for security
+- Images auto-deleted when assignment is deleted
+
+**Migration Utility** (`utils/migrateNotes.ts`):
+- `getNotesContent()` - Returns notes or migrates legacy `description` field
+- Backward compatible with existing assignments
+
 ### Styling
 
 - **Tailwind CSS** with dark mode support
 - **Framer Motion** for animations
 - **Recharts** for data visualization
+- **BlockNote** for rich text editing (lazy-loaded, ~150KB)
 - Path alias: `@/*` maps to root directory
 
 ## Environment Variables
@@ -98,23 +123,7 @@ FIREBASE_PROJECT_ID=
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
 TELEGRAM_BOT_TOKEN=
-CRON_SECRET=              # Secret for authenticating cron job requests
 ```
-
-## Cron Jobs
-
-The application includes scheduled notification endpoints:
-
-- `api/cron/daily-reminder.ts` - Sends daily morning reminders
-- `api/cron/weekly-digest.ts` - Sends weekly assignment summaries
-
-**Setup with cron-job.org:**
-1. Create account at cron-job.org
-2. Add new cron jobs pointing to:
-   - `https://your-app.vercel.app/api/cron/daily-reminder`
-   - `https://your-app.vercel.app/api/cron/weekly-digest`
-3. Set Authorization header: `Bearer YOUR_CRON_SECRET`
-4. Schedule: Run every hour (cron checks user timezones internally)
 
 ## Deployment
 
@@ -286,9 +295,19 @@ History rewrites (`git-filter-repo`, `git rebase -i`) should be **last resort** 
 - After any file deletion, always run `npm run build`
 - Missing files show up first in clean build environments (Vercel, CI)
 
-### Git Commit Messages
+### Git Commit Guidelines
 
-**Do NOT include Co-Authored-By lines in commit messages.** Write clean commit messages without any attribution trailers.
+**DO NOT include `Co-Authored-By` lines in commits or PRs.**
+
+This project is solo-developed with AI assistance. The commit author is sufficient attribution.
+
+```bash
+# ❌ BAD - Don't add this
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+# ✅ GOOD - Just the commit message
+docs: add feature roadmap
+```
 
 ### Pre-PR Checklist
 
@@ -296,3 +315,4 @@ History rewrites (`git-filter-repo`, `git rebase -i`) should be **last resort** 
 2. Run `npm run build` locally before pushing
 3. Verify base branch (`main`) has all required files
 4. Check `.env.example` is up to date with new env vars
+5. **No `Co-Authored-By` lines in commit messages**

@@ -140,3 +140,50 @@
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
 }
+
+/* ============================================================================
+   BlockNote Editor Customizations
+   ============================================================================ */
+
+.notes-editor {
+  @apply rounded-lg;
+}
+
+.notes-editor .bn-container {
+  @apply bg-transparent;
+}
+
+.notes-editor--compact .bn-container {
+  @apply min-h-[150px];
+}
+
+.notes-editor--compact .bn-side-menu {
+  @apply hidden;
+}
+
+/* Dark mode adjustments for BlockNote */
+.dark .notes-editor .bn-editor {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: hsl(var(--foreground));
+}
+
+/* Read-only mode styling */
+.notes-editor--readonly .bn-editor {
+  @apply cursor-default;
+}
+
+.notes-viewer .bn-side-menu,
+.notes-viewer .bn-formatting-toolbar,
+.notes-viewer .bn-slash-menu,
+.notes-viewer .bn-link-toolbar {
+  display: none !important;
+}
+
+/* Code block styling */
+.notes-editor [data-content-type="codeBlock"] pre {
+  @apply bg-slate-900 dark:bg-slate-950 rounded-lg p-4 overflow-x-auto;
+}
+
+.notes-editor [data-content-type="codeBlock"] code {
+  @apply text-sm font-mono;
+}

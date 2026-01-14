@@ -4,12 +4,13 @@ import { useApp } from '../context';
 import { NeonButton } from '../components/ui/NeonButton';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
-import { Bell, LogOut, User, Shield } from 'lucide-react';
+import { Bell, LogOut, User, Shield, Loader2 } from 'lucide-react';
 import AvatarUpload from '../components/AvatarUpload';
 import { cn } from '../utils/cn';
 import DailyReminderSettings from '../components/settings/DailyReminderSettings';
 import WeeklyDigestSettings from '../components/settings/WeeklyDigestSettings';
 import type { DailyReminderSettings as DailyReminderSettingsType, WeeklyDigestSettings as WeeklyDigestSettingsType } from '../types';
+import { generateTelegramLinkUrl } from '../utils/telegramLinkToken';
 
 const Settings = () => {
   const { user, logout, updateUserProfile } = useApp();
@@ -19,6 +20,7 @@ const Settings = () => {
   const [major, setMajor] = useState(user?.major || '');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [telegramLinkLoading, setTelegramLinkLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -62,6 +64,20 @@ const Settings = () => {
 
   const handleSaveWeeklyDigest = async (settings: WeeklyDigestSettingsType) => {
     await updateUserProfile({ weeklyDigest: settings });
+  };
+
+  const handleConnectTelegram = async () => {
+    if (!user?.uid) return;
+
+    setTelegramLinkLoading(true);
+    try {
+      const url = await generateTelegramLinkUrl(user.uid);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Failed to generate Telegram link:', error);
+    } finally {
+      setTelegramLinkLoading(false);
+    }
   };
 
   return (
@@ -181,9 +197,14 @@ const Settings = () => {
                   "gap-2 rounded-2xl border-border/60 hover:border-primary/40 hover:bg-primary/5",
                   !user?.telegramLinked && "border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
                 )}
-                onClick={() => window.open(`https://t.me/UniAssignmentBot?start=${user?.uid}`, '_blank')}
+                onClick={handleConnectTelegram}
+                disabled={telegramLinkLoading}
               >
-                <Bell className="h-4 w-4" />
+                {telegramLinkLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Bell className="h-4 w-4" />
+                )}
                 {user?.telegramLinked ? 'Open Telegram Bot' : 'Connect Telegram'}
               </NeonButton>
             </div>

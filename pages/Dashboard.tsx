@@ -103,7 +103,7 @@ const Dashboard = () => {
             Dashboard
           </h1>
           <p className="text-muted-foreground text-lg font-medium">
-            {getGreeting()}, <span className="text-foreground font-semibold">{user?.name?.split(' ')[0] || 'there'}</span>.
+            {getGreeting()}, <span className="text-foreground font-semibold">{user?.name || 'there'}</span>.
           </p>
         </div>
 
@@ -261,12 +261,12 @@ const Dashboard = () => {
         <BentoCard className="lg:col-span-4" delay={0.7}>
           <div className="flex h-full items-center justify-between p-4 px-6 gap-3">
             {[
-              { icon: BookOpen, label: 'Subjects', path: '/subjects' },
-              { icon: CheckCircle, label: 'Tasks', path: '/assignments' },
-              { icon: MoreHorizontal, label: 'Settings', path: '/settings' }
-            ].map((action, i) => (
+              { icon: BookOpen, label: 'Subjects', path: '/dashboard/subjects' },
+              { icon: CheckCircle, label: 'Tasks', path: '/dashboard/assignments' },
+              { icon: MoreHorizontal, label: 'Settings', path: '/dashboard/settings' }
+            ].map((action) => (
               <Button
-                key={i}
+                key={action.path}
                 variant="outline"
                 className="flex-1 h-20 flex-col gap-2 border-dashed border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all rounded-xl"
                 onClick={() => navigate(action.path)}

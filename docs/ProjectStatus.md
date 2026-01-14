@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.6.0
-**Last Updated:** 2026-01-14
+**Version:** 0.7.0
+**Last Updated:** 2026-01-08
 **Status:** Active Development
 
 ---
@@ -17,7 +17,7 @@
 |---------|--------|-------|
 | Email/Password Sign Up | ✅ Complete | With validation and error handling |
 | Email/Password Login | ✅ Complete | With validation and error handling |
-| Google OAuth | ✅ Complete | With popup flow and error handling |
+| Google OAuth | ✅ Complete | Popup with redirect fallback for COOP |
 | Logout | ✅ Complete | Proper cleanup |
 | Profile Picture Upload | ✅ Complete | 5MB limit, image validation |
 | User Profile Management | ✅ Complete | Update name, major, avatar |
@@ -34,6 +34,7 @@
 | Toggle Assignment Status | ✅ Complete | Pending ↔ In Progress ↔ Completed |
 | View Assignment Details | ✅ Complete | Read-only modal |
 | Kanban View | ✅ Complete | Trello-style board for assignments |
+| Calendar View | ✅ Complete | Month view with assignments |
 | Add Subject | ✅ Complete | With color picker |
 | Edit Subject | ✅ Complete | Name and color |
 | Delete Subject | ✅ Complete | With assignment handling check |
@@ -52,6 +53,21 @@
 
 ---
 
+### Landing Page ✅ Complete (NEW)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| SpotlightHero | ✅ Complete | Mouse-tracking gradient effect |
+| FeatureTabs | ✅ Complete | ARIA-compliant tabbed showcase |
+| BenefitsGrid | ✅ Complete | Animated feature cards |
+| ProductShowcase | ✅ Complete | Visual product demo |
+| Pricing | ✅ Complete | Tiered pricing plans |
+| TestimonialsMarquee | ✅ Complete | Auto-scrolling customer reviews |
+| SiteFooter | ✅ Complete | Navigation and links |
+| Theme Toggle | ✅ Complete | Dark/light mode switching |
+
+---
+
 ### Telegram Bot ✅ Complete
 
 | Feature | Status | Notes |
@@ -59,34 +75,17 @@
 | Webhook Handler | ✅ Complete | Vercel API endpoint |
 | /start Command | ✅ Complete | Account linking |
 | /add Command | ✅ Complete | Interactive flow |
-| /quick Command | ✅ Complete | One-line assignment creation |
-| /today Command | ✅ Complete | View today's assignments |
-| /tomorrow Command | ✅ Complete | View tomorrow's assignments |
-| /week Command | ✅ Complete | View this week's assignments |
-| /overdue Command | ✅ Complete | View overdue assignments |
 | /assignments Command | ✅ Complete | List with inline buttons |
-| View Assignment | ✅ Complete | Detailed view |
+| View Assignment | ✅ Complete | Detailed view with 🔔 Reminder button |
 | Toggle Status | ✅ Complete | Via inline buttons |
 | Edit Assignment | ✅ Complete | Title and due date |
 | Delete Assignment | ✅ Complete | With confirmation |
-| Deadline Reminders | ✅ Complete | Scheduled every 1 hour |
+| **Automated Reminders** | ✅ Complete | Via cron-job.org (every 15 min) |
+| Reminder Presets | ✅ Complete | 1h, 6h, 1d, 3d, 1w before due |
+| Custom Reminders | ✅ Complete | Relative or absolute time |
 | Button Interactions | ✅ Complete | Full callback query handling |
 
 **Note:** Telegram bot requires `TELEGRAM_BOT_TOKEN` to be set in Vercel environment variables.
-
----
-
-### Notifications ✅ Complete
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Daily Morning Reminder | ✅ Complete | Configurable time, timezone, skip weekends |
-| Weekly Digest | ✅ Complete | Configurable day/time, includes completion stats |
-| Notification Settings UI | ✅ Complete | Settings page components |
-| Cron Endpoints | ✅ Complete | Vercel serverless functions |
-| Idempotency | ✅ Complete | Prevents duplicate notifications |
-
-**Note:** Cron jobs require `CRON_SECRET` for authentication. Set up external cron service (e.g., cron-job.org) to trigger endpoints hourly.
 
 ---
 
@@ -158,15 +157,18 @@ None. All dependencies are up to date.
 ## Next Steps
 
 1. **Short Term** (Week)
-   - [ ] Add calendar view for assignments
+   - [x] Add calendar view for assignments ✅
+   - [x] Add landing page ✅
    - [ ] Implement assignment search/filter
    - [ ] Add assignment tags/labels
+   - [ ] **Pomodoro Timer Page** - Focus timer with work/break intervals (25/5/15 min), session tracking, and optional assignment linking
 
 2. **Medium Term** (Month)
    - [ ] Grade tracking per subject
    - [ ] GPA calculator
    - [ ] Export to PDF/iCal
    - [ ] Add unit tests
+   - [ ] Complete Material Symbols to Lucide migration
 
 3. **Long Term** (Quarter)
    - [ ] Mobile app (React Native)

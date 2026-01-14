@@ -8,7 +8,7 @@ import Pricing from '../components/landing/Pricing';
 import SiteFooter from '../components/landing/SiteFooter';
 import { Button } from '../components/ui/Button';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
-import { ThemeToggle } from '../components/ui/ThemeToggle';
+import { AnimatedThemeToggler } from '../components/ui/animated-theme-toggler';
 
 const LandingPage = () => {
     return (
@@ -29,7 +29,7 @@ const LandingPage = () => {
                     </nav>
 
                     <div className="flex items-center gap-4">
-                        <ThemeToggle />
+                        <AnimatedThemeToggler className="hover:bg-muted/20" />
                         <a href="/login" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">Sign In</a>
                         <a href="/signup">
                             <Button size="sm" className="rounded-full">Get Started</Button>

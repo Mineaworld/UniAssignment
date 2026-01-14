@@ -39,7 +39,7 @@ UniAssignment is a university assignment management application with both web an
 | Framer Motion | 12.23.25 | Animations |
 | React Router | 7.10.1 | Navigation |
 | Lucide React | 0.447.0 | Icon Library |
-| Geist Sans | - | Modern UI Typography |
+| Inter | - | Primary Typography |
 | Space Grotesk | - | Display Typography |
 | Recharts | 3.5.1 | Data Visualization |
 | Firebase SDK | 12.6.0 | Backend Client |
@@ -57,7 +57,7 @@ UniAssignment is a university assignment management application with both web an
 |---------|---------|
 | Firebase Auth | User Authentication |
 | Firestore | NoSQL Database |
-| Firebase Storage | File Storage (Profile Pictures) |
+| Firebase Storage | File Storage (Profile Pictures, Note Images) |
 | Telegram Bot API | Chatbot Interface |
 
 ## Data Flow
@@ -140,7 +140,10 @@ uni-assignment-f0fbe/
 │           ├── dueDate: string (ISO)
 │           ├── status: "Pending" | "In Progress" | "Completed"
 │           ├── priority: "Low" | "Medium" | "High"
-│           ├── description: string | undefined
+│           ├── description: string | undefined (deprecated)
+│           ├── notes: NotesContent | undefined   # Rich text notes
+│           │   ├── version: 1
+│           │   └── blocks: Block[]               # BlockNote format
 │           ├── examType: "midterm" | "final" | null
 │           └── createdAt: string (ISO)
 │
@@ -187,11 +190,26 @@ src/
 │   ├── GoogleIcon.tsx
 │   ├── AvatarUpload.tsx      # Multi-size profile picture upload
 │   ├── TelegramPromptModal.tsx # Smart link prompt
+│   ├── notes/                 # Rich text notes editor
+│   │   ├── NotesEditor.tsx     # Lazy-loaded wrapper
+│   │   ├── BlockNoteEditor.tsx # Core BlockNote integration
+│   │   ├── NotesViewer.tsx     # Read-only display
+│   │   ├── NotesFullscreenModal.tsx # Fullscreen editing
+│   │   └── EditorSkeleton.tsx  # Loading skeleton
 │   ├── Sidebar.tsx           # Navigation with theme toggle
 │   └── ...
 │
 ├── utils/                   # Utility functions
 │   └── cn.ts                 # Tailwind class merger
+│
+├── components/landing/       # Landing page components
+│   ├── SpotlightHero.tsx     # Hero with spotlight effect
+│   ├── FeatureTabs.tsx       # Tabbed feature showcase
+│   ├── BenefitsGrid.tsx      # Benefits grid section
+│   ├── ProductShowcase.tsx   # Product demo section
+│   ├── Pricing.tsx           # Pricing plans
+│   ├── TestimonialsMarquee.tsx  # Testimonial carousel
+│   └── SiteFooter.tsx        # Landing footer
 │
 ├── context.tsx              # App state management
 ├── firebase.ts              # Firebase initialization
@@ -205,26 +223,11 @@ src/
 ```
 api/
 ├── telegram.ts              # Telegram Vercel Webhook Handler
-├── types.ts                 # Shared TypeScript interfaces
 └── cron/
-    ├── daily-reminder.ts    # Daily morning reminder cron endpoint
-    └── weekly-digest.ts     # Weekly digest cron endpoint
+    └── check-deadlines.ts   # Reminder notification scheduler (called by cron-job.org)
 
-functions/
-└── src/
-    └── index.ts             # Firebase Cloud Functions
-        ├── telegramWebhook  # Experimental/Secondary Webhook
-        └── checkDeadlines   # Scheduled Notifications (every 15 min)
-```
-
-### Settings Components
-
-```
-components/settings/
-├── index.ts                 # Module exports
-├── constants.ts             # Shared constants (timezones, time options, days)
-├── DailyReminderSettings.tsx # Daily reminder configuration UI
-└── WeeklyDigestSettings.tsx  # Weekly digest configuration UI
+External Services:
+└── cron-job.org             # Free HTTP scheduler (pings every 15 min)
 ```
 
 ## Security Considerations
@@ -236,13 +239,21 @@ components/settings/
 | `VITE_FIREBASE_*` | `.env` (frontend) | Public (exposed to client) |
 | `TELEGRAM_BOT_TOKEN` | Vercel Dashboard | Server-only |
 | `FIREBASE_PRIVATE_KEY` | Vercel Dashboard | Server-only |
-| `CRON_SECRET` | Vercel Dashboard | Server-only (cron auth) |
 
 ### Security Rules
 
-- Firestore rules ensure users can only access their own data
-- Authentication required for all data operations
-- Profile pictures stored in Firebase Storage with appropriate rules
+Firestore security rules are defined in `firestore.rules` and deployed via:
+```bash
+firebase deploy --only firestore:rules
+```
+
+**Rules Summary:**
+- `/users/{uid}` - Read/write only by authenticated owner
+- `/users/{uid}/subjects/*` - Read/write only by authenticated owner
+- `/users/{uid}/assignments/*` - Read/write only by authenticated owner
+- `/telegramLinks/{uid}` - Read only by authenticated owner (write via Cloud Functions)
+
+Profile pictures stored in Firebase Storage with user-scoped access rules.
 
 ## Deployment
 

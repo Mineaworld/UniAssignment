@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db, storage } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import {
   collection,
   query,
@@ -13,7 +13,8 @@ import {
   orderBy,
   getDoc,
   setDoc,
-  deleteField
+  deleteField,
+  FieldValue
 } from 'firebase/firestore';
 import { Assignment, AppContextType, Subject, User } from './types';
 
@@ -68,13 +69,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   useEffect(() => {
+    const syncTheme = (e: MutationRecord[]) => {
+      e.forEach(mutation => {
+        if (mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          if (isDark && theme !== 'dark') setTheme('dark');
+          if (!isDark && theme !== 'light') setTheme('light');
+        }
+      });
+    };
+    
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, [theme]);
+
+  useEffect(() => {
     const root = document.documentElement;
     const isDark = theme === 'dark';
-    root.classList.toggle('dark', isDark);
+    if (isDark && !root.classList.contains('dark')) root.classList.add('dark');
+    if (!isDark && root.classList.contains('dark')) root.classList.remove('dark');
     localStorage.setItem('uni_theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
 
   // =========================================================================
   // Auth State Management
@@ -103,6 +122,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return unsubscribe;
+  }, []);
+
+  // Handle Google Sign-In redirect result (when popup fallback is used)
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          // User document will be created/fetched by the onAuthStateChanged listener
+          // and User Profile Sync effect
+          if (import.meta.env.DEV) {
+            console.log('Google Sign-In redirect completed successfully');
+          }
+        }
+      } catch (error) {
+        console.error('Error handling Google Sign-In redirect:', error);
+      }
+    };
+
+    handleRedirectResult();
   }, []);
 
   // =========================================================================
@@ -266,38 +305,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  /**
+   * Helper function to handle Google Sign-In result (shared between popup and redirect flows)
+   */
+  const handleGoogleSignInResult = async (firebaseUser: import('firebase/auth').User): Promise<void> => {
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      const userData: User = {
+        uid: firebaseUser.uid,
+        name: firebaseUser.displayName || DEFAULT_USER.name,
+        email: firebaseUser.email || DEFAULT_USER.email,
+        major: DEFAULT_USER.major,
+        avatar: firebaseUser.photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(firebaseUser.displayName || 'Student')}`,
+        telegramLinked: false,
+        telegramLinkedAt: null,
+        telegramPromptLastShown: null,
+        telegramPromptDismissed: false,
+      };
+      await setDoc(userDocRef, userData);
+      setUser(userData);
+    } else {
+      // User exists, update local state from Firestore
+      const existingData = userDoc.data() as User;
+      setUser(existingData);
+    }
+  };
+
   const loginWithGoogle = async (): Promise<void> => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
+      // Try popup first (better UX)
       const result = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
-
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        const userData: User = {
-          uid: firebaseUser.uid,
-          name: firebaseUser.displayName || DEFAULT_USER.name,
-          email: firebaseUser.email || DEFAULT_USER.email,
-          major: DEFAULT_USER.major,
-          avatar: firebaseUser.photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(firebaseUser.displayName || 'Student')}`,
-          telegramLinked: false,
-          telegramLinkedAt: null,
-          telegramPromptLastShown: null,
-          telegramPromptDismissed: false,
-        };
-        await setDoc(userDocRef, userData);
-        setUser(userData);
-      } else {
-        // User exists, update local state from Firestore
-        const existingData = userDoc.data() as User;
-        setUser(existingData);
-      }
+      await handleGoogleSignInResult(result.user);
     } catch (error) {
       const firebaseError = error as FirebaseError;
+
+      // If popup is blocked or COOP issue, fall back to redirect
+      if (
+        firebaseError.code === 'auth/popup-blocked' ||
+        firebaseError.code === 'auth/popup-closed-by-user' ||
+        firebaseError.message?.includes('Cross-Origin')
+      ) {
+        // Use redirect as fallback - this will navigate away and return
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
       throw new Error(getFirebaseErrorMessage(firebaseError.code || 'auth/unknown'));
     }
   };
@@ -421,10 +478,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateAssignment = async (id: string, updates: Partial<Assignment>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
 
+    // If dueDate or reminder settings changed, reset sentAt to allow re-triggering
+    if (updates.dueDate !== undefined || updates.reminder !== undefined) {
+      if (updates.reminder && updates.reminder.enabled) {
+        // Clear sentAt so the reminder can trigger again
+        updates.reminder = {
+          ...updates.reminder,
+          sentAt: undefined,
+        };
+      }
+    }
+
     // Convert undefined values to deleteField() for proper Firestore field deletion
-    const processedUpdates: Record<string, any> = {};
+    type FirestoreUpdateValue = string | number | boolean | null | FieldValue | object;
+    const processedUpdates: Record<string, FirestoreUpdateValue> = {};
     for (const [key, value] of Object.entries(updates)) {
-      processedUpdates[key] = value === undefined ? deleteField() : value;
+      if (key === 'reminder' && value !== undefined && typeof value === 'object' && value !== null) {
+        // Handle nested reminder object - convert nested undefined to deleteField
+        const reminderObj = value as unknown as Record<string, unknown>;
+        for (const [rKey, rValue] of Object.entries(reminderObj)) {
+          processedUpdates[`reminder.${rKey}`] = rValue === undefined ? deleteField() : (rValue as FirestoreUpdateValue);
+        }
+      } else {
+        processedUpdates[key] = value === undefined ? deleteField() : (value as FirestoreUpdateValue);
+      }
     }
 
     await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
@@ -432,6 +509,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteAssignment = async (id: string): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
+
+    // Clean up associated images from Storage (best effort - don't block deletion)
+    try {
+      const imagesFolderRef = ref(storage, `notes/${user.uid}/${id}`);
+      const imagesList = await listAll(imagesFolderRef);
+
+      if (imagesList.items.length > 0) {
+        await Promise.all(
+          imagesList.items.map(imageRef => deleteObject(imageRef))
+        );
+      }
+    } catch (error) {
+      // Log but don't block assignment deletion if image cleanup fails
+      console.warn('Failed to clean up assignment images:', error);
+    }
+
+    // Delete the assignment document
     await deleteDoc(doc(db, `users/${user.uid}/assignments`, id));
   };
 
@@ -511,10 +605,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // =========================================================================
+  // Note Image Upload
+  // =========================================================================
+
+  const uploadNoteImage = async (assignmentId: string, file: File): Promise<string> => {
+    if (!user?.uid) throw new Error('User not authenticated');
+
+    // Validate file size (5MB limit)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      throw new Error('Image must be less than 5MB');
+    }
+
+    // Validate file type and derive extension from MIME type (more secure than filename)
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+    if (!mimeToExt[file.type]) {
+      throw new Error('Only JPEG, PNG, GIF, and WebP images are allowed');
+    }
+
+    const imageId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    const ext = mimeToExt[file.type];
+    const storagePath = `notes/${user.uid}/${assignmentId}/${imageId}.${ext}`;
+
+    const storageRef = ref(storage, storagePath);
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
+  };
+
+  // =========================================================================
   // Context Value
   // =========================================================================
 
-  const value: AppContextType = {
+  const value: AppContextType = useMemo(() => ({
     user,
     loading,
     assignments,
@@ -533,7 +660,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteSubject,
     updateUserProfile,
     dismissTelegramPrompt,
-  };
+    uploadNoteImage,
+  }), [
+    user,
+    loading,
+    assignments,
+    subjects,
+    theme,
+    toggleTheme,
+    login,
+    loginWithGoogle,
+    signup,
+    logout,
+    addAssignment,
+    updateAssignment,
+    deleteAssignment,
+    addSubject,
+    updateSubject,
+    deleteSubject,
+    updateUserProfile,
+    dismissTelegramPrompt,
+    uploadNoteImage,
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

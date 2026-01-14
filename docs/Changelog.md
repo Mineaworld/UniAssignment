@@ -2,28 +2,119 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
-## [0.6.0] - 2026-01-14
+## [0.8.0] - 2026-01-13
 
 ### Added
-- **Quick Add Command**: `/quick` command for one-line assignment creation with natural language date parsing
-- **Status Commands**: `/today`, `/tomorrow`, `/week`, `/overdue` commands for quick assignment views
-- **Daily Morning Reminder**: Configurable daily notification with timezone support and weekend skip option
-- **Weekly Digest**: Weekly summary of upcoming assignments with completion stats from previous week
-- **Notification Settings UI**: New settings components for configuring daily reminders and weekly digest
-- **Cron Endpoints**: `api/cron/daily-reminder.ts` and `api/cron/weekly-digest.ts` for scheduled notifications
-- **Shared API Types**: `api/types.ts` with TypeScript interfaces for API layer
-- **Settings Components**: `DailyReminderSettings`, `WeeklyDigestSettings` with shared constants
+- **Rich Notes Editor**: Notion-like block editor for assignment notes
+  - BlockNote integration with lazy loading (~150KB deferred)
+  - Support for text, headings, lists, code blocks, and images
+  - Fullscreen editing mode with auto-save
+  - Read-only viewer for assignment details
+  - Dark/light theme support
+- **Note Image Storage**: Images uploaded to Firebase Storage
+  - Path: `notes/{userId}/{assignmentId}/{imageId}.{ext}`
+  - 5MB size limit with MIME type validation
+  - Auto-cleanup when assignment is deleted
+- **Legacy Migration**: Automatic migration of old `description` field to new notes format
 
 ### Changed
-- **Telegram Bot**: Enhanced with 5 new commands and improved inline keyboard interactions
-- **Settings Page**: Added Notifications section with daily reminder and weekly digest configuration
-- **User Types**: Extended with `DailyReminderSettings` and `WeeklyDigestSettings` interfaces
+- **Assignment Schema**: Added `notes: NotesContent` field (deprecates `description`)
+- **CreateAssignmentModal**: Now uses NotesEditor instead of textarea
+- **EditAssignmentModal**: Now uses NotesEditor with legacy content migration
+- **ViewAssignmentModal**: Shows NotesViewer with fullscreen edit button
+
+### Fixed
+- **Stale Closure**: Fixed ESC key handler in NotesFullscreenModal
+- **Error Handling**: Auto-save now shows errors and prevents close on failure
+- **Security**: File extension derived from MIME type instead of filename
 
 ### Technical
-- Added XSS prevention with `escapeHtml()` function for Telegram messages
-- Added accessibility attributes (ARIA) to toggle switches
-- Extracted shared constants to prevent code duplication
-- Cron jobs use idempotency keys to prevent duplicate sends
+- New components: `NotesEditor`, `BlockNoteEditor`, `NotesViewer`, `NotesFullscreenModal`, `EditorSkeleton`
+- New utilities: `migrateNotes.ts`, `debounce.ts`
+- Bundle split: BlockNote in separate chunk for optimal loading
+
+---
+
+## [0.7.0] - 2026-01-08
+
+### Added
+- **Telegram Reminder System**: Automated reminder notifications via Telegram
+  - New Vercel cron endpoint (`api/cron/check-deadlines.ts`)
+  - External scheduler via cron-job.org (every 15 minutes)
+  - Reminder presets: 1h, 6h, 1d, 3d, 1w before due
+  - Custom reminder support (relative or absolute time)
+  - Timezone-aware notifications (Asia/Phnom_Penh)
+- **Telegram Bot Enhancements**: Added 🔔 Reminder button to assignment view
+
+### Changed
+- **Reminder Re-triggering**: Editing due date or reminder settings now resets `sentAt`, allowing reminders to fire again
+- **ReminderSelector**: Refactored to avoid nested form issue (converted inner `<form>` to `<div>`)
+
+### Fixed
+- **Custom Reminder Bug**: Fixed page reload when clicking "Set" in custom reminder form (nested form issue)
+
+### Technical
+- Uses external cron service (cron-job.org) instead of Vercel Cron (requires Pro plan for <1 day intervals)
+- Reminder window: ±15 minutes for cron tolerance
+
+---
+
+## [0.6.2] - 2026-01-05
+
+### Fixed
+- **Assignment List Scroll** (Issue #16): Fixed scroll not working on Assignments page when many items present
+  - Removed `overflow-hidden` from main content wrapper
+  - Added `overflow-y-auto` to GlassCard container
+
+---
+
+## [0.6.1] - 2026-01-04
+
+### Added
+- **Firestore Security Rules**: Added local `firestore.rules` file for version control
+  - User-scoped access for profiles, subjects, and assignments
+  - Read-only access for telegramLinks (write via Cloud Functions only)
+- **Google Sign-In Fallback**: Added redirect-based auth fallback when popup is blocked
+
+### Changed
+- **Routing**: Renamed `/app` route to `/dashboard` to avoid Vite serving `App.tsx` as a file
+- **Navigation Paths**: Updated Sidebar and MobileNav to use `/dashboard/*` paths
+- **Branding**: Updated footer to "UniAssignment © 2026"
+
+### Fixed
+- **Firebase Permission Errors**: Resolved "Missing or insufficient permissions" by deploying proper Firestore rules
+- **Google Sign-In COOP Errors**: Auth popup now falls back to redirect when Cross-Origin-Opener-Policy blocks popup
+- **Nested Route Paths**: Changed from absolute (`/assignments`) to relative (`assignments`) in AppLayout
+
+---
+
+## [0.6.0] - 2026-01-03
+
+### Added
+- **Landing Page**: Complete marketing landing page with modern design
+  - `SpotlightHero` with mouse-tracking gradient effect
+  - `FeatureTabs` with ARIA-compliant tab navigation
+  - `BenefitsGrid` with animated feature cards
+  - `ProductShowcase` with visual demos
+  - `Pricing` section with tiered plans
+  - `TestimonialsMarquee` with auto-scrolling reviews
+  - `SiteFooter` with navigation links
+- **New UI Components**: `ScrollReveal`, `ThemeToggle`, `Avatar`
+- **CSS Utilities**: Animation delays, 3D transforms for landing page effects
+
+### Changed
+- **README**: Cleaned up and removed changelog (moved to docs/Changelog.md)
+- **Font Stack**: Removed Geist font (not imported), using Inter as primary
+- **Typography**: Updated `tailwind.config.js` font configuration
+
+### Fixed
+- **Rules of Hooks**: Fixed `useMotionTemplate` called inside JSX in `SpotlightHero`
+- **Accessibility**: Added ARIA roles to `FeatureTabs` (tablist, tab, tabpanel)
+- **CTA Buttons**: Added navigation handlers to landing page buttons
+- **Button Labels**: Changed "Done" to "Cancel" in `CreateSubjectModal`
+- **Dashboard Greeting**: Fixed `name.split()[1]` for single-word names
+- **Calendar Styles**: Removed broken inline style using invalid CSS variable
+- **"use client" Directives**: Removed Next.js directives from Vite project (`SignUp`, `avatar`)
 
 ---
 
@@ -46,6 +137,7 @@ All notable changes to the UniAssignment project will be documented in this file
 - Assignment reminder toggle button bounds (Issue #3).
 - Optional fields deletion in Firebase updates (Issue #2).
 - Font rendering and visual consistency issues.
+- **AvatarUpload**: Applied `sizeClasses` to make `size` prop functional (was hardcoded to `w-24 h-24`).
 
 ---
 
