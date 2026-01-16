@@ -367,18 +367,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     password: string,
     major?: string,
     avatarFile?: File
-  ): Promise<void> => {
+): Promise<void> => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
 
-      let photoURL = result.user.photoURL;
-
       // Note: Avatar file upload disabled - Firebase Storage requires Blaze plan
       // Using UI Avatars as fallback for profile pictures
+      const newAvatarUrl = `${UI_AVATARS_BASE_URL}${encodeURIComponent(name)}`;
 
       await updateProfile(result.user, {
         displayName: name,
-        photoURL,
+        photoURL: newAvatarUrl,
       });
 
       const userData: User = {
@@ -386,7 +385,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name,
         email,
         major: major || DEFAULT_USER.major,
-        avatar: photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(name)}`,
+        avatar: newAvatarUrl,
         telegramLinked: false,
         telegramLinkedAt: null,
         telegramPromptLastShown: null,
@@ -552,7 +551,7 @@ await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
     // Note: Avatar file upload disabled - Firebase Storage requires Blaze plan
     // Using UI Avatars as fallback. If name changes, update avatar URL.
     let newAvatarUrl = updates.avatar;
-    if (updates.name && !avatarFile) {
+    if (updates.name) {
       newAvatarUrl = `${UI_AVATARS_BASE_URL}${encodeURIComponent(updates.name)}`;
     }
 
@@ -595,8 +594,7 @@ await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
   // =========================================================================
 
   // Note: Image upload disabled - Firebase Storage requires Blaze plan
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const uploadNoteImage = async (assignmentId: string, file: File): Promise<string> => {
+  const uploadNoteImage = async (_assignmentId: string, _file: File): Promise<string> => {
     throw new Error('Image upload is currently disabled. Firebase Storage requires the Blaze plan.');
   };
 
