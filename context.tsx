@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { auth, db, storage } from './firebase';
+import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import {
   collection,
   query,
@@ -368,21 +367,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     password: string,
     major?: string,
     avatarFile?: File
-  ): Promise<void> => {
+): Promise<void> => {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
 
-      let photoURL = result.user.photoURL;
-
-      if (avatarFile) {
-        const storageRef = ref(storage, `profile_pictures/${result.user.uid}`);
-        await uploadBytes(storageRef, avatarFile);
-        photoURL = await getDownloadURL(storageRef);
-      }
+      // Note: Avatar file upload disabled - Firebase Storage requires Blaze plan
+      // Using UI Avatars as fallback for profile pictures
+      const newAvatarUrl = `${UI_AVATARS_BASE_URL}${encodeURIComponent(name)}`;
 
       await updateProfile(result.user, {
         displayName: name,
-        photoURL,
+        photoURL: newAvatarUrl,
       });
 
       const userData: User = {
@@ -390,7 +385,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name,
         email,
         major: major || DEFAULT_USER.major,
-        avatar: photoURL || `${UI_AVATARS_BASE_URL}${encodeURIComponent(name)}`,
+        avatar: newAvatarUrl,
         telegramLinked: false,
         telegramLinkedAt: null,
         telegramPromptLastShown: null,
@@ -507,26 +502,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
+await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
   };
 
   const deleteAssignment = async (id: string): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
 
-    // Clean up associated images from Storage (best effort - don't block deletion)
-    try {
-      const imagesFolderRef = ref(storage, `notes/${user.uid}/${id}`);
-      const imagesList = await listAll(imagesFolderRef);
-
-      if (imagesList.items.length > 0) {
-        await Promise.all(
-          imagesList.items.map(imageRef => deleteObject(imageRef))
-        );
-      }
-    } catch (error) {
-      // Log but don't block assignment deletion if image cleanup fails
-      console.warn('Failed to clean up assignment images:', error);
-    }
+    // Note: Image cleanup disabled - Firebase Storage requires Blaze plan
+    // Images in notes will be orphaned but won't affect functionality
 
     // Delete the assignment document
     await deleteDoc(doc(db, `users/${user.uid}/assignments`, id));
@@ -558,19 +541,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await deleteDoc(doc(db, `users/${user.uid}/subjects`, id));
   };
 
-  // =========================================================================
+// =========================================================================
   // User Profile Operations
   // =========================================================================
 
   const updateUserProfile = async (updates: Partial<User>, avatarFile?: File): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
 
+    // Note: Avatar file upload disabled - Firebase Storage requires Blaze plan
+    // Using UI Avatars as fallback. If name changes, update avatar URL.
     let newAvatarUrl = updates.avatar;
-
-    if (avatarFile) {
-      const storageRef = ref(storage, `profile_pictures/${user.uid}`);
-      await uploadBytes(storageRef, avatarFile);
-      newAvatarUrl = await getDownloadURL(storageRef);
+    if (updates.name) {
+      newAvatarUrl = `${UI_AVATARS_BASE_URL}${encodeURIComponent(updates.name)}`;
     }
 
     const firestoreUpdates = { ...updates };
@@ -607,37 +589,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(prev => prev ? { ...prev, ...updates } : null);
   };
 
-  // =========================================================================
+// =========================================================================
   // Note Image Upload
   // =========================================================================
 
-  const uploadNoteImage = async (assignmentId: string, file: File): Promise<string> => {
-    if (!user?.uid) throw new Error('User not authenticated');
-
-    // Validate file size (5MB limit)
-    const MAX_SIZE = 5 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      throw new Error('Image must be less than 5MB');
-    }
-
-    // Validate file type and derive extension from MIME type (more secure than filename)
-    const mimeToExt: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/gif': 'gif',
-      'image/webp': 'webp',
-    };
-    if (!mimeToExt[file.type]) {
-      throw new Error('Only JPEG, PNG, GIF, and WebP images are allowed');
-    }
-
-    const imageId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    const ext = mimeToExt[file.type];
-    const storagePath = `notes/${user.uid}/${assignmentId}/${imageId}.${ext}`;
-
-    const storageRef = ref(storage, storagePath);
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
+  // Note: Image upload disabled - Firebase Storage requires Blaze plan
+  const uploadNoteImage = async (_assignmentId: string, _file: File): Promise<string> => {
+    throw new Error('Image upload is currently disabled. Firebase Storage requires the Blaze plan.');
   };
 
   // =========================================================================
