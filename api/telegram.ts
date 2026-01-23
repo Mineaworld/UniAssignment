@@ -6,8 +6,8 @@ import type {
     InlineKeyboardMarkup,
     AssignmentDoc,
     AssignmentWithDate
-} from './types';
-import { ASSIGNMENT_STATUS, ASSIGNMENT_PRIORITY } from './types';
+} from './types.js';
+import { ASSIGNMENT_STATUS, ASSIGNMENT_PRIORITY } from './types.js';
 
 if (!admin.apps || admin.apps.length === 0) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
