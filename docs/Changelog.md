@@ -120,7 +120,7 @@ All notable changes to the UniAssignment project will be documented in this file
   - `Pricing` section with tiered plans
   - `TestimonialsMarquee` with auto-scrolling reviews
   - `SiteFooter` with navigation links
-- **New UI Components**: `ScrollReveal`, `ThemeToggle`, `Avatar`
+- **New UI Components**: `ScrollReveal`, `AnimatedThemeToggler`, `Avatar`
 - **CSS Utilities**: Animation delays, 3D transforms for landing page effects
 
 ### Changed
@@ -194,11 +194,9 @@ All notable changes to the UniAssignment project will be documented in this file
 
 ### Changed
 - Updated `User` interface with prompt tracking fields
-- Updated `INITIAL_USER` and all user creation points with new defaults
 - Dashboard now checks prompt eligibility on mount
 
 ### Technical
-- Comprehensive test report created in `tests/TELEGRAM_PROMPT_TEST_REPORT.md`
 - All edge cases covered (backward compatibility, null states, etc.)
 - Timer cleanup implemented to prevent memory leaks
 
