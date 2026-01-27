@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { registerServiceWorker } from './src/registerServiceWorker';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Failed to find the root element');
@@ -12,3 +13,11 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// Register service worker in production
+if (import.meta.env.PROD) {
+  registerServiceWorker((notification) => {
+    console.log('Update available:', notification);
+    // TODO: Show toast notification with update button
+  });
+}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
   Play,
   Pause,
@@ -44,13 +44,13 @@ interface PomodoroWidgetProps {
 }
 
 // Animation variants for smoother transitions
-const widgetVariants = {
+const widgetVariants: Variants = {
   hidden: {
     opacity: 0,
     scale: 0.8,
     y: 100,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 25,
       stiffness: 200
     }
@@ -60,7 +60,7 @@ const widgetVariants = {
     scale: 1,
     y: 0,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 20,
       stiffness: 180,
       mass: 0.8
@@ -71,7 +71,7 @@ const widgetVariants = {
     scale: 0.9,
     y: 50,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 25,
       stiffness: 200,
       duration: 0.3
@@ -79,7 +79,7 @@ const widgetVariants = {
   }
 };
 
-const floatingButtonVariants = {
+const floatingButtonVariants: Variants = {
   hidden: {
     opacity: 0,
     scale: 0,
@@ -90,7 +90,7 @@ const floatingButtonVariants = {
     scale: 1,
     rotate: 0,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 15,
       stiffness: 200,
       delay: 0.1
@@ -107,7 +107,7 @@ const floatingButtonVariants = {
   hover: {
     scale: 1.1,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 10,
       stiffness: 300
     }
@@ -118,7 +118,7 @@ const floatingButtonVariants = {
 };
 
 // Minimized state animation variants
-const minimizedVariants = {
+const minimizedVariants: Variants = {
   initial: {
     opacity: 0,
     scale: 0.9,
@@ -129,7 +129,7 @@ const minimizedVariants = {
     scale: 1,
     x: 0,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 20,
       stiffness: 300
     }
@@ -144,7 +144,7 @@ const minimizedVariants = {
   }
 };
 
-const expandedVariants = {
+const expandedVariants: Variants = {
   initial: {
     opacity: 0,
     scale: 0.95
@@ -153,7 +153,7 @@ const expandedVariants = {
     opacity: 1,
     scale: 1,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 25,
       stiffness: 300,
       staggerChildren: 0.05

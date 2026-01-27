@@ -39,6 +39,9 @@ firebase-debug.log
 
 .agent/
 .playwright-mcp
+.sisyphus/
+.qodo/
 
 # Claude Code temp files
 tmpclaude-*
+nul

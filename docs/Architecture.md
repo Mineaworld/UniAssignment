@@ -34,11 +34,11 @@ UniAssignment is a university assignment management application with both web an
 |------------|---------|---------|
 | React | 19.2.1 | UI Framework |
 | TypeScript | 5.8.2 | Type Safety |
-| Vite | 6.2.0 | Build Tool |
+| Vite | 6.4.1 | Build Tool |
 | Tailwind CSS | 3.4.17 | Styling |
 | Framer Motion | 12.23.25 | Animations |
 | React Router | 7.10.1 | Navigation |
-| Lucide React | 0.447.0 | Icon Library |
+| Lucide React | 0.562.0 | Icon Library |
 | Inter | - | Primary Typography |
 | Space Grotesk | - | Display Typography |
 | Recharts | 3.5.1 | Data Visualization |
@@ -166,56 +166,32 @@ uni-assignment-f0fbe/
 ### Frontend Structure
 
 ```
-src/
+.
 ├── pages/                    # Route components
-│   ├── Login.tsx
-│   ├── SignUp.tsx
 │   ├── Dashboard.tsx
 │   ├── Assignments.tsx
 │   ├── Subjects.tsx
-│   └── Settings.tsx
+│   └── LandingPage.tsx
 │
 ├── components/               # Reusable components
-│   ├── ui/                   # Primitive UI components (Bento, Neon, Table, etc.)
-│   │   ├── Badge.tsx
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Dialog.tsx
-│   │   ├── Input.tsx
-│   │   ├── Table.tsx
-│   │   └── ...
-│   ├── KanbanView.tsx        # Trello-style board
-│   ├── ViewSwitcher.tsx      # Toggle between List/Kanban
-│   ├── Logo.tsx
-│   ├── GoogleIcon.tsx
-│   ├── AvatarUpload.tsx      # Multi-size profile picture upload
-│   ├── TelegramPromptModal.tsx # Smart link prompt
-│   ├── notes/                 # Rich text notes editor
-│   │   ├── NotesEditor.tsx     # Lazy-loaded wrapper
-│   │   ├── BlockNoteEditor.tsx # Core BlockNote integration
-│   │   ├── NotesViewer.tsx     # Read-only display
-│   │   ├── NotesFullscreenModal.tsx # Fullscreen editing
-│   │   └── EditorSkeleton.tsx  # Loading skeleton
-│   ├── Sidebar.tsx           # Navigation with theme toggle
-│   └── ...
+│   ├── ui/                   # Primitive UI components
+│   ├── landing/              # Landing page sections
+│   ├── notes/                # Rich text notes editor
+│   ├── settings/             # Settings UI
+│   ├── Sidebar.tsx           # Desktop navigation + theme toggle
+│   └── MobileNav.tsx         # Mobile navigation + theme toggle
 │
-├── utils/                   # Utility functions
-│   └── cn.ts                 # Tailwind class merger
+├── utils/                    # Utility functions (e.g., cn, date utils)
+├── src/
+│   ├── registerServiceWorker.ts
+│   └── utils/
+│       └── updateThemeColor.ts
 │
-├── components/landing/       # Landing page components
-│   ├── SpotlightHero.tsx     # Hero with spotlight effect
-│   ├── FeatureTabs.tsx       # Tabbed feature showcase
-│   ├── BenefitsGrid.tsx      # Benefits grid section
-│   ├── ProductShowcase.tsx   # Product demo section
-│   ├── Pricing.tsx           # Pricing plans
-│   ├── TestimonialsMarquee.tsx  # Testimonial carousel
-│   └── SiteFooter.tsx        # Landing footer
-│
-├── context.tsx              # App state management
-├── firebase.ts              # Firebase initialization
-├── types.ts                 # TypeScript definitions
-├── constants.ts             # App constants
-└── main.tsx                 # App entry point
+├── context.tsx               # App state management
+├── firebase.ts               # Firebase initialization
+├── types.ts                  # TypeScript definitions
+├── index.tsx                 # App entry point
+└── App.tsx                   # Root router/layout wiring
 ```
 
 ### Backend Structure
@@ -258,7 +234,7 @@ Profile pictures stored in Firebase Storage with user-scoped access rules.
 ## Deployment
 
 ### Frontend
-- **Development:** `npm run dev` (localhost:3000)
+- **Development:** `npm run dev` (localhost:5173)
 - **Production:** Build and deploy to Vercel/Vite hosting
 
 ### Backend

@@ -57,7 +57,7 @@ const ViewAssignmentModal: React.FC<ViewAssignmentModalProps> = ({ isOpen, onClo
                             </div>
 
                             {/* Content */}
-                            <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            <div className="p-6 space-y-8 max-h-[80vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
 
                                 {/* Title & Subject */}
                                 <div>

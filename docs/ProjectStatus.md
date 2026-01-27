@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.7.0
-**Last Updated:** 2026-01-08
+**Version:** 0.9.0
+**Last Updated:** 2026-01-27
 **Status:** Active Development
 
 ---
@@ -117,8 +117,8 @@
 - [ ] Add unit tests
 - [ ] Add E2E tests with Playwright
 - [ ] Add CI/CD pipeline
-- [ ] Implement offline support with service workers
-- [ ] Add PWA capabilities
+- [x] Implement offline support with service workers (basic precache via vite-plugin-pwa)
+- [x] Add PWA capabilities (manifest, icons, shortcuts, service worker)
 
 ---
 
@@ -136,7 +136,7 @@ None currently. All identified issues from code review have been resolved.
 | React | 19.2.1 | Latest |
 | Firebase | 12.6.0 | Latest |
 | TypeScript | 5.8.2 | Latest |
-| Vite | 6.2.0 | Latest |
+| Vite | 6.4.1 | Latest |
 
 ### Outdated Dependencies
 None. All dependencies are up to date.

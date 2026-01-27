@@ -15,7 +15,7 @@ export const KanbanColumn = ({ id, items, onCardClick }: KanbanColumnProps) => {
     const { setNodeRef } = useDroppable({ id });
 
     return (
-        <div className="flex flex-col h-full w-80 shrink-0">
+        <div className="flex flex-col h-full min-w-[300px] w-80 shrink-0">
             {/* Column Header */}
             <div className="flex items-center justify-between mb-3 px-1">
                 <div className="flex items-center gap-2">

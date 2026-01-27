@@ -5,6 +5,7 @@ import { AppProvider, useApp } from './context';
 import LandingPage from './pages/LandingPage';
 import { ToastProvider } from './components/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import { PomodoroWidget } from './components/pomodoro';
@@ -100,6 +101,7 @@ const AppContent = () => {
 const App = () => {
   return (
     <ErrorBoundary>
+      <OfflineIndicator />
       <AppProvider>
         <ToastProvider>
           <AppContent />

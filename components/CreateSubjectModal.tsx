@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context';
+import { SUBJECT_COLORS } from '../constants/colors';
 
 interface CreateSubjectModalProps {
   isOpen: boolean;
@@ -11,20 +12,14 @@ interface CreateSubjectModalProps {
 const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose }) => {
   const { addSubject, subjects } = useApp();
   const [name, setName] = useState('');
-  const [selectedColor, setSelectedColor] = useState('bg-blue-500');
+  const defaultColor = SUBJECT_COLORS[0] ?? 'bg-blue-500';
+  const [selectedColor, setSelectedColor] = useState(defaultColor);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const colors = [
-    'bg-blue-500', 'bg-green-500', 'bg-red-500',
-    'bg-yellow-500', 'bg-purple-500', 'bg-pink-500',
-    'bg-indigo-500', 'bg-orange-500', 'bg-teal-500'
-  ];
-
-  // Reset form when modal closes
   const handleClose = () => {
     setName('');
-    setSelectedColor('bg-blue-500');
+    setSelectedColor(defaultColor);
     setError('');
     onClose();
   };
@@ -57,7 +52,7 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
 
       // Reset form and close modal on success
       setName('');
-      setSelectedColor('bg-blue-500');
+      setSelectedColor(defaultColor);
       onClose();
     } catch (error) {
       console.error("Failed to add subject:", error);
@@ -115,14 +110,14 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
 
                 <div>
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Color Code</span>
-                  <div className="mt-3 grid grid-cols-5 gap-3">
-                    {colors.map((color) => (
+                  <div className="mt-3 grid grid-cols-4 sm:grid-cols-5 gap-3">
+                    {SUBJECT_COLORS.map((color) => (
                       <button
                         key={color}
                         type="button"
                         onClick={() => setSelectedColor(color)}
                         className={`
-                        w-10 h-10 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
+                        min-w-[44px] min-h-[44px] w-11 h-11 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
                         ${selectedColor === color ? 'ring-2 ring-offset-2 ring-primary dark:ring-offset-[#101622] scale-110' : ''}
                       `}
                       >

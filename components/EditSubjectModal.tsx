@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context';
 import { Subject } from '../types';
+import { SUBJECT_COLORS } from '../constants/colors';
 
 interface EditSubjectModalProps {
     isOpen: boolean;
@@ -13,16 +14,9 @@ interface EditSubjectModalProps {
 const EditSubjectModal: React.FC<EditSubjectModalProps> = ({ isOpen, onClose, subject }) => {
     const { updateSubject } = useApp();
     const [name, setName] = useState('');
-    const [selectedColor, setSelectedColor] = useState('bg-blue-500');
+    const [selectedColor, setSelectedColor] = useState(SUBJECT_COLORS[0]);
     const [loading, setLoading] = useState(false);
 
-    const colors = [
-        'bg-blue-500', 'bg-green-500', 'bg-red-500',
-        'bg-yellow-500', 'bg-purple-500', 'bg-pink-500',
-        'bg-indigo-500', 'bg-orange-500', 'bg-teal-500'
-    ];
-
-    // Populate form when subject changes
     useEffect(() => {
         if (subject) {
             setName(subject.name);
@@ -94,14 +88,14 @@ const EditSubjectModal: React.FC<EditSubjectModalProps> = ({ isOpen, onClose, su
 
                                 <div>
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Color Code</span>
-                                    <div className="mt-3 grid grid-cols-5 gap-3">
-                                        {colors.map((color) => (
+                                    <div className="mt-3 grid grid-cols-4 sm:grid-cols-5 gap-3">
+                                        {SUBJECT_COLORS.map((color) => (
                                             <button
                                                 key={color}
                                                 type="button"
                                                 onClick={() => setSelectedColor(color)}
                                                 className={`
-                        w-10 h-10 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
+                        min-w-[44px] min-h-[44px] w-11 h-11 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
                         ${selectedColor === color ? 'ring-2 ring-offset-2 ring-primary dark:ring-offset-[#101622] scale-110' : ''}
                       `}
                                             >
