@@ -476,6 +476,10 @@ async function handleStartIdentifier(chatId: string, userId: string | undefined,
     const parts = text.split(" ");
     if (parts.length > 1) {
         const linkToken = parts[1];
+        if (!linkToken) {
+            await sendTelegramMessage(chatId, "⚠️ Invalid link token.");
+            return;
+        }
         await db.collection("telegramLinks").doc(linkToken).set({
             chatId: chatId,
             telegramUserId: userId,
@@ -868,7 +872,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 await sendTelegramMessage(chatId, "⚠️ Authentication error.");
                 return res.status(200).send('OK');
             }
-            const userUid = linksSnapshot.docs[0].id;
+            const linkDoc = linksSnapshot.docs[0];
+            if (!linkDoc) {
+                await sendTelegramMessage(chatId, "⚠️ Authentication error.");
+                return res.status(200).send('OK');
+            }
+            const userUid = linkDoc.id;
 
             await handleCallbackQuery(update.callback_query, userUid);
             return res.status(200).send('OK');
@@ -898,6 +907,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const linkDoc = linksSnapshot.docs[0];
+        if (!linkDoc) {
+            await sendTelegramMessage(chatId, "⚠️ Authentication error.");
+            return res.status(200).send('OK');
+        }
         const userUid = linkDoc.id;
 
         if (text === '/cancel') {
@@ -1039,7 +1052,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .get();
 
                 if (!subjectsSnapshot.empty) {
-                    subjectId = subjectsSnapshot.docs[0].id;
+                    const subjectDoc = subjectsSnapshot.docs[0];
+                    if (subjectDoc) {
+                        subjectId = subjectDoc.id;
+                    }
                 } else {
                     const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
                         name: subjectName,
@@ -1113,8 +1129,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .get();
 
                 if (!subjectsSnapshot.empty) {
-                    subjectId = subjectsSnapshot.docs[0].id;
-                    finalSubjectName = subjectsSnapshot.docs[0].data().name;
+                    const subjectDoc = subjectsSnapshot.docs[0];
+                    if (subjectDoc) {
+                        subjectId = subjectDoc.id;
+                        finalSubjectName = subjectDoc.data().name;
+                    }
                 } else {
                     const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
                         name: subjectName,

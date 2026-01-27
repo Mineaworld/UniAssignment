@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { updateThemeColor } from './src/utils/updateThemeColor';
 import {
   collection,
   query,
@@ -90,6 +91,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (isDark && !root.classList.contains('dark')) root.classList.add('dark');
     if (!isDark && root.classList.contains('dark')) root.classList.remove('dark');
     localStorage.setItem('uni_theme', theme);
+    updateThemeColor(theme);
   }, [theme]);
 
   const toggleTheme = useCallback(() => setTheme(prev => prev === 'dark' ? 'light' : 'dark'), []);
