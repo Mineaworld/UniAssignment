@@ -134,7 +134,7 @@ const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClo
                             </div>
 
                             {/* Form */}
-                            <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
                                 <label className="block">
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Assignment Title</span>
                                     <input

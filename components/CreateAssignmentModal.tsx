@@ -159,7 +159,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
                 <label className="block">
                   <span className="text-sm font-medium text-foreground/80">Assignment Title</span>
                   <input
@@ -270,11 +270,11 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, o
                                   type="button"
                                   onClick={() => setNewSubjectColor(color)}
                                   className={`
-                                    w-7 h-7 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
+                                    min-w-[44px] min-h-[44px] w-11 h-11 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
                                     ${newSubjectColor === color ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-[#101622] scale-110' : ''}
                                   `}
                                 >
-                                  {newSubjectColor === color && <span className="material-symbols-outlined text-white text-xs">check</span>}
+                                  {newSubjectColor === color && <span className="material-symbols-outlined text-white text-sm">check</span>}
                                 </button>
                               ))}
                             </div>

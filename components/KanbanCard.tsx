@@ -41,7 +41,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ assignment, onClick }) =
                 <div className="flex flex-col gap-2">
                     <div className="flex justify-between items-start">
                         <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border uppercase tracking-wide",
+                            "inline-flex items-center px-2 py-1 rounded text-xs font-medium border uppercase tracking-wide min-h-[32px]",
                             assignment.priority === Priority.High ? "bg-red-500/5 text-red-600 border-red-200/50" :
                                 assignment.priority === Priority.Medium ? "bg-amber-500/5 text-amber-600 border-amber-200/50" :
                                     "bg-zinc-500/5 text-zinc-600 border-zinc-200/50"
@@ -49,7 +49,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ assignment, onClick }) =
                             {assignment.priority}
                         </span>
                         {new Date(assignment.dueDate) < new Date() && !isCompleted && (
-                            <span className="text-[10px] text-destructive font-medium">Overdue</span>
+                            <span className="text-xs text-destructive font-medium">Overdue</span>
                         )}
                     </div>
 

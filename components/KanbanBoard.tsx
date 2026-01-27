@@ -75,7 +75,7 @@ export const KanbanBoard = ({ assignments, onStatusChange, onCardClick }: Kanban
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <div className="flex h-full gap-4 overflow-x-auto pb-4 items-start">
+            <div className="flex h-full gap-4 overflow-x-auto pb-4 items-start custom-scrollbar">
                 <KanbanColumn id={Status.Pending} items={pending} onCardClick={onCardClick} />
                 <KanbanColumn id={Status.InProgress} items={inProgress} onCardClick={onCardClick} />
                 <KanbanColumn id={Status.Completed} items={completed} onCardClick={onCardClick} />

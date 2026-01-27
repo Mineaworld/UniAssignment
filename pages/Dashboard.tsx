@@ -113,6 +113,7 @@ const Dashboard = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-foreground z-10" />
             <Input
               type="text"
+              inputMode="search"
               placeholder="Search anything..."
               className="pl-11 h-12 bg-background/40 backdrop-blur-md border border-black/5 dark:border-white/5 focus:bg-background/60 focus:border-primary/20 transition-all rounded-2xl shadow-sm z-10 relative"
             />
@@ -125,9 +126,9 @@ const Dashboard = () => {
       </div>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 auto-rows-[180px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 md:auto-rows-[180px]">
 
-        <BentoCard delay={0.1} className="lg:col-span-3 lg:row-span-2 relative p-6">
+        <BentoCard delay={0.1} className="min-h-[320px] md:min-h-0 lg:col-span-3 lg:row-span-2 relative p-6">
           <div className="relative z-10 flex flex-col h-full">
             <div className="mb-4 flex flex-col items-center text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -159,7 +160,7 @@ const Dashboard = () => {
         {/* 2. Stats Column - 3 Columns */}
         <div className="lg:col-span-3 lg:row-span-2 flex flex-col gap-6">
           {/* Total Tasks */}
-          <BentoCard delay={0.2} href="/assignments" className="flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
+          <BentoCard delay={0.2} href="/assignments" className="min-h-[120px] md:min-h-0 flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
             <div className="absolute right-4 top-4 p-3 bg-muted/50 dark:bg-white/5 rounded-2xl group-hover:scale-110 transition-transform duration-300">
               <BookOpen className="h-5 w-5 text-foreground/70" />
             </div>
@@ -174,7 +175,7 @@ const Dashboard = () => {
           </BentoCard>
 
           {/* Pending Review */}
-          <BentoCard delay={0.3} className="flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
+          <BentoCard delay={0.3} className="min-h-[120px] md:min-h-0 flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
             <div className="absolute right-4 top-4 p-3 bg-muted/50 dark:bg-white/5 rounded-2xl group-hover:scale-110 transition-transform duration-300">
               <Clock className="h-5 w-5 text-foreground/70" />
             </div>
@@ -190,7 +191,7 @@ const Dashboard = () => {
         </div>
 
         {/* 3. Upcoming Timeline - 6 Columns */}
-        <BentoCard className="lg:col-span-6 lg:row-span-2" delay={0.4}>
+        <BentoCard className="min-h-[280px] md:min-h-0 lg:col-span-6 lg:row-span-2" delay={0.4}>
           <BentoHeader title="Timeline" subtitle="Upcoming deadlines" icon={Calendar} />
           <BentoContent className="flex flex-col gap-3 mt-4 overflow-y-auto custom-scrollbar pr-2 h-[calc(100%-60px)]">
             {upcoming.length > 0 ? (
@@ -240,12 +241,12 @@ const Dashboard = () => {
         </BentoCard>
 
         {/* 4. Subject Heatmap - 4 Columns */}
-        <BentoCard className="lg:col-span-4 p-0 overflow-hidden" delay={0.5}>
+        <BentoCard className="min-h-[180px] md:min-h-0 lg:col-span-4 p-0 overflow-hidden" delay={0.5}>
           <MiniChart title="Workload" data={miniChartData} className="!border-0 !bg-transparent w-full h-full" />
         </BentoCard>
 
         {/* 5. High Priority Alert - 4 Columns */}
-        <BentoCard delay={0.6} className="lg:col-span-4 bg-gradient-to-br from-destructive/5 via-destructive/5 to-transparent border-destructive/10">
+        <BentoCard delay={0.6} className="min-h-[100px] md:min-h-0 lg:col-span-4 bg-gradient-to-br from-destructive/5 via-destructive/5 to-transparent border-destructive/10">
           <div className="flex flex-row items-center h-full p-6 gap-5">
             <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 animate-pulse">
               <AlertCircle className="h-7 w-7 text-destructive" />
@@ -258,7 +259,7 @@ const Dashboard = () => {
         </BentoCard>
 
         {/* 6. Quick Actions - 4 Columns */}
-        <BentoCard className="lg:col-span-4" delay={0.7}>
+        <BentoCard className="min-h-[100px] md:min-h-0 lg:col-span-4" delay={0.7}>
           <div className="flex h-full items-center justify-between p-4 px-6 gap-3">
             {[
               { icon: BookOpen, label: 'Subjects', path: '/dashboard/subjects' },

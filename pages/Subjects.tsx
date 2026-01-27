@@ -7,8 +7,9 @@ import { Subject } from '../types';
 import { GlassCard } from '../components/ui/GlassCard';
 import { NeonButton } from '../components/ui/NeonButton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
-import { Plus, FolderIcon, Edit, Trash2 } from 'lucide-react';
+import { Plus, FolderIcon, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Subjects = () => {
   const { subjects, deleteSubject } = useApp();
@@ -31,7 +32,7 @@ const Subjects = () => {
   };
 
   return (
-    <div className="flex-1 w-full max-w-4xl mx-auto p-8 space-y-8">
+    <div className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
       <CreateSubjectModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <EditSubjectModal
         isOpen={!!editingSubject}
@@ -50,16 +51,76 @@ const Subjects = () => {
 
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/40">Subjects</h1>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/40">Subjects</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage your course subjects.</p>
         </div>
         <NeonButton onClick={() => setIsModalOpen(true)} className="gap-2" variant="primary" glow>
           <Plus className="h-4 w-4" />
-          Add Subject
+          <span className="hidden sm:inline">Add Subject</span>
+          <span className="sm:hidden">Add</span>
         </NeonButton>
       </div>
 
-      <GlassCard className="p-0 overflow-hidden rounded-2xl">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {subjects.map((subject, index) => (
+            <motion.div
+              key={subject.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+              className="relative overflow-hidden rounded-2xl p-4 backdrop-blur-xl border bg-white/70 dark:bg-black/40 border-black/5 dark:border-white/10"
+            >
+              {/* Color accent bar */}
+              <div
+                className={cn("absolute left-0 top-0 bottom-0 w-1", subject.color)}
+                style={{ boxShadow: `0 0 10px currentColor` }}
+              />
+
+              <div className="flex items-center justify-between pl-3">
+                <div className="flex items-center gap-3">
+                  <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", subject.color, "bg-opacity-20")}>
+                    <div className={cn("h-4 w-4 rounded-full shadow-[0_0_10px_currentColor]", subject.color)} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">{subject.name}</h3>
+                    <p className="text-xs text-muted-foreground">Updated {subject.lastUpdated}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setEditingSubject(subject)}
+                    className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-muted/50 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setDeletingSubject(subject)}
+                    className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {subjects.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-48 text-center">
+            <div className="h-12 w-12 bg-muted/30 rounded-full flex items-center justify-center border border-border/50 mb-3">
+              <FolderIcon className="h-6 w-6 text-muted-foreground/50" />
+            </div>
+            <p className="text-muted-foreground text-sm font-medium">No subjects found</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <GlassCard className="hidden md:block p-0 overflow-hidden rounded-2xl">
         <div className="rounded-md border-0">
           <Table>
             <TableHeader className="bg-muted/30 dark:bg-white/5">
@@ -87,7 +148,7 @@ const Subjects = () => {
                       <NeonButton
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 hover:bg-white/10 text-muted-foreground hover:text-primary"
+                        className="h-10 w-10 hover:bg-white/10 text-muted-foreground hover:text-primary"
                         onClick={() => setEditingSubject(subject)}
                       >
                         <Edit className="h-4 w-4" />
@@ -95,7 +156,7 @@ const Subjects = () => {
                       <NeonButton
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        className="h-10 w-10 hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                         onClick={() => setDeletingSubject(subject)}
                       >
                         <Trash2 className="h-4 w-4" />
