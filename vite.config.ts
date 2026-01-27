@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'firestore-cache',
                 expiration: {
                   maxEntries: 50,
-                  maxAgeSeconds: 300
+                  maxAgeSeconds: 86400
                 },
                 networkTimeoutSeconds: 3
               }

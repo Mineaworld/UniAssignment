@@ -147,7 +147,7 @@ None. All dependencies are up to date.
 
 | Environment | URL | Status |
 |-------------|-----|--------|
-| Local | `localhost:5173` | ✅ Working |
+| Local | `localhost:3000` | ✅ Working |
 | Vercel (Frontend) | - | ✅ Deployed |
 | Vercel (API) | - | ✅ Deployed |
 | Firebase Functions | - | ⚠️ Requires config |
