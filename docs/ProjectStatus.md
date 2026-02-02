@@ -3,8 +3,8 @@
 ## Overview
 
 **Project:** UniAssignment
-**Version:** 0.5.0
-**Last Updated:** 2025-12-31
+**Version:** 0.6.0
+**Last Updated:** 2026-02-02
 **Status:** Active Development
 
 ---
@@ -93,7 +93,11 @@
 - [x] Fix AvatarUpload props interface and size support
 - [x] Migrate Calendar to Lucide icons
 - [x] Hardened TypeScript types in context.tsx
-- [ ] Consider code splitting for large bundles (1.38 MB currently)
+- [x] Create shared Modal component with escape key handler
+- [x] Consolidate date formatting utilities
+- [x] Remove unused ThemeToggle.tsx (replaced by AnimatedThemeToggler)
+- [x] Refactor all modals to use shared wrapper
+- [ ] Consider code splitting for large bundles (1.42 MB currently)
 
 ### Future Improvements 📋
 - [ ] Add unit tests

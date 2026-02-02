@@ -179,6 +179,10 @@ src/
 │   │   ├── Card.tsx
 │   │   ├── Dialog.tsx
 │   │   ├── Input.tsx
+│   │   ├── Modal.tsx             # Shared modal wrapper with escape key & scroll lock
+│   │   ├── AnimatedThemeToggler.tsx  # Animated theme switch
+│   │   ├── MenuToggleIcon.tsx    # Mobile menu icon
+│   │   ├── use-scroll.ts         # Scroll interaction hook
 │   │   ├── Table.tsx
 │   │   └── ...
 │   ├── KanbanView.tsx        # Trello-style board
@@ -191,7 +195,8 @@ src/
 │   └── ...
 │
 ├── utils/                   # Utility functions
-│   └── cn.ts                 # Tailwind class merger
+│   ├── cn.ts                 # Tailwind class merger
+│   └── date.ts               # Consolidated date formatting utilities
 │
 ├── context.tsx              # App state management
 ├── firebase.ts              # Firebase initialization

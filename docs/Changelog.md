@@ -2,6 +2,32 @@
 
 All notable changes to the UniAssignment project will be documented in this file.
 
+## [0.6.0] - 2026-02-02
+
+### Added
+- **Shared Modal Component**: New `components/ui/Modal.tsx` with escape key handler, body scroll lock, and size variants (sm/md/lg)
+- **Date Utilities**: New `utils/date.ts` with consolidated date formatting functions (`formatToISO`, `formatShortDate`, `formatDateWithWeekday`, `formatLongDate`, `formatTime`, etc.)
+- **AnimatedThemeToggler**: Smooth animated theme toggle component replacing static ThemeToggle
+- **MenuToggleIcon**: Mobile navigation toggle icon component
+- **use-scroll Hook**: Scroll-based interaction utilities
+
+### Changed
+- **Modal Refactoring**: All 7 modal components now use shared Modal wrapper (ConfirmDelete, CreateAssignment, EditAssignment, CreateSubject, EditSubject, ViewAssignment, TelegramPrompt)
+- **Date Formatting Consolidation**: Calendar, Dashboard, Assignments, Settings, KanbanCard, ViewAssignmentModal now use centralized date utilities
+- **Landing Page Enhancements**: Updated SpotlightHero, FeatureTabs, BenefitsGrid, ProductShowcase, SiteFooter components
+
+### Removed
+- **ThemeToggle.tsx**: Deleted unused component (AnimatedThemeToggler is the active implementation)
+- **TELEGRAM_PROMPT_TEST_REPORT.md**: Removed obsolete test report
+
+### Technical
+- All modals now support Escape key to close (previously missing)
+- Body scroll is now locked when modals are open
+- Reduced code duplication across modal components
+- Build verified with no TypeScript errors
+
+---
+
 ## [0.5.0] - 2025-12-31
 
 ### Added
