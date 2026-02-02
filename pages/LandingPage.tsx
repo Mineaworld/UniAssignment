@@ -69,6 +69,7 @@ const LandingPage = () => {
                     <div className="hidden md:flex items-center gap-2">
                         <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">Features</a>
                         <a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">Testimonials</a>
+                        <AnimatedThemeToggler className="mr-1" />
                         <Button variant="outline" size="sm" asChild>
                             <a href="/login">Sign In</a>
                         </Button>
@@ -122,6 +123,10 @@ const LandingPage = () => {
                             </a>
                         </div>
                         <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between px-4 py-2">
+                                <span className="text-sm font-medium text-muted-foreground">Theme</span>
+                                <AnimatedThemeToggler />
+                            </div>
                             <Button variant="outline" className="w-full" asChild>
                                 <a href="/login">Sign In</a>
                             </Button>
