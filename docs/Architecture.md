@@ -34,12 +34,12 @@ UniAssignment is a university assignment management application with both web an
 |------------|---------|---------|
 | React | 19.2.1 | UI Framework |
 | TypeScript | 5.8.2 | Type Safety |
-| Vite | 6.2.0 | Build Tool |
+| Vite | 6.4.1 | Build Tool |
 | Tailwind CSS | 3.4.17 | Styling |
 | Framer Motion | 12.23.25 | Animations |
 | React Router | 7.10.1 | Navigation |
-| Lucide React | 0.447.0 | Icon Library |
-| Geist Sans | - | Modern UI Typography |
+| Lucide React | 0.562.0 | Icon Library |
+| Inter | - | Primary Typography |
 | Space Grotesk | - | Display Typography |
 | Recharts | 3.5.1 | Data Visualization |
 | Firebase SDK | 12.6.0 | Backend Client |
@@ -57,7 +57,7 @@ UniAssignment is a university assignment management application with both web an
 |---------|---------|
 | Firebase Auth | User Authentication |
 | Firestore | NoSQL Database |
-| Firebase Storage | File Storage (Profile Pictures) |
+| Firebase Storage | File Storage (Profile Pictures, Note Images) |
 | Telegram Bot API | Chatbot Interface |
 
 ## Data Flow
@@ -140,7 +140,10 @@ uni-assignment-f0fbe/
 │           ├── dueDate: string (ISO)
 │           ├── status: "Pending" | "In Progress" | "Completed"
 │           ├── priority: "Low" | "Medium" | "High"
-│           ├── description: string | undefined
+│           ├── description: string | undefined (deprecated)
+│           ├── notes: NotesContent | undefined   # Rich text notes
+│           │   ├── version: 1
+│           │   └── blocks: Block[]               # BlockNote format
 │           ├── examType: "midterm" | "final" | null
 │           └── createdAt: string (ISO)
 │
@@ -163,59 +166,44 @@ uni-assignment-f0fbe/
 ### Frontend Structure
 
 ```
-src/
+.
 ├── pages/                    # Route components
-│   ├── Login.tsx
-│   ├── SignUp.tsx
 │   ├── Dashboard.tsx
 │   ├── Assignments.tsx
 │   ├── Subjects.tsx
-│   └── Settings.tsx
+│   └── LandingPage.tsx
 │
 ├── components/               # Reusable components
-│   ├── ui/                   # Primitive UI components (Bento, Neon, Table, etc.)
-│   │   ├── Badge.tsx
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Dialog.tsx
-│   │   ├── Input.tsx
-│   │   ├── Modal.tsx             # Shared modal wrapper with escape key & scroll lock
-│   │   ├── AnimatedThemeToggler.tsx  # Animated theme switch
-│   │   ├── MenuToggleIcon.tsx    # Mobile menu icon
-│   │   ├── use-scroll.ts         # Scroll interaction hook
-│   │   ├── Table.tsx
-│   │   └── ...
-│   ├── KanbanView.tsx        # Trello-style board
-│   ├── ViewSwitcher.tsx      # Toggle between List/Kanban
-│   ├── Logo.tsx
-│   ├── GoogleIcon.tsx
-│   ├── AvatarUpload.tsx      # Multi-size profile picture upload
-│   ├── TelegramPromptModal.tsx # Smart link prompt
-│   ├── Sidebar.tsx           # Navigation with theme toggle
-│   └── ...
+│   ├── ui/                   # Primitive UI components
+│   ├── landing/              # Landing page sections
+│   ├── notes/                # Rich text notes editor
+│   ├── settings/             # Settings UI
+│   ├── Sidebar.tsx           # Desktop navigation + theme toggle
+│   └── MobileNav.tsx         # Mobile navigation + theme toggle
 │
-├── utils/                   # Utility functions
-│   ├── cn.ts                 # Tailwind class merger
-│   └── date.ts               # Consolidated date formatting utilities
+├── utils/                    # Utility functions (e.g., cn, date utils)
+├── src/
+│   ├── registerServiceWorker.ts
+│   └── utils/
+│       └── updateThemeColor.ts
 │
-├── context.tsx              # App state management
-├── firebase.ts              # Firebase initialization
-├── types.ts                 # TypeScript definitions
-├── constants.ts             # App constants
-└── main.tsx                 # App entry point
+├── context.tsx               # App state management
+├── firebase.ts               # Firebase initialization
+├── types.ts                  # TypeScript definitions
+├── index.tsx                 # App entry point
+└── App.tsx                   # Root router/layout wiring
 ```
 
 ### Backend Structure
 
 ```
 api/
-└── telegram.ts              # Telegram Vercel Webhook Handler (Active)
+├── telegram.ts              # Telegram Vercel Webhook Handler
+└── cron/
+    └── check-deadlines.ts   # Reminder notification scheduler (called by cron-job.org)
 
-functions/
-└── src/
-    └── index.ts             # Firebase Cloud Functions
-        ├── telegramWebhook  # Experimental/Secondary Webhook
-        └── checkDeadlines   # Scheduled Notifications (every 15 min)
+External Services:
+└── cron-job.org             # Free HTTP scheduler (pings every 15 min)
 ```
 
 ## Security Considerations
@@ -230,14 +218,23 @@ functions/
 
 ### Security Rules
 
-- Firestore rules ensure users can only access their own data
-- Authentication required for all data operations
-- Profile pictures stored in Firebase Storage with appropriate rules
+Firestore security rules are defined in `firestore.rules` and deployed via:
+```bash
+firebase deploy --only firestore:rules
+```
+
+**Rules Summary:**
+- `/users/{uid}` - Read/write only by authenticated owner
+- `/users/{uid}/subjects/*` - Read/write only by authenticated owner
+- `/users/{uid}/assignments/*` - Read/write only by authenticated owner
+- `/telegramLinks/{uid}` - Read only by authenticated owner (write via Cloud Functions)
+
+Profile pictures stored in Firebase Storage with user-scoped access rules.
 
 ## Deployment
 
 ### Frontend
-- **Development:** `npm run dev` (localhost:3000)
+- **Development:** `npm run dev` (localhost:5173)
 - **Production:** Build and deploy to Vercel/Vite hosting
 
 ### Backend

@@ -68,11 +68,36 @@ Collections use subcollections per user:
 - `/assignments` - List with inline keyboard buttons for view/toggle/edit/delete
 - State stored in `telegramStates` collection with steps: `AWAITING_TITLE`, `AWAITING_SUBJECT`, `AWAITING_DUE_DATE`, `AWAITING_EDIT_VALUE`
 
+### Notes Editor (BlockNote Integration)
+
+**Components** (`components/notes/`):
+- `NotesEditor.tsx` - Lazy-loaded wrapper with Suspense fallback
+- `BlockNoteEditor.tsx` - Core BlockNote integration with theme support
+- `NotesViewer.tsx` - Read-only display component
+- `NotesFullscreenModal.tsx` - Full-screen editing modal with auto-save
+- `EditorSkeleton.tsx` - Loading skeleton for lazy load
+
+**Image Storage** (Firebase Storage):
+```
+notes/{userId}/{assignmentId}/{imageId}.{ext}
+```
+
+- Images uploaded via `uploadNoteImage()` in `context.tsx`
+- MIME type validation (jpeg, png, gif, webp)
+- 5MB size limit
+- Extension derived from MIME type (not filename) for security
+- Images auto-deleted when assignment is deleted
+
+**Migration Utility** (`utils/migrateNotes.ts`):
+- `getNotesContent()` - Returns notes or migrates legacy `description` field
+- Backward compatible with existing assignments
+
 ### Styling
 
 - **Tailwind CSS** with dark mode support
 - **Framer Motion** for animations
 - **Recharts** for data visualization
+- **BlockNote** for rich text editing (lazy-loaded, ~150KB)
 - Path alias: `@/*` maps to root directory
 
 ## Environment Variables
@@ -270,14 +295,42 @@ History rewrites (`git-filter-repo`, `git rebase -i`) should be **last resort** 
 - After any file deletion, always run `npm run build`
 - Missing files show up first in clean build environments (Vercel, CI)
 
+### Git Commit Guidelines
+
+**DO NOT include `Co-Authored-By` lines in commits or PRs.**
+
+This project is solo-developed with AI assistance. The commit author is sufficient attribution.
+
+```bash
+# ❌ BAD - Don't add this
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+# ✅ GOOD - Just the commit message
+docs: add feature roadmap
+```
+
+**WAIT FOR USER APPROVAL BEFORE COMMITTING**
+
+After implementing a feature or making changes:
+1. Run `npm run build` to verify the code compiles
+2. Show the user a summary of changes made
+3. **DO NOT commit or push until the user explicitly asks**
+4. Wait for the user to review, test, or give the go-ahead
+5. Only then proceed with staging, committing, and pushing
+
+```bash
+# ❌ BAD - Committing immediately after implementation
+# (finish coding) → git add . → git commit → git push
+
+# ✅ GOOD - Wait for user command
+# (finish coding) → npm run build → report to user → WAIT
+# (user says "commit it") → git add . → git commit → git push
+```
+
 ### Pre-PR Checklist
 
 1. Ensure `main` branch is healthy before merging
 2. Run `npm run build` locally before pushing
 3. Verify base branch (`main`) has all required files
 4. Check `.env.example` is up to date with new env vars
-5. **Update documentation in `docs/` folder** before committing:
-   - Update `docs/Changelog.md` with changes made
-   - Update `docs/Architecture.md` if architecture changed
-   - Update `docs/ProjectStatus.md` to reflect current status
-   - Documentation must be updated alongside code changes in the same commit
+5. **No `Co-Authored-By` lines in commit messages**
