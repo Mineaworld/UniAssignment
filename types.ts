@@ -1,4 +1,6 @@
 
+import type { Block } from '@blocknote/core';
+
 export enum Priority {
   Low = 'Low',
   Medium = 'Medium',
@@ -36,6 +38,12 @@ export interface AssignmentReminder {
   sentAt?: string;          // When reminder was sent
 }
 
+/** Rich text notes content using BlockNote format */
+export interface NotesContent {
+  version: 1;
+  blocks: Block[];
+}
+
 export interface Assignment {
   id: string;
   title: string;
@@ -43,10 +51,50 @@ export interface Assignment {
   dueDate: string; // ISO string
   status: Status;
   priority: Priority;
+  /** @deprecated Use notes instead */
   description?: string;
+  notes?: NotesContent;
   examType?: 'midterm' | 'final' | null;
   createdAt: string;
   reminder?: AssignmentReminder;
+}
+
+// Daily reminder settings for Telegram notifications
+export interface DailyReminderSettings {
+  enabled: boolean;
+  sendTime: string;       // "08:00" format
+  timezone: string;       // e.g., "Asia/Phnom_Penh"
+  skipWeekends: boolean;
+  lastSentDate?: string;  // Idempotency key: "2026-01-14"
+}
+
+// Weekly digest settings for Telegram notifications
+export interface WeeklyDigestSettings {
+  enabled: boolean;
+  dayOfWeek: number;      // 0=Sunday, 1=Monday, ..., 6=Saturday
+  sendTime: string;       // "18:00" format
+  timezone: string;       // e.g., "Asia/Phnom_Penh"
+  lastSentWeek?: string;  // ISO week: "2026-W02"
+}
+
+// Pomodoro timer types
+export type PomodoroSessionType = 'work' | 'shortBreak' | 'longBreak';
+
+export interface PomodoroSession {
+  id: string;
+  assignmentId: string | null;
+  assignmentTitle?: string;
+  type: PomodoroSessionType;
+  duration: number;          // Duration in minutes
+  completedAt: string;       // ISO string
+}
+
+export interface PomodoroStats {
+  totalSessions: number;
+  totalMinutes: number;
+  todaySessions: number;
+  todayMinutes: number;
+  lastSessionDate?: string;  // ISO date string (YYYY-MM-DD)
 }
 
 export interface User {
@@ -60,6 +108,11 @@ export interface User {
   // Telegram prompt tracking
   telegramPromptLastShown: string | null;
   telegramPromptDismissed: boolean;
+  // Scheduled notification settings
+  dailyReminder?: DailyReminderSettings;
+  weeklyDigest?: WeeklyDigestSettings;
+  // Pomodoro stats
+  pomodoroStats?: PomodoroStats;
 }
 
 export interface AppContextType {
@@ -81,4 +134,11 @@ export interface AppContextType {
   deleteSubject: (id: string) => Promise<void>;
   updateUserProfile: (updates: Partial<User>, avatarFile?: File) => Promise<void>;
   dismissTelegramPrompt: (permanent: boolean) => Promise<void>;
+  uploadNoteImage: (assignmentId: string, file: File) => Promise<string>;
+  recordPomodoroSession: (
+    type: PomodoroSessionType,
+    assignmentId: string | null,
+    duration: number,
+    assignmentTitle?: string
+  ) => Promise<void>;
 }

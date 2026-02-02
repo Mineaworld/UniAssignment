@@ -1,104 +1,78 @@
-# Uni Assignment
+# UniAssignment
 
-**Uni Assignment** is a modern, responsive application designed to help university students manage their academic workload efficiently. By centralizing assignment tracking, subject management, and deadline notifications, it empowers students to stay organized and reduce academic stress.
+A modern academic workspace for university students. Track assignments, manage subjects, and never miss a deadline.
 
-## 🚀 Project Overview
+<p align="center">
+  <a href="https://uni-assignment.vercel.app">Live Demo</a> •
+  <a href="#features">Features</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#tech-stack">Tech Stack</a>
+</p>
 
-Students often struggle with fragmented information across multiple course portals. This project solves that problem by providing a verified single source of truth for:
-*   **Assignment Tracking**: Create, update, and manage assignments with priorities and status updates.
-*   **Subject Management**: Organize tasks by subject with color-coded tags for visual clarity.
-*   **Deadline Management**: Visualize upcoming work with dashboard summaries and calendar views.
-*   **Smart Notifications**: Integrated Telegram Bot for real-time reminders (24h and 1h before deadlines).
+## Features
 
-## 🛠️ Technology Stack
+- **Assignment Tracking** — Create, prioritize, and track assignments with status updates
+- **Subject Management** — Organize by subject with color-coded tags
+- **Calendar View** — Visualize deadlines at a glance
+- **Rich Notes Editor** — Notion-like block editor with images and formatting
+- **Pomodoro Timer** — Floating productivity timer with assignment linking
+- **Smart Reminders** — Telegram bot notifications (customizable timing)
+- **Dark/Light Mode** — System-aware theme support
+- **Responsive Design** — Works on desktop, tablet, and mobile
 
-This project leverages a modern web development stack to ensure performance, scalability, and a premium user experience.
+## Tech Stack
 
-### Frontend
-*   **React 19** (via Vite): Fast, component-based UI development.
-*   **TypeScript**: Ensures type safety and improves code maintainability.
-*   **Tailwind CSS**: Utility-first CSS for rapid and consistent styling.
-*   **Framer Motion**: Smooth, production-grade animations.
-*   **Recharts**: Data visualization for user progress.
+| Category | Technologies |
+|----------|--------------|
+| Frontend | React 19, TypeScript, Tailwind CSS, Framer Motion |
+| Backend | Firebase Auth, Cloud Firestore, Cloud Functions |
+| Hosting | Vercel |
 
-### Backend & Services
-*   **Firebase Authentication**: Secure user management (Email/Password, Google Sign-in).
-*   **Cloud Firestore**: Scalable NoSQL database for real-time data syncing.
-*   **Firebase Cloud Functions**: Serverless backend logic for scheduled tasks and database triggers.
-*   **Vercel Serverless Functions**: Hosting for the Telegram Bot integration to ensure reliable uptime and separation of concerns.
-
-## ✨ Core Features
-
-*   **Authentication**: Secure, persistent sessions with fast sign-up/login.
-*   **Dashboard**: "Up Next" view for immediate priorities and progress visualization.
-*   **Assignment CRUD**: Full control over assignment details (Due Date, Priority, Status, Reminders).
-*   **Smart Reminders**: Configure custom reminders for assignments with Telegram notifications.
-*   **Interactive Notifications**: Receive alerts and mark tasks as "Done" directly from Telegram.
-*   **Responsive Design**: Mobile-first approach, optimized for all devices.
-*   **Dark/Light Mode**: System-aware theme support.
-
-## 🔄 Recent Improvements
-
-### v1.1.0 - December 2025
-**Critical Bug Fixes:**
-- ✅ **Fixed Firebase Production Error** - Resolved `addDoc() invalid data` errors by implementing deep recursive sanitization for Firestore operations
-- ✅ **Fixed UI Overlap Issue** - Corrected reminder badge overlapping with assignment titles through dynamic padding
-
-**Technical Enhancements:**
-- Implemented robust data sanitization for all Firestore writes
-- Improved UI spacing calculations for better visual consistency
-- Added comprehensive error handling for production environments
-
-See [CLAUDE.md](CLAUDE.md) for detailed technical documentation of these fixes.
-
-## ⚡ Getting Started
-
-Follow these steps to set up the project locally.
+## Getting Started
 
 ### Prerequisites
 
-*   **Node.js** (v18 or higher recommended)
-*   **npm** or **yarn**
-*   A **Firebase** project (for backend services)
+- Node.js 18+
+- npm or yarn
+- Firebase project
 
 ### Installation
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/your-username/uni-assignment.git
-    cd uni-assignment
-    ```
+```bash
+# Clone the repository
+git clone https://github.com/Mineaworld/UniAssignment.git
+cd UniAssignment
 
-2.  **Install dependencies**
-    ```bash
-    npm install
-    ```
+# Install dependencies
+npm install
 
-3.  **Environment Configuration**
-    Create a `.env.local` file in the root directory and add your Firebase configuration keys:
-    ```env
-    VITE_FIREBASE_API_KEY=your_api_key
-    VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
-    VITE_FIREBASE_PROJECT_ID=your_project_id
-    VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
-    VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-    VITE_FIREBASE_APP_ID=your_app_id
-    ```
+# Configure environment
+cp .env.example .env.local
+# Add your Firebase config to .env.local
 
-4.  **Run the application**
-    ```bash
-    npm run dev
-    ```
-    The app will be available at `http://localhost:5173`.
+# Start development server
+npm run dev
+```
 
-## 🤝 Contribution
+### Environment Variables
 
-Contributions are welcome! Please follow these steps:
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/NewFeature`).
-3.  Commit your changes.
-4.  Push to the branch and open a Pull Request.
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
 
-## 📄 License
+## Contributing
 
-This project is open-source and available under the [MIT License](LICENSE).
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.

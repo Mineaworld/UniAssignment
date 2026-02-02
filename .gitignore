@@ -6,7 +6,7 @@ node_modules/
 # Build outputs
 dist/
 build/
-lib/
+/lib/
 
 # Environment files
 .env
@@ -39,3 +39,9 @@ firebase-debug.log
 
 .agent/
 .playwright-mcp
+.sisyphus/
+.qodo/
+
+# Claude Code temp files
+tmpclaude-*
+nul

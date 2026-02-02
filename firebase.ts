@@ -1,7 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
 // Validate required environment variables
 const requiredEnvVars = {
@@ -35,10 +34,19 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase (singleton pattern)
-const app = getApps().length === 0
+const existingApps = getApps();
+const app = existingApps.length === 0
   ? initializeApp(firebaseConfig)
-  : getApps()[0];
+  : existingApps[0]!;
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
+
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Multiple tabs open, persistence enabled only in first tab');
+  } else if (err.code === 'unimplemented') {
+    console.warn('Browser does not support offline persistence');
+  }
+});

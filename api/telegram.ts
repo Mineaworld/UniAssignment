@@ -1,10 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
 import * as chrono from 'chrono-node';
+import type {
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    AssignmentDoc,
+    AssignmentWithDate
+} from './types.js';
+import { ASSIGNMENT_STATUS, ASSIGNMENT_PRIORITY } from './types.js';
 
-// Initialize Firebase Admin (only once)
 if (!admin.apps || admin.apps.length === 0) {
-    // Handle private key - it may have literal \n or escaped \\n
     let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
     privateKey = privateKey.replace(/\\n/g, '\n');
 
@@ -20,7 +25,13 @@ if (!admin.apps || admin.apps.length === 0) {
 const db = admin.firestore();
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 
-// --- HELPER: Send Telegram Message ---
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: any): Promise<void> {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     try {
@@ -39,7 +50,6 @@ async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: a
     }
 }
 
-// --- HELPER: Edit Telegram Message ---
 async function editTelegramMessage(chatId: string, messageId: number, text: string, replyMarkup?: any): Promise<void> {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`;
     try {
@@ -59,8 +69,7 @@ async function editTelegramMessage(chatId: string, messageId: number, text: stri
     }
 }
 
-// --- HELPER: Manage State ---
-type BotStep = 'AWAITING_TITLE' | 'AWAITING_SUBJECT' | 'AWAITING_DUE_DATE' | 'AWAITING_EDIT_VALUE' | 'AWAITING_REMINDER_PRESET';
+type BotStep = 'AWAITING_TITLE' | 'AWAITING_SUBJECT' | 'AWAITING_DUE_DATE' | 'AWAITING_EDIT_VALUE' | 'AWAITING_REMINDER_PRESET' | 'AWAITING_QUICK_SUBJECT';
 
 interface BotState {
     step: BotStep;
@@ -101,11 +110,376 @@ async function clearState(chatId: string): Promise<void> {
     await db.collection("telegramStates").doc(chatId).delete();
 }
 
-// --- HANDLERS ---
+function getUrgencyEmoji(dueDate: Date): string {
+    const now = new Date();
+    const hoursRemaining = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursRemaining < 0) return '⚫';
+    if (hoursRemaining < 24) return '🔴';
+    if (hoursRemaining < 72) return '🟡';
+    return '🟢';
+}
+
+function formatTimeRemaining(dueDate: Date): string {
+    const now = new Date();
+    const diffMs = dueDate.getTime() - now.getTime();
+
+    if (diffMs < 0) {
+        const overdueDays = Math.abs(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        if (overdueDays === 0) return 'overdue';
+        return `${overdueDays} day${overdueDays !== 1 ? 's' : ''} overdue`;
+    }
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} left`;
+
+    const days = Math.floor(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''} left`;
+}
+
+function formatDueDate(dueDate: Date): string {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const isToday = dueDate.toDateString() === now.toDateString();
+    const isTomorrow = dueDate.toDateString() === tomorrow.toDateString();
+
+    const timeStr = dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    if (isToday) return `Today, ${timeStr}`;
+    if (isTomorrow) return `Tomorrow, ${timeStr}`;
+
+    return dueDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+}
+
+function getDayBounds(date: Date): { start: Date; end: Date } {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+}
+
+function parsePriority(text: string): { priority: string; cleanText: string } {
+    const lowercaseText = text.toLowerCase();
+
+    if (lowercaseText.endsWith(' high') || lowercaseText.endsWith(' urgent')) {
+        return { priority: 'High', cleanText: text.replace(/\s+(high|urgent)$/i, '') };
+    }
+    if (lowercaseText.endsWith(' low')) {
+        return { priority: 'Low', cleanText: text.replace(/\s+low$/i, '') };
+    }
+    if (lowercaseText.endsWith(' medium')) {
+        return { priority: 'Medium', cleanText: text.replace(/\s+medium$/i, '') };
+    }
+
+    return { priority: 'Medium', cleanText: text };
+}
+
+async function handleQuickCommand(chatId: string, userUid: string, text: string): Promise<void> {
+    const input = text.replace(/^\/quick\s*/i, '').trim();
+
+    if (!input) {
+        await sendTelegramMessage(chatId,
+            "⚠️ <b>Usage:</b> /quick [title] due [date/time] [priority]\n\n" +
+            "<b>Examples:</b>\n" +
+            "• /quick Math homework due Friday 5pm\n" +
+            "• /quick Database report due tomorrow 11:59pm high\n" +
+            "• /quick Essay due next Monday low"
+        );
+        return;
+    }
+
+    // Parse priority first
+    const { priority, cleanText } = parsePriority(input);
+
+    // Split by "due" keyword
+    const dueIndex = cleanText.toLowerCase().lastIndexOf(' due ');
+
+    if (dueIndex === -1) {
+        await sendTelegramMessage(chatId,
+            "⚠️ Please include 'due' followed by a date.\n\n" +
+            "<b>Example:</b> /quick Math homework due Friday 5pm"
+        );
+        return;
+    }
+
+    const title = cleanText.substring(0, dueIndex).trim();
+    const dateText = cleanText.substring(dueIndex + 5).trim();
+
+    if (!title) {
+        await sendTelegramMessage(chatId, "⚠️ Please provide a title before 'due'.");
+        return;
+    }
+
+    // Parse date with chrono - forward-looking
+    const parsedDate = chrono.parseDate(dateText, new Date(), { forwardDate: true });
+
+    if (!parsedDate) {
+        await sendTelegramMessage(chatId,
+            "⚠️ I couldn't understand that date.\n\n" +
+            "<b>Try:</b> tomorrow, Friday 5pm, next Monday, Jan 20"
+        );
+        return;
+    }
+
+    // Create assignment
+    const assignmentData = {
+        title,
+        subjectId: '',
+        dueDate: parsedDate.toISOString(),
+        status: 'Pending',
+        priority,
+        createdAt: new Date().toISOString(),
+        description: 'Added via /quick command'
+    };
+
+    const docRef = await db.collection(`users/${userUid}/assignments`).add(assignmentData);
+
+    const priorityEmoji = priority === 'High' ? '🔴' : priority === 'Low' ? '🟢' : '🔸';
+
+    await sendTelegramMessage(chatId,
+        "✅ <b>Assignment Created!</b>\n\n" +
+        `📝 ${escapeHtml(title)}\n` +
+        `📅 Due: ${formatDueDate(parsedDate)}\n` +
+        `${priorityEmoji} Priority: ${priority}`,
+        {
+            inline_keyboard: [
+                [
+                    { text: "📚 Add Subject", callback_data: `quick_subject_${docRef.id}` },
+                    { text: "✏️ Edit", callback_data: `edit_menu_${docRef.id}` }
+                ],
+                [
+                    { text: "📋 View All", callback_data: "list_all" }
+                ]
+            ]
+        }
+    );
+}
+
+async function handleTodayCommand(chatId: string, userUid: string): Promise<void> {
+    const now = new Date();
+    const { start, end } = getDayBounds(now);
+
+    const snapshot = await db
+        .collection(`users/${userUid}/assignments`)
+        .orderBy("dueDate", "asc")
+        .get();
+
+    const todayAssignments = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(data.dueDate);
+        return dueDate >= start && dueDate <= end;
+    });
+
+    if (todayAssignments.length === 0) {
+        await sendTelegramMessage(chatId,
+            "📅 <b>No assignments due today!</b>\n\nEnjoy your day! 🎉",
+            {
+                inline_keyboard: [
+                    [
+                        { text: "➕ Add New", callback_data: "start_add" },
+                        { text: "📋 View All", callback_data: "list_all" }
+                    ]
+                ]
+            }
+        );
+        return;
+    }
+
+    let message = `📅 <b>Due Today</b> (${todayAssignments.length} assignment${todayAssignments.length !== 1 ? 's' : ''})\n\n`;
+
+    for (const doc of todayAssignments) {
+        const data = doc.data();
+        const dueDate = new Date(data.dueDate);
+        const urgency = getUrgencyEmoji(dueDate);
+        const timeStr = dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+        message += `${urgency} <b>${escapeHtml(data.title)}</b>\n`;
+        message += `   Due: ${timeStr} (${formatTimeRemaining(dueDate)})\n`;
+        message += `   Priority: ${data.priority}\n\n`;
+    }
+
+    const keyboard: any[][] = todayAssignments.slice(0, 5).map(doc => [{
+        text: `✅ Done: ${doc.data().title.substring(0, 20)}`,
+        callback_data: `toggle_${doc.id}`
+    }]);
+    keyboard.push([{ text: "📋 View Details", callback_data: "list_all" }]);
+
+    await sendTelegramMessage(chatId, message, { inline_keyboard: keyboard });
+}
+
+async function handleTomorrowCommand(chatId: string, userUid: string): Promise<void> {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { start, end } = getDayBounds(tomorrow);
+
+    const snapshot = await db
+        .collection(`users/${userUid}/assignments`)
+        .orderBy("dueDate", "asc")
+        .get();
+
+    const tomorrowAssignments = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(data.dueDate);
+        return dueDate >= start && dueDate <= end;
+    });
+
+    if (tomorrowAssignments.length === 0) {
+        await sendTelegramMessage(chatId,
+            "📅 <b>No assignments due tomorrow!</b>\n\nLooking clear! ✨",
+            {
+                inline_keyboard: [
+                    [
+                        { text: "➕ Add New", callback_data: "start_add" },
+                        { text: "📋 View All", callback_data: "list_all" }
+                    ]
+                ]
+            }
+        );
+        return;
+    }
+
+    let message = `📅 <b>Due Tomorrow</b> (${tomorrowAssignments.length} assignment${tomorrowAssignments.length !== 1 ? 's' : ''})\n\n`;
+
+    for (const doc of tomorrowAssignments) {
+        const data = doc.data();
+        const dueDate = new Date(data.dueDate);
+        const urgency = getUrgencyEmoji(dueDate);
+        const timeStr = dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+        message += `${urgency} <b>${escapeHtml(data.title)}</b>\n`;
+        message += `   Due: ${timeStr}\n`;
+        message += `   Priority: ${data.priority}\n\n`;
+    }
+
+    const keyboard: any[][] = tomorrowAssignments.slice(0, 5).map(doc => [{
+        text: `✅ Done: ${doc.data().title.substring(0, 20)}`,
+        callback_data: `toggle_${doc.id}`
+    }]);
+    keyboard.push([{ text: "📋 View Details", callback_data: "list_all" }]);
+
+    await sendTelegramMessage(chatId, message, { inline_keyboard: keyboard });
+}
+
+async function handleWeekCommand(chatId: string, userUid: string): Promise<void> {
+    const now = new Date();
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const snapshot = await db
+        .collection(`users/${userUid}/assignments`)
+        .orderBy("dueDate", "asc")
+        .get();
+
+    const weekAssignments = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(data.dueDate);
+        return dueDate >= now && dueDate <= weekEnd;
+    });
+
+    if (weekAssignments.length === 0) {
+        await sendTelegramMessage(chatId,
+            "📅 <b>No assignments due this week!</b>\n\nYou're all caught up! 🎉",
+            {
+                inline_keyboard: [
+                    [
+                        { text: "➕ Add New", callback_data: "start_add" },
+                        { text: "📋 View All", callback_data: "list_all" }
+                    ]
+                ]
+            }
+        );
+        return;
+    }
+
+    let message = `📅 <b>This Week</b> (${weekAssignments.length} assignment${weekAssignments.length !== 1 ? 's' : ''})\n\n`;
+
+    for (const doc of weekAssignments) {
+        const data = doc.data();
+        const dueDate = new Date(data.dueDate);
+        const urgency = getUrgencyEmoji(dueDate);
+
+        message += `${urgency} <b>${escapeHtml(data.title)}</b>\n`;
+        message += `   Due: ${formatDueDate(dueDate)} (${formatTimeRemaining(dueDate)})\n`;
+        message += `   Priority: ${data.priority}\n\n`;
+    }
+
+    const keyboard: any[][] = [[{ text: "📋 View Details", callback_data: "list_all" }]];
+
+    await sendTelegramMessage(chatId, message, { inline_keyboard: keyboard });
+}
+
+async function handleOverdueCommand(chatId: string, userUid: string): Promise<void> {
+    const now = new Date();
+
+    const snapshot = await db
+        .collection(`users/${userUid}/assignments`)
+        .orderBy("dueDate", "asc")
+        .get();
+
+    const overdueAssignments = snapshot.docs.filter(doc => {
+        const data = doc.data();
+        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(data.dueDate);
+        return dueDate < now;
+    });
+
+    if (overdueAssignments.length === 0) {
+        await sendTelegramMessage(chatId,
+            "✅ <b>No overdue assignments!</b>\n\nGreat job staying on track! 🌟",
+            {
+                inline_keyboard: [
+                    [
+                        { text: "📅 View Week", callback_data: "cmd_week" },
+                        { text: "📋 View All", callback_data: "list_all" }
+                    ]
+                ]
+            }
+        );
+        return;
+    }
+
+    let message = `⚠️ <b>Overdue</b> (${overdueAssignments.length} assignment${overdueAssignments.length !== 1 ? 's' : ''})\n\n`;
+
+    for (const doc of overdueAssignments) {
+        const data = doc.data();
+        const dueDate = new Date(data.dueDate);
+
+        message += `⚫ <b>${escapeHtml(data.title)}</b>\n`;
+        message += `   Was due: ${formatDueDate(dueDate)}\n`;
+        message += `   ${formatTimeRemaining(dueDate)}\n\n`;
+    }
+
+    const keyboard: any[][] = overdueAssignments.slice(0, 5).map(doc => [{
+        text: `✅ Complete: ${doc.data().title.substring(0, 18)}`,
+        callback_data: `toggle_${doc.id}`
+    }]);
+    keyboard.push([{ text: "📋 View All", callback_data: "list_all" }]);
+
+    await sendTelegramMessage(chatId, message, { inline_keyboard: keyboard });
+}
+
 async function handleStartIdentifier(chatId: string, userId: string | undefined, text: string) {
     const parts = text.split(" ");
     if (parts.length > 1) {
         const linkToken = parts[1];
+        if (!linkToken) {
+            await sendTelegramMessage(chatId, "⚠️ Invalid link token.");
+            return;
+        }
         await db.collection("telegramLinks").doc(linkToken).set({
             chatId: chatId,
             telegramUserId: userId,
@@ -156,18 +530,15 @@ async function handleAssignmentsCommand(chatId: string, userUid: string) {
 }
 
 async function showRemindMenu(chatId: string, userUid: string) {
-    // Firestore requires inequality filter field to be first orderBy.
-    // Filter out Completed assignments in JavaScript instead.
     const assignmentsSnapshot = await db
         .collection(`users/${userUid}/assignments`)
         .orderBy("dueDate", "asc")
-        .limit(20) // Fetch more since we'll filter out completed ones
+        .limit(20)
         .get();
 
-    // Filter out completed assignments
     const pendingDocs = assignmentsSnapshot.docs.filter(
         (doc) => doc.data().status !== "Completed"
-    ).slice(0, 10); // Limit to 10 after filtering
+    ).slice(0, 10);
 
     if (pendingDocs.length === 0) {
         await sendTelegramMessage(chatId, "📚 You have no pending assignments to set reminders for.");
@@ -202,10 +573,7 @@ function formatPresetText(preset: string): string {
     return map[preset] || preset;
 }
 
-/**
- * Format minutes into human-readable time before due
- * Examples: 30 -> "30 minutes", 60 -> "1 hour", 90 -> "1 hour 30 minutes", 150 -> "2 hours 30 minutes"
- */
+// Formats minutes into readable time (e.g., 90 -> "1 hour 30 minutes")
 function formatMinutesBeforeDue(minutes: number): string {
     if (minutes < 60) {
         return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
@@ -219,11 +587,10 @@ function formatMinutesBeforeDue(minutes: number): string {
 }
 
 async function handleCallbackQuery(query: any, userUid: string) {
-    // Must answer callback query to stop loading state
     const callbackQueryId = query.id;
     const chatId = query.message.chat.id.toString();
     const messageId = query.message.message_id;
-    const data = query.data; // e.g., 'view_xyz123'
+    const data = query.data;
 
     const answerUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
     await fetch(answerUrl, {
@@ -232,9 +599,33 @@ async function handleCallbackQuery(query: any, userUid: string) {
         body: JSON.stringify({ callback_query_id: callbackQueryId })
     });
 
-    // --- Action Routing ---
+    if (data === 'start_add') {
+        await startState(chatId, userUid, 'AWAITING_TITLE');
+        await sendTelegramMessage(chatId, "🆕 <b>New Assignment</b>\n\nFirst, what is the <b>title</b> of the assignment?");
+        return;
+    }
 
-    // REMINDER FLOW - Handle reminder-related callbacks
+    if (data === 'cmd_week') {
+        await handleWeekCommand(chatId, userUid);
+        return;
+    }
+
+    if (data.startsWith('quick_subject_')) {
+        const assignmentId = data.replace('quick_subject_', '');
+        await startState(chatId, userUid, 'AWAITING_QUICK_SUBJECT', { assignmentId });
+
+        const subjectsSnapshot = await db.collection(`users/${userUid}/subjects`).get();
+        const subjects = subjectsSnapshot.docs.map(d => d.data().name);
+
+        let msg = "📚 <b>Select a Subject</b>\n\nType the subject name:";
+        if (subjects.length > 0) {
+            msg += `\n\nExisting subjects:\n• ${subjects.join("\n• ")}`;
+        }
+
+        await sendTelegramMessage(chatId, msg);
+        return;
+    }
+
     if (data.startsWith('remind_set_')) {
         const assignmentId = data.replace('remind_set_', '');
         const doc = await db.doc(`users/${userUid}/assignments/${assignmentId}`).get();
@@ -262,11 +653,10 @@ async function handleCallbackQuery(query: any, userUid: string) {
         }
 
         const assignment = doc.data()!;
-        // Use dot notation to properly delete sentAt while updating other fields
         await docRef.update({
             "reminder.enabled": true,
             "reminder.preset": preset,
-            "reminder.sentAt": admin.firestore.FieldValue.delete()  // Reset sent status if changing
+            "reminder.sentAt": admin.firestore.FieldValue.delete()
         });
 
         await editTelegramMessage(chatId, messageId,
@@ -299,7 +689,6 @@ async function handleCallbackQuery(query: any, userUid: string) {
         return;
     }
 
-    // 1. VIEW Details
     if (data.startsWith('view_')) {
         const assignmentId = data.replace('view_', '');
         const doc = await db.doc(`users/${userUid}/assignments/${assignmentId}`).get();
@@ -312,8 +701,6 @@ async function handleCallbackQuery(query: any, userUid: string) {
         const d = doc.data()!;
         const dateStr = new Date(d.dueDate).toLocaleDateString();
         const statusStr = d.status === "Completed" ? "Completed" : "Pending";
-
-        // Subject Name lookup (optional optimization)
         let subjectName = "Unknown Subject";
         if (d.subjectId) {
             const subDoc = await db.doc(`users/${userUid}/subjects/${d.subjectId}`).get();
@@ -341,7 +728,6 @@ async function handleCallbackQuery(query: any, userUid: string) {
         await editTelegramMessage(chatId, messageId, text, { inline_keyboard: keyboard });
     }
 
-    // 2. TOGGLE Status
     else if (data.startsWith('toggle_')) {
         const assignmentId = data.replace('toggle_', '');
         const docRef = db.doc(`users/${userUid}/assignments/${assignmentId}`);
@@ -350,13 +736,10 @@ async function handleCallbackQuery(query: any, userUid: string) {
             const currentStatus = doc.data()!.status;
             const newStatus = currentStatus === "Completed" ? "Pending" : "Completed";
             await docRef.update({ status: newStatus });
-
-            // Refresh view
             await handleCallbackQuery({ ...query, data: `view_${assignmentId}` }, userUid);
         }
     }
 
-    // 3. DELETE Confirm
     else if (data.startsWith('delete_confirm_')) {
         const assignmentId = data.replace('delete_confirm_', '');
         await editTelegramMessage(chatId, messageId, "⚠️ <b>Are you sure you want to delete this?</b>", {
@@ -369,16 +752,13 @@ async function handleCallbackQuery(query: any, userUid: string) {
         });
     }
 
-    // 4. DELETE Final
     else if (data.startsWith('delete_final_')) {
         const assignmentId = data.replace('delete_final_', '');
         await db.doc(`users/${userUid}/assignments/${assignmentId}`).delete();
         await editTelegramMessage(chatId, messageId, "🗑️ <b>Assignment Deleted.</b>");
-        // Optionally show list again
         await handleAssignmentsCommand(chatId, userUid);
     }
 
-    // 5. EDIT Menu
     else if (data.startsWith('edit_menu_')) {
         const assignmentId = data.replace('edit_menu_', '');
         await editTelegramMessage(chatId, messageId, "✏️ <b>What do you want to edit?</b>", {
@@ -392,13 +772,8 @@ async function handleCallbackQuery(query: any, userUid: string) {
         });
     }
 
-    // 6. EDIT Start Field
     else if (data.startsWith('edit_field_')) {
         const rest = data.replace('edit_field_', '');
-        // format: title_ID or date_ID
-        // We need to parse robustly. 
-        // Let's assume ID doesn't have underscores or we use fixed prefix len.
-        // Actually, simplest is to split by first underscore.
 
         let field = '';
         let assignmentId = '';
@@ -412,7 +787,6 @@ async function handleCallbackQuery(query: any, userUid: string) {
         }
 
         if (field && assignmentId) {
-            // Enter State Machine
             await startState(chatId, userUid, 'AWAITING_EDIT_VALUE', {
                 assignmentId,
                 editField: field
@@ -423,16 +797,9 @@ async function handleCallbackQuery(query: any, userUid: string) {
         }
     }
 
-    // 7. LIST All
     else if (data === 'list_all') {
-        // We can't edit message to show list if the list is long, but we can try removing previous buttons first
-        // Better to just send a new list or re-render
-        await db.collection("telegramStates").doc(chatId).delete(); // Clear any state
+        await db.collection("telegramStates").doc(chatId).delete();
         await editTelegramMessage(chatId, messageId, "⏳ Loading list...");
-        // We need to call the command handler, but it sends a NEW message.
-        // Let's delete the old message and send new one? Or edit.
-        // `handleAssignmentsCommand` strictly sends new message.
-        // Custom logic to EDIT:
 
         const assignmentsSnapshot = await db
             .collection(`users/${userUid}/assignments`)
@@ -458,9 +825,7 @@ async function handleCallbackQuery(query: any, userUid: string) {
     }
 }
 
-// --- HELPER: Show Reminder Presets ---
 async function showReminderPresets(chatId: string, messageId: number, assignmentId: string, userUid: string, currentReminder?: any) {
-    // Build keyboard rows
     const keyboard = [
         [
             { text: "1 hour before", callback_data: `remind_preset_1h_${assignmentId}` },
@@ -476,7 +841,6 @@ async function showReminderPresets(chatId: string, messageId: number, assignment
         ],
     ];
 
-    // Only show Disable button if reminder is already enabled
     const bottomRow = [{ text: "🔙 Back", callback_data: "list_all" }];
     if (currentReminder?.enabled) {
         bottomRow.unshift({ text: "🔕 Disable", callback_data: `remind_disable_${assignmentId}` });
@@ -493,7 +857,6 @@ async function showReminderPresets(chatId: string, messageId: number, assignment
     );
 }
 
-// --- MAIN WEBHOOK HANDLER ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
         return res.status(200).json({ message: 'UniAssignment Bot Webhook Active' });
@@ -502,22 +865,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const update = req.body;
 
-        // --- HANDLE CALLBACK QUERIES (Buttons) ---
         if (update.callback_query) {
             const chatId = update.callback_query.message.chat.id.toString();
-            // Need userUid
             const linksSnapshot = await db.collection("telegramLinks").where("chatId", "==", chatId).limit(1).get();
             if (linksSnapshot.empty) {
                 await sendTelegramMessage(chatId, "⚠️ Authentication error.");
                 return res.status(200).send('OK');
             }
-            const userUid = linksSnapshot.docs[0].id;
+            const linkDoc = linksSnapshot.docs[0];
+            if (!linkDoc) {
+                await sendTelegramMessage(chatId, "⚠️ Authentication error.");
+                return res.status(200).send('OK');
+            }
+            const userUid = linkDoc.id;
 
             await handleCallbackQuery(update.callback_query, userUid);
             return res.status(200).send('OK');
         }
 
-        // --- HANDLE MESSAGES ---
         if (!update.message) {
             return res.status(200).send('OK');
         }
@@ -526,13 +891,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const text = update.message.text || '';
         const userId = update.message.from?.id?.toString();
 
-        // 1. Handle /start
         if (text.startsWith('/start')) {
             await handleStartIdentifier(chatId, userId, text);
             return res.status(200).send('OK');
         }
 
-        // 2. Check Link Status
         const linksSnapshot = await db.collection("telegramLinks")
             .where("chatId", "==", chatId)
             .limit(1)
@@ -544,9 +907,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const linkDoc = linksSnapshot.docs[0];
+        if (!linkDoc) {
+            await sendTelegramMessage(chatId, "⚠️ Authentication error.");
+            return res.status(200).send('OK');
+        }
         const userUid = linkDoc.id;
 
-        // 3. Global Commands
         if (text === '/cancel') {
             await clearState(chatId);
             await sendTelegramMessage(chatId, "🚫 Action cancelled.");
@@ -555,11 +921,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (text === '/help') {
             await sendTelegramMessage(chatId,
-                "<b>Commands:</b>\n" +
-                "/add - Add a new assignment\n" +
-                "/assignments - View & Manage assignments\n" +
-                "/remind - Set assignment reminders\n" +
-                "/cancel - Cancel"
+                "<b>Commands:</b>\n\n" +
+                "<b>Quick Actions:</b>\n" +
+                "/quick [title] due [date] - Quick add assignment\n" +
+                "/add - Add assignment (step-by-step)\n\n" +
+                "<b>View Assignments:</b>\n" +
+                "/today - Due today\n" +
+                "/tomorrow - Due tomorrow\n" +
+                "/week - Due this week\n" +
+                "/overdue - Past due\n" +
+                "/assignments - All assignments\n\n" +
+                "<b>Other:</b>\n" +
+                "/remind - Set reminders\n" +
+                "/cancel - Cancel current action"
             );
             return res.status(200).send('OK');
         }
@@ -574,18 +948,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).send('OK');
         }
 
-        // 4. Conversation State Machine
+        if (text.startsWith('/quick')) {
+            await handleQuickCommand(chatId, userUid, text);
+            return res.status(200).send('OK');
+        }
+
+        if (text === '/today') {
+            await handleTodayCommand(chatId, userUid);
+            return res.status(200).send('OK');
+        }
+
+        if (text === '/tomorrow') {
+            await handleTomorrowCommand(chatId, userUid);
+            return res.status(200).send('OK');
+        }
+
+        if (text === '/week') {
+            await handleWeekCommand(chatId, userUid);
+            return res.status(200).send('OK');
+        }
+
+        if (text === '/overdue') {
+            await handleOverdueCommand(chatId, userUid);
+            return res.status(200).send('OK');
+        }
+
         const currentState = await getState(chatId);
 
         if (currentState) {
             if (currentState.step === 'AWAITING_REMINDER_PRESET') {
-                // Handle Custom Reminder Input
                 const { reminderAssignmentId } = currentState.data;
 
                 if (!reminderAssignmentId) {
                     console.error(`[Reminder] Missing reminderAssignmentId for chatId ${chatId}, state:`, currentState);
                     await clearState(chatId);
-                    // Notify user of the error (fire and forget to ensure 200 response)
                     sendTelegramMessage(chatId,
                         "⚠️ <b>Something went wrong</b>\n\n" +
                         "I couldn't find the assignment. Please try /remind again."
@@ -593,12 +989,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     return res.status(200).send('OK');
                 }
 
-                // Parse custom time
                 const parsed = chrono.parseDate(text);
                 const now = new Date();
                 let minutes = 0;
 
-                // Try to parse as "X hours/days/weeks"
                 const hoursMatch = text.match(/(\d+)\s*(hour|hr|h)/i);
                 const daysMatch = text.match(/(\d+)\s*(day|d)/i);
                 const weeksMatch = text.match(/(\d+)\s*(week|w)/i);
@@ -610,7 +1004,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 } else if (hoursMatch) {
                     minutes = parseInt(hoursMatch[1]) * 60;
                 } else if (parsed && parsed > now) {
-                    // Absolute date - calculate minutes from due date
                     const doc = await db.doc(`users/${userUid}/assignments/${reminderAssignmentId}`).get();
                     if (doc.exists) {
                         const dueDate = new Date(doc.data()!.dueDate);
@@ -642,13 +1035,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(200).send('OK');
             }
 
+            if (currentState.step === 'AWAITING_QUICK_SUBJECT') {
+                const { assignmentId } = currentState.data;
+                const subjectName = text.trim();
+
+                if (!assignmentId) {
+                    await clearState(chatId);
+                    await sendTelegramMessage(chatId, "⚠️ Something went wrong. Please try again.");
+                    return res.status(200).send('OK');
+                }
+
+                let subjectId = '';
+                const subjectsSnapshot = await db.collection(`users/${userUid}/subjects`)
+                    .where("name", "==", subjectName)
+                    .limit(1)
+                    .get();
+
+                if (!subjectsSnapshot.empty) {
+                    const subjectDoc = subjectsSnapshot.docs[0];
+                    if (subjectDoc) {
+                        subjectId = subjectDoc.id;
+                    }
+                } else {
+                    const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
+                        name: subjectName,
+                        color: "bg-gray-500",
+                        createdAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    });
+                    subjectId = newSubjectRef.id;
+                }
+
+                await db.doc(`users/${userUid}/assignments/${assignmentId}`).update({
+                    subjectId: subjectId
+                });
+
+                await clearState(chatId);
+                await sendTelegramMessage(chatId,
+                    `✅ <b>Subject Added!</b>\n\n` +
+                    `📚 ${subjectName}\n\n` +
+                    `Use /assignments to view your tasks.`
+                );
+
+                return res.status(200).send('OK');
+            }
+
             if (currentState.step === 'AWAITING_EDIT_VALUE') {
-                // Handle Editing
                 const { assignmentId, editField } = currentState.data;
-                let newValue = text; // Default for title
+                let newValue = text;
 
                 if (editField === 'dueDate') {
-                    const parsed = chrono.parseDate(text);
+                    const parsed = chrono.parseDate(text, new Date(), { forwardDate: true });
                     if (!parsed) {
                         await sendTelegramMessage(chatId, "⚠️ Invalid date. Try 'tomorrow' or 'next Friday'.");
                         return res.status(200).send('OK');
@@ -668,9 +1105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(200).send('OK');
             }
 
-            // ... Existing /add logic ...
             else if (currentState.step === 'AWAITING_TITLE') {
-                // Transition to Subject
                 await updateState(chatId, 'AWAITING_SUBJECT', { title: text.trim(), subjectName: "" });
 
                 const subjectsSnapshot = await db.collection(`users/${userUid}/subjects`).get();
@@ -684,20 +1119,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 await sendTelegramMessage(chatId, msg);
 
             } else if (currentState.step === 'AWAITING_SUBJECT') {
-                // Transition to Date
                 const subjectName = text.trim();
                 let subjectId = "";
                 let finalSubjectName = subjectName;
 
-                // Try to find subject
                 const subjectsSnapshot = await db.collection(`users/${userUid}/subjects`)
                     .where("name", "==", subjectName)
                     .limit(1)
                     .get();
 
                 if (!subjectsSnapshot.empty) {
-                    subjectId = subjectsSnapshot.docs[0].id;
-                    finalSubjectName = subjectsSnapshot.docs[0].data().name;
+                    const subjectDoc = subjectsSnapshot.docs[0];
+                    if (subjectDoc) {
+                        subjectId = subjectDoc.id;
+                        finalSubjectName = subjectDoc.data().name;
+                    }
                 } else {
                     const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
                         name: subjectName,
@@ -718,7 +1154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             } else if (currentState.step === 'AWAITING_DUE_DATE') {
                 // Finalize
-                const parsedDate = chrono.parseDate(text);
+                const parsedDate = chrono.parseDate(text, new Date(), { forwardDate: true });
 
                 if (!parsedDate) {
                     await sendTelegramMessage(chatId, "⚠️ I couldn't understand that date. Please try again (e.g., 'tomorrow', 'next Monday').");
