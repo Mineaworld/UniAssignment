@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Button } from './ui/Button';
-import { AnimatedThemeToggler } from './ui/animated-theme-toggler';
+import { AnimatedThemeToggler } from './ui/AnimatedThemeToggler';
 
 const Sidebar = () => {
   const { user, logout, theme, toggleTheme } = useApp();

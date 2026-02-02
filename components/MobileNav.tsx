@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AnimatedThemeToggler } from './ui/animated-theme-toggler';
+import { AnimatedThemeToggler } from './ui/AnimatedThemeToggler';
 
 const MobileNav = () => {
   const links = [
