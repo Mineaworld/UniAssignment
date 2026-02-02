@@ -11,10 +11,11 @@ import { Button } from '../components/ui/Button';
 import { NeonButton } from '../components/ui/NeonButton';
 import { GlassCard } from '../components/ui/GlassCard';
 import { Input } from '../components/ui/Input';
-import { Search, Plus, Filter, X, CheckCircle, Clock, AlertCircle, Trash2, Edit, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Search, Plus, Filter, X, CheckCircle, Clock, AlertCircle, Trash2, Edit, LayoutGrid, List as ListIcon, ChevronDown } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { KanbanBoard } from '../components/KanbanBoard';
-import { formatShortDate } from '../utils/date';
+import { AssignmentMobileCard } from '../components/AssignmentMobileCard';
+import { ScrollIndicator } from '../components/ScrollIndicator';
 
 const Assignments = () => {
   const { assignments, subjects, updateAssignment, deleteAssignment } = useApp();
@@ -31,6 +32,7 @@ const Assignments = () => {
   const [filterStatus, setFilterStatus] = useState<Status | null>(null);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('DueDate');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const getSubject = (id: string) => subjects.find(s => s.id === id);
 
@@ -119,6 +121,7 @@ const Assignments = () => {
           <div className="relative flex-1 md:w-64 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input
+              inputMode="search"
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -133,182 +136,231 @@ const Assignments = () => {
         </div>
       </div>
 
-      {/* Filter Island */}
-      <GlassCard className="flex flex-wrap items-center gap-x-2 gap-y-2.5 overflow-x-auto pb-2 -mx-2 px-4 py-3 custom-scrollbar rounded-2xl">
-        <div className="flex items-center gap-1.5 pr-4 border-r border-border mr-2 text-muted-foreground">
-          <Filter className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium uppercase tracking-wider">Filters</span>
-        </div>
-
-        {/* Status Chips */}
-        {[Status.Pending, Status.InProgress, Status.Completed].map((s) => (
-          <NeonButton
-            key={s}
-            variant={filterStatus === s ? "primary" : "ghost"}
-            size="sm"
-            onClick={() => setFilterStatus(filterStatus === s ? null : s)}
-            className={cn(
-              "h-8 text-xs font-medium border transition-colors",
-              filterStatus !== s && "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-            )}
-            glow={filterStatus === s}
+      {/* Filter Island with Scroll Indicators */}
+      <GlassCard className="rounded-2xl -mx-2 px-4 py-3">
+        <ScrollIndicator className="flex flex-wrap items-center gap-x-2 gap-y-2.5 pb-2">
+          <div 
+            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+            className="flex items-center justify-between md:justify-start gap-1.5 pr-4 md:border-r border-border md:mr-2 text-muted-foreground cursor-pointer md:cursor-default w-full md:w-auto"
           >
-            {s === Status.Completed ? <CheckCircle className="h-3 w-3 mr-1" /> :
-              s === Status.InProgress ? <Clock className="h-3 w-3 mr-1" /> :
-                <AlertCircle className="h-3 w-3 mr-1" />}
-            {s}
-          </NeonButton>
-        ))}
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wider">Filters</span>
+            </div>
+            <div className="flex items-center gap-2 md:hidden">
+              {!isFiltersOpen && activeFilterCount > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDown className={cn("h-3 w-3 transition-transform duration-300", isFiltersOpen && "rotate-180")} />
+            </div>
+          </div>
 
-        <div className="w-px h-6 bg-border mx-1" />
+          <div className={cn(
+            "flex flex-wrap items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out w-full md:w-auto",
+            isFiltersOpen ? "max-h-[500px] opacity-100 mt-2 md:mt-0" : "max-h-0 opacity-0 md:max-h-none md:opacity-100 mt-0",
+            "md:contents"
+          )}>
+          {/* Status Chips */}
+          {[Status.Pending, Status.InProgress, Status.Completed].map((s) => (
+            <NeonButton
+              key={s}
+              variant={filterStatus === s ? "primary" : "ghost"}
+              size="sm"
+              onClick={() => setFilterStatus(filterStatus === s ? null : s)}
+              className={cn(
+                "h-8 text-xs font-medium border transition-colors",
+                filterStatus !== s && "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              )}
+              glow={filterStatus === s}
+            >
+              {s === Status.Completed ? <CheckCircle className="h-3 w-3 mr-1" /> :
+                s === Status.InProgress ? <Clock className="h-3 w-3 mr-1" /> :
+                  <AlertCircle className="h-3 w-3 mr-1" />}
+              {s}
+            </NeonButton>
+          ))}
 
-        {/* Priority Chips */}
-        {[Priority.High, Priority.Medium, Priority.Low].map((p) => (
-          <NeonButton
-            key={p}
-            variant={filterPriority === p ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setFilterPriority(filterPriority === p ? null : p)}
-            className={cn(
-              "h-8 text-xs font-medium border transition-colors",
-              filterPriority !== p && "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-            )}
-            glow={filterPriority === p}
-          >
-            {p} Priority
-          </NeonButton>
-        ))}
+          <div className="w-px h-6 bg-border mx-1" />
 
-        <div className="w-px h-6 bg-border mx-1" />
+          {/* Priority Chips */}
+          {[Priority.High, Priority.Medium, Priority.Low].map((p) => (
+            <NeonButton
+              key={p}
+              variant={filterPriority === p ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilterPriority(filterPriority === p ? null : p)}
+              className={cn(
+                "h-8 text-xs font-medium border transition-colors",
+                filterPriority !== p && "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              )}
+              glow={filterPriority === p}
+            >
+              {p} Priority
+            </NeonButton>
+          ))}
 
-        {/* Subject Chips (Scrollable if many) */}
-        {subjects.map((s) => (
-          <NeonButton
-            key={s.id}
-            variant="ghost"
-            size="sm"
-            onClick={() => toggleSubjectFilter(s.id)}
-            className={cn(
-              "h-8 text-xs font-medium border transition-colors whitespace-nowrap",
-              filterSubject.includes(s.id)
-                ? "bg-primary/10 text-foreground border-primary/30 dark:bg-white/20 dark:text-white dark:border-white/30"
-                : "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-            )}
-            style={{
-              borderColor: filterSubject.includes(s.id) ? `var(--${s.color})` : undefined,
-              backgroundColor: filterSubject.includes(s.id) ? `color-mix(in srgb, var(--${s.color}) 20%, transparent)` : undefined
-            }}
-          >
-            {s.name}
-          </NeonButton>
-        ))}
+          <div className="w-px h-6 bg-border mx-1" />
 
-        {activeFilterCount > 0 && (
-          <NeonButton
-            variant="ghost"
-            size="sm"
-            onClick={() => { setFilterSubject([]); setFilterPriority(null); setFilterStatus(null); }}
-            className="ml-auto h-7 px-2 text-xs hover:text-destructive text-muted-foreground"
-          >
-            <X className="h-3 w-3 mr-1" /> Clear
-          </NeonButton>
-        )}
+          {/* Subject Chips (Scrollable if many) */}
+          {subjects.map((s) => (
+            <NeonButton
+              key={s.id}
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleSubjectFilter(s.id)}
+              className={cn(
+                "h-8 text-xs font-medium border transition-colors whitespace-nowrap",
+                filterSubject.includes(s.id)
+                  ? "bg-primary/10 text-foreground border-primary/30 dark:bg-white/20 dark:text-white dark:border-white/30"
+                  : "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              )}
+              style={{
+                borderColor: filterSubject.includes(s.id) ? `var(--${s.color})` : undefined,
+                backgroundColor: filterSubject.includes(s.id) ? `color-mix(in srgb, var(--${s.color}) 20%, transparent)` : undefined
+              }}
+            >
+              {s.name}
+            </NeonButton>
+          ))}
+
+          {activeFilterCount > 0 && (
+            <NeonButton
+              variant="ghost"
+              size="sm"
+              onClick={() => { setFilterSubject([]); setFilterPriority(null); setFilterStatus(null); }}
+              className="ml-auto h-7 px-2 text-xs hover:text-destructive text-muted-foreground"
+            >
+              <X className="h-3 w-3 mr-1" /> Clear
+            </NeonButton>
+          )}
+          </div>
+        </ScrollIndicator>
       </GlassCard>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden min-h-0">
+      <div className="flex-1 min-h-0">
         {viewMode === 'list' ? (
-          <GlassCard className="rounded-xl shadow-sm overflow-hidden h-full flex flex-col p-1">
-            <Table>
-              <TableHeader className="bg-muted/30 dark:bg-white/5">
-                <TableRow className="hover:bg-transparent border-white/5">
-                  <TableHead className="w-[140px] text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground">Title</TableHead>
-                  <TableHead className="text-muted-foreground">Subject</TableHead>
-                  <TableHead className="text-muted-foreground">Priority</TableHead>
-                  <TableHead className="text-muted-foreground">Due Date</TableHead>
-                  <TableHead className="text-right text-muted-foreground">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {filtered.map((assignment) => {
-                    const subject = getSubject(assignment.subjectId);
-                    const isCompleted = assignment.status === Status.Completed;
-                    return (
-                      <motion.tr
-                        key={assignment.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
-                        transition={{ duration: 0.2 }}
-                        className={cn(
-                          "border-b border-border dark:border-white/5 transition-colors hover:bg-muted/30 dark:hover:bg-white/5 group cursor-pointer",
-                          isCompleted && "opacity-60 hover:opacity-100"
-                        )}
-                        onClick={() => setViewingAssignment(assignment)}
-                      >
-                        <TableCell>
-                          <div className={cn(
-                            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border",
-                            isCompleted ? "bg-green-500/10 text-green-400 border-green-900/50" :
-                              assignment.status === Status.InProgress ? "bg-blue-500/10 text-blue-400 border-blue-900/50" :
-                                "bg-amber-500/10 text-amber-400 border-amber-900/50"
-                          )}>
-                            {isCompleted ? <CheckCircle className="h-3 w-3" /> :
-                              assignment.status === Status.InProgress ? <Clock className="h-3 w-3" /> :
-                                <AlertCircle className="h-3 w-3" />}
-                            {assignment.status}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium text-sm text-foreground">
-                          <span className={cn(isCompleted && "line-through text-muted-foreground")}>{assignment.title}</span>
-                        </TableCell>
-                        <TableCell>
-                          {subject && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-white/10 text-white/80 border border-white/5">
-                              {subject.name}
-                            </span>
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 overflow-y-auto h-full custom-scrollbar px-1 pb-20">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {filtered.map((assignment, index) => {
+                  const subject = getSubject(assignment.subjectId);
+                  return (
+                    <AssignmentMobileCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      subject={subject}
+                      onClick={() => setViewingAssignment(assignment)}
+                      onEdit={() => setEditingAssignment(assignment)}
+                      onDelete={() => setDeletingAssignment(assignment)}
+                      index={index}
+                    />
+                  );
+                })}
+              </AnimatePresence>
+              {filtered.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                  <p className="text-sm">No assignments found</p>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <GlassCard className="hidden md:flex rounded-xl shadow-sm overflow-y-auto h-full flex-col p-1">
+              <Table>
+                <TableHeader className="bg-muted/30 dark:bg-white/5">
+                  <TableRow className="hover:bg-transparent border-white/5">
+                    <TableHead className="w-[140px] text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Title</TableHead>
+                    <TableHead className="text-muted-foreground">Subject</TableHead>
+                    <TableHead className="text-muted-foreground">Priority</TableHead>
+                    <TableHead className="text-muted-foreground">Due Date</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {filtered.map((assignment) => {
+                      const subject = getSubject(assignment.subjectId);
+                      const isCompleted = assignment.status === Status.Completed;
+                      return (
+                        <motion.tr
+                          key={assignment.id}
+                          layout
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
+                          transition={{ duration: 0.2 }}
+                          className={cn(
+                            "border-b border-border dark:border-white/5 transition-colors hover:bg-muted/30 dark:hover:bg-white/5 group cursor-pointer",
+                            isCompleted && "opacity-60 hover:opacity-100"
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <div className={cn("h-2 w-2 rounded-full",
-                              assignment.priority === Priority.High ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
-                                assignment.priority === Priority.Medium ? "bg-amber-500" : "bg-slate-400"
-                            )} />
-                            <span className="text-xs text-muted-foreground">{assignment.priority}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={cn("text-sm",
-                            new Date(assignment.dueDate) < new Date() && !isCompleted ? "text-destructive font-bold" : "text-muted-foreground"
-                          )}>
-                            {formatShortDate(assignment.dueDate)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
-                              onClick={(e) => { e.stopPropagation(); setEditingAssignment(assignment); }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                              onClick={(e) => { e.stopPropagation(); setDeletingAssignment(assignment); }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </motion.tr>
-                    );
-                  })}
-                </AnimatePresence>
-              </TableBody>
-            </Table>
-          </GlassCard>
+                          onClick={() => setViewingAssignment(assignment)}
+                        >
+                          <TableCell>
+                            <div className={cn(
+                              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border",
+                              isCompleted ? "bg-green-500/10 text-green-400 border-green-900/50" :
+                                assignment.status === Status.InProgress ? "bg-blue-500/10 text-blue-400 border-blue-900/50" :
+                                  "bg-amber-500/10 text-amber-400 border-amber-900/50"
+                            )}>
+                              {isCompleted ? <CheckCircle className="h-3 w-3" /> :
+                                assignment.status === Status.InProgress ? <Clock className="h-3 w-3" /> :
+                                  <AlertCircle className="h-3 w-3" />}
+                              {assignment.status}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium text-sm text-foreground">
+                            <span className={cn(isCompleted && "line-through text-muted-foreground")}>{assignment.title}</span>
+                          </TableCell>
+                          <TableCell>
+                            {subject && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-muted/50 text-foreground border border-border dark:bg-white/10 dark:text-white/80 dark:border-white/5">
+                                {subject.name}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <div className={cn("h-2 w-2 rounded-full",
+                                assignment.priority === Priority.High ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
+                                  assignment.priority === Priority.Medium ? "bg-amber-500" : "bg-slate-400"
+                              )} />
+                              <span className="text-xs text-muted-foreground">{assignment.priority}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className={cn("text-sm",
+                              new Date(assignment.dueDate) < new Date() && !isCompleted ? "text-destructive font-bold" : "text-muted-foreground"
+                            )}>
+                              {new Date(assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
+                                onClick={(e) => { e.stopPropagation(); setEditingAssignment(assignment); }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => { e.stopPropagation(); setDeletingAssignment(assignment); }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+            </GlassCard>
+          </>
         ) : (
           <KanbanBoard
             assignments={filtered}

@@ -4,10 +4,13 @@ import { useApp } from '../context';
 import { NeonButton } from '../components/ui/NeonButton';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
-import { Bell, LogOut, User, Shield } from 'lucide-react';
+import { Bell, LogOut, User, Shield, Loader2 } from 'lucide-react';
 import AvatarUpload from '../components/AvatarUpload';
 import { cn } from '../utils/cn';
-import { formatLocaleDateShort } from '../utils/date';
+import DailyReminderSettings from '../components/settings/DailyReminderSettings';
+import WeeklyDigestSettings from '../components/settings/WeeklyDigestSettings';
+import type { DailyReminderSettings as DailyReminderSettingsType, WeeklyDigestSettings as WeeklyDigestSettingsType } from '../types';
+import { generateTelegramLinkUrl } from '../utils/telegramLinkToken';
 
 const Settings = () => {
   const { user, logout, updateUserProfile } = useApp();
@@ -17,6 +20,7 @@ const Settings = () => {
   const [major, setMajor] = useState(user?.major || '');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [telegramLinkLoading, setTelegramLinkLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -43,6 +47,37 @@ const Settings = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const formatLinkedDate = (dateString: string | null) => {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const handleSaveDailyReminder = async (settings: DailyReminderSettingsType) => {
+    await updateUserProfile({ dailyReminder: settings });
+  };
+
+  const handleSaveWeeklyDigest = async (settings: WeeklyDigestSettingsType) => {
+    await updateUserProfile({ weeklyDigest: settings });
+  };
+
+  const handleConnectTelegram = async () => {
+    if (!user?.uid) return;
+
+    setTelegramLinkLoading(true);
+    try {
+      const url = await generateTelegramLinkUrl(user.uid);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Failed to generate Telegram link:', error);
+    } finally {
+      setTelegramLinkLoading(false);
+    }
   };
 
   return (
@@ -150,7 +185,7 @@ const Settings = () => {
               )}
               {user?.telegramLinked && user?.telegramLinkedAt && (
                 <span className="text-sm text-muted-foreground">
-                  since {formatLocaleDateShort(user.telegramLinkedAt)}
+                  since {formatLinkedDate(user.telegramLinkedAt)}
                 </span>
               )}
             </div>
@@ -162,11 +197,39 @@ const Settings = () => {
                   "gap-2 rounded-2xl border-border/60 hover:border-primary/40 hover:bg-primary/5",
                   !user?.telegramLinked && "border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
                 )}
-                onClick={() => window.open(`https://t.me/UniAssignmentBot?start=${user?.uid}`, '_blank')}
+                onClick={handleConnectTelegram}
+                disabled={telegramLinkLoading}
               >
-                <Bell className="h-4 w-4" />
+                {telegramLinkLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Bell className="h-4 w-4" />
+                )}
                 {user?.telegramLinked ? 'Open Telegram Bot' : 'Connect Telegram'}
               </NeonButton>
+            </div>
+
+            {/* Scheduled Notifications */}
+            <div className="border-t border-border/40 pt-6 mt-6 space-y-6">
+              <h3 className="text-lg font-semibold text-foreground">Scheduled Notifications</h3>
+
+              {/* Daily Morning Reminder */}
+              <div className="bg-background/50 border border-border/40 rounded-2xl p-5">
+                <DailyReminderSettings
+                  settings={user?.dailyReminder}
+                  onSave={handleSaveDailyReminder}
+                  telegramLinked={user?.telegramLinked ?? false}
+                />
+              </div>
+
+              {/* Weekly Digest */}
+              <div className="bg-background/50 border border-border/40 rounded-2xl p-5">
+                <WeeklyDigestSettings
+                  settings={user?.weeklyDigest}
+                  onSave={handleSaveWeeklyDigest}
+                  telegramLinked={user?.telegramLinked ?? false}
+                />
+              </div>
             </div>
           </div>
         </div>

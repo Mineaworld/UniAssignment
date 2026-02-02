@@ -20,7 +20,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
     return (
         <img
             src="/logo.png"
-            alt="Uni Assignment Logo"
+            alt="UniAssignment Logo"
             className={`${sizeClasses[size]} rounded-2xl shadow-lg object-cover ${className}`}
         />
     );

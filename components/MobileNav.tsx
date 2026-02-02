@@ -1,18 +1,26 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { AnimatedThemeToggler } from './ui/animated-theme-toggler';
 
 const MobileNav = () => {
   const links = [
-    { name: 'Home', icon: 'dashboard', path: '/' },
-    { name: 'Tasks', icon: 'assignment', path: '/assignments' },
-    { name: 'Calendar', icon: 'calendar_month', path: '/calendar' },
-    { name: 'Subjects', icon: 'book', path: '/subjects' },
-    { name: 'Settings', icon: 'settings', path: '/settings' },
+    { name: 'Home', icon: 'dashboard', path: '/dashboard' },
+    { name: 'Tasks', icon: 'assignment', path: '/dashboard/assignments' },
+    { name: 'Calendar', icon: 'calendar_month', path: '/dashboard/calendar' },
+    { name: 'Subjects', icon: 'book', path: '/dashboard/subjects' },
+    { name: 'Settings', icon: 'settings', path: '/dashboard/settings' },
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#101622] border-t border-gray-200 dark:border-white/10 px-6 py-2 z-40 pb-safe">
+    <>
+      {/* Mobile Theme Toggle */}
+      <div className="md:hidden fixed top-4 right-4 z-50">
+        <AnimatedThemeToggler className="h-10 w-10 bg-white/5 border border-white/10 hover:bg-white/10 dark:bg-white/5 dark:border-white/10" />
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#101622] border-t border-gray-200 dark:border-white/10 px-6 py-2 z-40 pb-safe">
       <nav className="flex justify-between items-center">
         {links.map((link) => (
           <NavLink
@@ -20,8 +28,8 @@ const MobileNav = () => {
             to={link.path}
             className={({ isActive }) => `
               relative flex flex-col items-center gap-1 p-2 rounded-lg transition-colors
-              ${isActive 
-                ? 'text-primary' 
+              ${isActive
+                ? 'text-primary'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }
             `}
@@ -46,7 +54,8 @@ const MobileNav = () => {
           </NavLink>
         ))}
       </nav>
-    </div>
+      </div>
+    </>
   );
 };
 
