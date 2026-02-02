@@ -1,39 +1,134 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import SpotlightHero from '../components/landing/SpotlightHero';
 import ProductShowcase from '../components/landing/ProductShowcase';
 import BenefitsGrid from '../components/landing/BenefitsGrid';
 import FeatureTabs from '../components/landing/FeatureTabs';
 import { TestimonialsSection as TestimonialsMarquee } from '../components/landing/TestimonialsMarquee';
-import Pricing from '../components/landing/Pricing';
 import SiteFooter from '../components/landing/SiteFooter';
 import { Button } from '../components/ui/Button';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
-import { ThemeToggle } from '../components/ui/ThemeToggle';
+import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
+import { useScroll } from '../components/ui/use-scroll';
+import { MenuToggleIcon } from '../components/ui/MenuToggleIcon';
+import { cn } from '../utils/cn';
 
 const LandingPage = () => {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const scrolled = useScroll(10);
+
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [mobileMenuOpen]);
+    const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+        e.preventDefault();
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (sectionId === 'hero') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
         <div className="min-h-screen bg-background text-foreground relative selection:bg-primary/30">
 
-            {/* Sticky Navbar */}
-            <header className="fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <a href="#" className="font-bold text-xl tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <img src="/favicon.png" alt="Logo" className="h-8 w-8 object-contain" />
+            {/* Sticky Navbar with scroll animation */}
+            <header
+                className={cn(
+                    'sticky top-0 z-50 mx-auto w-full max-w-5xl border border-transparent md:rounded-xl md:transition-all md:duration-300 md:ease-out',
+                    scrolled && !mobileMenuOpen
+                        ? 'bg-background/95 supports-[backdrop-filter]:bg-background/50 border-border backdrop-blur-lg md:top-4 md:max-w-4xl md:shadow-lg'
+                        : 'bg-transparent',
+                    mobileMenuOpen && 'bg-background/90'
+                )}
+            >
+                <nav
+                    className={cn(
+                        'flex w-full items-center justify-between md:transition-all md:duration-300 md:ease-out',
+                        scrolled ? 'h-12 px-3' : 'h-16 px-4'
+                    )}
+                >
+                    <a href="#" onClick={scrollToTop} className="font-bold text-xl tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity">
+                        <img src="/favicon.png" alt="Logo" width={32} height={32} className="h-6 w-6 object-contain" />
                         UniAssignment
                     </a>
 
-                    <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-                        <a href="#features" className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm">Features</a>
-                        <a href="#testimonials" className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm">Testimonials</a>
-                        <a href="#pricing" className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm">Pricing</a>
-                    </nav>
+                    <div className="hidden md:flex items-center gap-2">
+                        <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">Features</a>
+                        <a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">Testimonials</a>
+                        <Button variant="outline" size="sm" asChild>
+                            <a href="/login">Sign In</a>
+                        </Button>
+                        <Button size="sm" asChild>
+                            <a href="/signup">Get Started</a>
+                        </Button>
+                    </div>
 
-                    <div className="flex items-center gap-4">
-                        <ThemeToggle />
-                        <a href="/login" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">Sign In</a>
-                        <a href="/signup">
-                            <Button size="sm" className="rounded-full">Get Started</Button>
-                        </a>
+                    {/* Mobile menu toggle */}
+                    <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="md:hidden"
+                        aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                        aria-expanded={mobileMenuOpen}
+                    >
+                        <MenuToggleIcon open={mobileMenuOpen} className="size-5" duration={300} />
+                    </Button>
+                </nav>
+
+                {/* Mobile menu overlay */}
+                <div
+                    className={cn(
+                        'bg-background/90 fixed top-14 right-0 bottom-0 left-0 z-50 flex flex-col overflow-hidden border-y md:hidden',
+                        mobileMenuOpen ? 'block' : 'hidden'
+                    )}
+                >
+                    <div
+                        data-slot={mobileMenuOpen ? 'open' : 'closed'}
+                        className={cn(
+                            'data-[slot=open]:animate-in data-[slot=open]:zoom-in-95',
+                            'data-[slot=closed]:animate-out data-[slot=closed]:zoom-out-95',
+                            'ease-out flex h-full w-full flex-col justify-between gap-y-2 p-4'
+                        )}
+                    >
+                        <div className="grid gap-y-2">
+                            <a
+                                href="#features"
+                                onClick={(e) => { scrollToSection(e, 'features'); setMobileMenuOpen(false); }}
+                                className="flex items-center justify-start px-4 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                            >
+                                Features
+                            </a>
+                            <a
+                                href="#testimonials"
+                                onClick={(e) => { scrollToSection(e, 'testimonials'); setMobileMenuOpen(false); }}
+                                className="flex items-center justify-start px-4 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                            >
+                                Testimonials
+                            </a>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Button variant="outline" className="w-full" asChild>
+                                <a href="/login">Sign In</a>
+                            </Button>
+                            <Button className="w-full" asChild>
+                                <a href="/signup">Get Started</a>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -58,11 +153,11 @@ const LandingPage = () => {
                 <div id="testimonials">
                     <ScrollReveal>
                         <TestimonialsMarquee
-                            title="Proven by high achievers"
-                            description="Join thousands of students who have elevated their academic performance."
+                            title="Students like you use it daily"
+                            description="Here's what they say."
                             testimonials={[
                                 {
-                                    text: "Honestly, I used to miss deadlines just because my old system was so messy. This app is the first one that doesn't feel like a chore. The dark mode is perfect for my coding all-nighters.",
+                                    text: "I used to miss deadlines because my notes were everywhere. This app is the first one that doesn't feel like extra work. Dark mode is perfect for late-night coding.",
                                     author: {
                                         name: "Sok Piseth",
                                         handle: "CS Student, RUPP",
@@ -70,7 +165,7 @@ const LandingPage = () => {
                                     }
                                 },
                                 {
-                                    text: "Med school is chaotic. I was juggling so many PDFs and schedules that I felt like I was drowning. Having everything synced in one place is literally a lifesaver. I can actually see my free time now.",
+                                    text: "Med school is chaos. I had PDFs and schedules all over the place. Now everything is in one spot and I can actually see my free time.",
                                     author: {
                                         name: "Ly Sophea",
                                         handle: "General Medicine, UHS",
@@ -78,7 +173,7 @@ const LandingPage = () => {
                                     }
                                 },
                                 {
-                                    text: "Most apps are too complicated. I just needed something to list my readings and group projects without spending hours setting it up. This is clean, fast, and exactly what I needed.",
+                                    text: "Most apps are too complicated. I just need to list readings and group work without spending hours setting it up. This one is clean and fast.",
                                     author: {
                                         name: "Chan Vuthy",
                                         handle: "Law Student, RULE",
@@ -86,7 +181,7 @@ const LandingPage = () => {
                                     }
                                 },
                                 {
-                                    text: "I'm a visual learner, so boring spreadsheets just don't work for me. The Kanban board here is unmatched. Dragging my 'done' assignments over is the most satisfying feeling ever.",
+                                    text: "I'm a visual learner, so spreadsheets never worked for me. The Kanban board here feels right. Moving a task to Done is so satisfying.",
                                     author: {
                                         name: "Keo Bopha",
                                         handle: "Design, Limkokwing",
@@ -94,7 +189,7 @@ const LandingPage = () => {
                                     }
                                 },
                                 {
-                                    text: "It doesn't lag. That's huge for me. Whether I'm on my phone or laptop, it's instant. It's become essential for keeping track of all my lab reports and project due dates.",
+                                    text: "It doesn't lag, which is huge for me. Phone or laptop, it opens fast. I use it to track all my lab reports and project due dates.",
                                     author: {
                                         name: "Chea Rithy",
                                         handle: "Engineering, ITC",
@@ -102,7 +197,7 @@ const LandingPage = () => {
                                     }
                                 },
                                 {
-                                    text: "I tried using Notion templates but they took too long to customize. UniAssignment worked perfectly out of the box. Really helps me balance my studies and my part-time job.",
+                                    text: "I tried Notion templates but they took too long to set up. UniAssignment just worked right away. It helps me balance study and my part-time job.",
                                     author: {
                                         name: "Meng Vanna",
                                         handle: "Finance, CamEd",
@@ -114,12 +209,6 @@ const LandingPage = () => {
                     </ScrollReveal>
                 </div>
 
-                <div id="pricing">
-                    <ScrollReveal>
-                        <Pricing />
-                    </ScrollReveal>
-                </div>
-
                 {/* CTA Section */}
                 <section className="py-24 relative overflow-hidden">
                     <div className="absolute inset-0 bg-primary/5" />
@@ -128,14 +217,14 @@ const LandingPage = () => {
                     <ScrollReveal>
                         <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
                             <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-8">
-                                Ready to master your <br /> academic universe?
+                                Ready to stop <br /> missing deadlines?
                             </h2>
                             <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-                                Join thousands of students who have already switched to the most intuitive workspace built for higher education.
+                                Join 100+ students who track their assignments with UniAssignment.
                             </p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                                 <a href="/signup">
-                                    <Button size="lg" className="rounded-full px-8 text-lg shadow-xl shadow-primary/25">Start for Free</Button>
+                                    <Button size="lg" className="rounded-full px-8 text-lg shadow-xl shadow-primary/25">Try It Free</Button>
                                 </a>
                                 <Button
                                     variant="outline"
@@ -143,7 +232,7 @@ const LandingPage = () => {
                                     className="rounded-full px-8 text-lg bg-background/50 backdrop-blur-sm"
                                     onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                                 >
-                                    View Demo
+                                    Watch Demo
                                 </Button>
                             </div>
                         </div>
