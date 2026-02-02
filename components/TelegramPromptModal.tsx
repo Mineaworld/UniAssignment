@@ -18,6 +18,25 @@ const TelegramPromptModal: React.FC<TelegramPromptModalProps> = ({ isOpen, onClo
     onClose('remind'); // Backdrop click = remind me later
   };
 
+  // Handle escape key
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose('remind');
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
   return ReactDOM.createPortal(
     <AnimatePresence>
       {isOpen && (

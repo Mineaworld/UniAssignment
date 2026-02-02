@@ -16,6 +16,7 @@ import {
   CheckCircle, AlertCircle, TrendingUp, MoreHorizontal
 } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { formatDateWithWeekday } from '../utils/date';
 
 // Wrapper to delay chart rendering until container is mounted
 const DelayedChart = ({ children, delay = 100 }: { children: React.ReactNode; delay?: number }) => {
@@ -221,7 +222,7 @@ const Dashboard = () => {
                           {daysLeft} days left
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                          {new Date(item.dueDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                          {formatDateWithWeekday(item.dueDate)}
                         </p>
                       </div>
                     </div>

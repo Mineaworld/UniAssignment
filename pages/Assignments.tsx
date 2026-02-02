@@ -14,6 +14,7 @@ import { Input } from '../components/ui/Input';
 import { Search, Plus, Filter, X, CheckCircle, Clock, AlertCircle, Trash2, Edit, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { formatShortDate } from '../utils/date';
 
 const Assignments = () => {
   const { assignments, subjects, updateAssignment, deleteAssignment } = useApp();
@@ -284,7 +285,7 @@ const Assignments = () => {
                           <span className={cn("text-sm",
                             new Date(assignment.dueDate) < new Date() && !isCompleted ? "text-destructive font-bold" : "text-muted-foreground"
                           )}>
-                            {new Date(assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            {formatShortDate(assignment.dueDate)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">

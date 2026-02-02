@@ -7,6 +7,7 @@ import { Label } from '../components/ui/Label';
 import { Bell, LogOut, User, Shield } from 'lucide-react';
 import AvatarUpload from '../components/AvatarUpload';
 import { cn } from '../utils/cn';
+import { formatLocaleDateShort } from '../utils/date';
 
 const Settings = () => {
   const { user, logout, updateUserProfile } = useApp();
@@ -42,15 +43,6 @@ const Settings = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const formatLinkedDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
   };
 
   return (
@@ -158,7 +150,7 @@ const Settings = () => {
               )}
               {user?.telegramLinked && user?.telegramLinkedAt && (
                 <span className="text-sm text-muted-foreground">
-                  since {formatLinkedDate(user.telegramLinkedAt)}
+                  since {formatLocaleDateShort(user.telegramLinkedAt)}
                 </span>
               )}
             </div>

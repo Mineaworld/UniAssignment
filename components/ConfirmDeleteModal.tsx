@@ -1,6 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from './ui/Modal';
 
 interface ConfirmDeleteModalProps {
     isOpen: boolean;
@@ -25,24 +24,9 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         onConfirm();
     };
 
-    return ReactDOM.createPortal(
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm transition-opacity duration-300"
-                    />
-                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="pointer-events-auto relative w-full max-w-md bg-white dark:bg-[#101622] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden"
-                        >
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} size="sm">
+            <>
                             {/* Header with Warning Icon */}
                             <div className="p-6 pb-0 flex flex-col items-center text-center">
                                 <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mb-4">
@@ -102,12 +86,8 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
                                     )}
                                 </button>
                             </div>
-                        </motion.div>
-                    </div>
-                </>
-            )}
-        </AnimatePresence>,
-        document.body
+            </>
+        </Modal>
     );
 };
 

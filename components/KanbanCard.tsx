@@ -5,6 +5,7 @@ import { Assignment, Priority, Status } from '../types';
 import { Card } from './ui/Card';
 import { cn } from '../utils/cn';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { formatShortDate } from '../utils/date';
 
 interface KanbanCardProps {
     assignment: Assignment;
@@ -58,7 +59,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ assignment, onClick }) =
                     </h4>
 
                     <div className="flex justify-between items-center text-[10px] text-muted-foreground mt-1">
-                        <span>{new Date(assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <span>{formatShortDate(assignment.dueDate)}</span>
                         {isCompleted ? <CheckCircle className="h-3 w-3 text-green-500" /> :
                             assignment.status === Status.InProgress ? <Clock className="h-3 w-3 text-blue-500" /> :
                                 <AlertCircle className="h-3 w-3 text-amber-500" />}

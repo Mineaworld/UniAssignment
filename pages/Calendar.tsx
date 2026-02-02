@@ -5,6 +5,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { NeonButton } from '../components/ui/NeonButton';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { formatToISO } from '../utils/date';
 
 const Calendar = () => {
   const { assignments, subjects } = useApp();
@@ -16,10 +17,6 @@ const Calendar = () => {
 
   const getFirstDayOfMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
   };
 
   const nextMonth = () => {
@@ -83,7 +80,7 @@ const Calendar = () => {
           {/* Actual Days */}
           {days.map(day => {
             const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-            const dateString = formatDate(date);
+            const dateString = formatToISO(date);
             const dayAssignments = assignments.filter(a => a.dueDate.startsWith(dateString));
             const isToday = today.toDateString() === date.toDateString();
 
