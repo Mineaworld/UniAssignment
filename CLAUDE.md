@@ -276,3 +276,8 @@ History rewrites (`git-filter-repo`, `git rebase -i`) should be **last resort** 
 2. Run `npm run build` locally before pushing
 3. Verify base branch (`main`) has all required files
 4. Check `.env.example` is up to date with new env vars
+5. **Update documentation in `docs/` folder** before committing:
+   - Update `docs/Changelog.md` with changes made
+   - Update `docs/Architecture.md` if architecture changed
+   - Update `docs/ProjectStatus.md` to reflect current status
+   - Documentation must be updated alongside code changes in the same commit
