@@ -318,7 +318,7 @@ const Assignments = () => {
                           </TableCell>
                           <TableCell>
                             {subject && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-white/10 text-white/80 border border-white/5">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-muted/50 text-foreground border border-border dark:bg-white/10 dark:text-white/80 dark:border-white/5">
                                 {subject.name}
                               </span>
                             )}
