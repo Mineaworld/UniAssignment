@@ -34,7 +34,7 @@ const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose
       return;
     }
     const isDuplicate = subjects.some(
-      (subject) => subject.name.toLowerCase() === trimmedName.toLowerCase()
+      (subject) => subject.name.trim().toLowerCase() === trimmedName.toLowerCase()
     );
 
     if (isDuplicate) {
