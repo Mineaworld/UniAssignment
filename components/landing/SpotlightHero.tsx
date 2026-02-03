@@ -49,7 +49,6 @@ const SpotlightHero = () => {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
   const { theme } = useApp();
-  const themePath = theme === "dark" ? "dark" : "light";
 
   // Spotlight mouse position - using useMotionValue to avoid re-renders
   const mouseX = useMotionValue(0);
