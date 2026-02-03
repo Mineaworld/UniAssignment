@@ -1,51 +1,39 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useRef, useCallback } from "react"
 import { flushSync } from "react-dom"
 import { Moon, Sun } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "../../utils/cn"
+import { useApp } from "../../context"
 
 type AnimatedThemeTogglerProps = {
   className?: string
 }
 
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (callback: () => void) => { ready: Promise<void> }
+}
+
 export const AnimatedThemeToggler = ({ className }: AnimatedThemeTogglerProps) => {
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const [darkMode, setDarkMode] = useState(() => 
-    typeof window !== "undefined" ? document.documentElement.classList.contains("dark") : false
-  )
-
-  useEffect(() => {
-    const syncTheme = () => setDarkMode(document.documentElement.classList.contains("dark"))
-    const observer = new MutationObserver(syncTheme)
-    
-    observer.observe(document.documentElement, { 
-      attributes: true, 
-      attributeFilter: ["class"],
-    })
-    
-    return () => observer.disconnect()
-  }, [])
+  const { theme, toggleTheme } = useApp()
+  const darkMode = theme === "dark"
 
   const onToggle = useCallback(async () => {
     if (!buttonRef.current) return
 
+    const vtDocument = document as ViewTransitionDocument
+
     // Fallback for browsers without View Transitions support
-    if (!document.startViewTransition) {
-      const toggled = !darkMode
-      setDarkMode(toggled)
-      document.documentElement.classList.toggle("dark", toggled)
-      localStorage.setItem("uni_theme", toggled ? "dark" : "light")
+    if (!vtDocument.startViewTransition) {
+      toggleTheme()
       return
     }
 
-    await document.startViewTransition(() => {
+    await vtDocument.startViewTransition(() => {
       flushSync(() => {
-        const toggled = !darkMode
-        setDarkMode(toggled)
-        document.documentElement.classList.toggle("dark", toggled)
-        localStorage.setItem("uni_theme", toggled ? "dark" : "light")
+        toggleTheme()
       })
     }).ready
 
@@ -71,7 +59,7 @@ export const AnimatedThemeToggler = ({ className }: AnimatedThemeTogglerProps) =
         pseudoElement: "::view-transition-new(root)",
       }
     )
-  }, [darkMode])
+  }, [toggleTheme])
 
   return (
     <button

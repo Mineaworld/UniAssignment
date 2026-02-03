@@ -14,7 +14,7 @@ const SiteFooter = () => {
                             UniAssignment
                         </a>
                         <p className="text-muted-foreground text-sm leading-relaxed">
-                            The intelligent workspace crafted for students who value focus, aesthetics, and performance.
+                            Assignment tracking for students. Simple. Fast. Free to start.
                         </p>
                         <div className="flex gap-4">
                             <button aria-label="Follow us on Twitter" className="p-2 rounded-full bg-secondary hover:bg-primary hover:text-white transition-colors">
@@ -51,9 +51,9 @@ const SiteFooter = () => {
                     <div>
                         <h4 className="font-bold mb-6">Stay Updated</h4>
                         <div className="flex gap-2">
-                            <Input placeholder="Enter your email" className="rounded-full bg-secondary/50 border-transparent focus:bg-background" />
-                            <Button size="icon" className="rounded-full shrink-0">
-                                <ArrowRightIcon className="w-4 h-4" />
+                            <Input placeholder="Enter your email…" aria-label="Email address" className="rounded-full bg-secondary/50 border-transparent focus:bg-background" />
+                            <Button size="icon" className="rounded-full shrink-0" aria-label="Subscribe">
+                                <ArrowRightIcon className="w-4 h-4" aria-hidden="true" />
                             </Button>
                         </div>
                     </div>
@@ -62,7 +62,7 @@ const SiteFooter = () => {
                 <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
                     <p>© {new Date().getFullYear()} UniAssignment Inc. All rights reserved.</p>
                     <p className="flex items-center gap-1">
-                        Made with <Heart className="w-3 h-3 text-red-500 fill-red-500" /> by Students, for Students.
+                        Made with <Heart className="w-3 h-3 text-red-500 fill-red-500" aria-hidden="true" /> by Students, for Students.
                     </p>
                 </div>
             </div>

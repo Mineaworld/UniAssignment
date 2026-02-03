@@ -482,9 +482,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (updates.dueDate !== undefined || updates.reminder !== undefined) {
       if (updates.reminder && updates.reminder.enabled) {
         // Clear sentAt so the reminder can trigger again
-        updates.reminder = {
-          ...updates.reminder,
-          sentAt: undefined,
+        updates = {
+          ...updates,
+          reminder: {
+            ...updates.reminder,
+            sentAt: undefined,
+          },
         };
       }
     }
