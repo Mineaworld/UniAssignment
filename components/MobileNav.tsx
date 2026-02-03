@@ -14,7 +14,7 @@ const MobileNav = () => {
   return (
     <>
       {/* Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#101622] border-t border-gray-200 dark:border-white/10 px-6 py-2 z-40 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#101622] border-t border-gray-200 dark:border-white/10 px-6 py-2 z-40 safe-area-bottom">
       <nav className="flex justify-between items-center">
         {links.map((link) => (
           <NavLink
