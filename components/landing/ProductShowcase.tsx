@@ -14,7 +14,7 @@ const ProductShowcase = () => {
           </h2>
           <p className="text-xl text-muted-foreground">
             Assignments, due dates, and progress all in one place. No more
-            digging through emails or syllabi
+            digging through emails or syllabi.
           </p>
         </div>
 

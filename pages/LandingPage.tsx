@@ -27,6 +27,17 @@ const LandingPage = () => {
             document.body.style.overflow = '';
         };
     }, [mobileMenuOpen]);
+
+    // Close mobile menu on ESC key
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && mobileMenuOpen) {
+                setMobileMenuOpen(false);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [mobileMenuOpen]);
     const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
         e.preventDefault();
         const element = document.getElementById(sectionId);
@@ -94,8 +105,8 @@ const LandingPage = () => {
                 {/* Mobile menu overlay */}
                 <div
                     className={cn(
-                        'bg-background/90 fixed top-14 right-0 bottom-0 left-0 z-50 flex flex-col overflow-hidden border-y md:hidden',
-                        mobileMenuOpen ? 'block' : 'hidden'
+                        'bg-background/90 fixed top-14 right-0 bottom-0 left-0 z-50 flex-col overflow-hidden border-y md:hidden',
+                        mobileMenuOpen ? 'flex' : 'hidden'
                     )}
                 >
                     <div
