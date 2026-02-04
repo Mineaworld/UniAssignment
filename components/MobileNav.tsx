@@ -1,7 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AnimatedThemeToggler } from './ui/AnimatedThemeToggler';
 
 const MobileNav = () => {
   const links = [
@@ -14,13 +13,8 @@ const MobileNav = () => {
 
   return (
     <>
-      {/* Mobile Theme Toggle */}
-      <div className="md:hidden fixed top-4 right-4 z-50">
-        <AnimatedThemeToggler className="h-10 w-10 bg-white/5 border border-white/10 hover:bg-white/10 dark:bg-white/5 dark:border-white/10" />
-      </div>
-
       {/* Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#101622] border-t border-gray-200 dark:border-white/10 px-6 py-2 z-40 pb-safe">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-[#101622] border-t border-gray-200 dark:border-white/10 px-6 py-2 z-40 safe-area-bottom">
       <nav className="flex justify-between items-center">
         {links.map((link) => (
           <NavLink

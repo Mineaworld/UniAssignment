@@ -11,6 +11,7 @@ import DailyReminderSettings from '../components/settings/DailyReminderSettings'
 import WeeklyDigestSettings from '../components/settings/WeeklyDigestSettings';
 import type { DailyReminderSettings as DailyReminderSettingsType, WeeklyDigestSettings as WeeklyDigestSettingsType } from '../types';
 import { generateTelegramLinkUrl } from '../utils/telegramLinkToken';
+import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 
 const Settings = () => {
   const { user, logout, updateUserProfile } = useApp();
@@ -82,9 +83,12 @@ const Settings = () => {
 
   return (
     <div className="flex-1 w-full max-w-4xl mx-auto p-6 md:p-8 space-y-10">
-      <div>
-        <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary tracking-tight">Settings</h1>
-        <p className="text-muted-foreground text-base mt-2">Manage your account and preferences.</p>
+      <div className="flex items-start justify-between pt-4 md:pt-0">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary tracking-tight">Settings</h1>
+          <p className="text-muted-foreground text-base mt-2">Manage your account and preferences.</p>
+        </div>
+        <AnimatedThemeToggler className="md:hidden h-10 w-10 bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 rounded-xl shrink-0" />
       </div>
 
       <div className="grid gap-8">

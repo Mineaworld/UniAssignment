@@ -16,6 +16,7 @@ import {
   CheckCircle, AlertCircle, TrendingUp, MoreHorizontal
 } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 
 // Wrapper to delay chart rendering until container is mounted
 const DelayedChart = ({ children, delay = 100 }: { children: React.ReactNode; delay?: number }) => {
@@ -90,7 +91,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen w-full max-w-[1400px] mx-auto p-6 md:p-8 space-y-10">
+    <div className="min-h-screen w-full max-w-[1400px] mx-auto pt-10 px-6 pb-6 md:p-8 space-y-10">
       <CreateAssignmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       {user?.uid && (
         <TelegramPromptModal isOpen={showTelegramPrompt} onClose={handlePromptClose} userUid={user.uid} />
@@ -98,13 +99,17 @@ const Dashboard = () => {
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
-        <div className="space-y-1">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground via-foreground/90 to-foreground/50 pb-1">
-            Dashboard
-          </h1>
-          <p className="text-muted-foreground text-lg font-medium">
-            {getGreeting()}, <span className="text-foreground font-semibold">{user?.name || 'there'}</span>.
-          </p>
+        <div className="flex items-start justify-between w-full md:w-auto">
+          <div className="space-y-1">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground via-foreground/90 to-foreground/50 pb-1">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground text-lg font-medium">
+              {getGreeting()}, <span className="text-foreground font-semibold">{user?.name || 'there'}</span>.
+            </p>
+          </div>
+          {/* Mobile Theme Toggle - inline with header, scrolls with content */}
+          <AnimatedThemeToggler className="md:hidden h-10 w-10 bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 rounded-xl shrink-0" />
         </div>
 
         <div className="flex w-full md:w-auto items-center gap-4">

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Plus, FolderIcon, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 
 const Subjects = () => {
   const { subjects, deleteSubject } = useApp();
@@ -49,16 +50,19 @@ const Subjects = () => {
         loading={deleteLoading}
       />
 
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start pt-4 md:pt-0">
         <div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/40">Subjects</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage your course subjects.</p>
         </div>
-        <NeonButton onClick={() => setIsModalOpen(true)} className="gap-2" variant="primary" glow>
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Subject</span>
-          <span className="sm:hidden">Add</span>
-        </NeonButton>
+        <div className="flex items-center gap-3">
+          <AnimatedThemeToggler className="md:hidden h-10 w-10 bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 rounded-xl shrink-0" />
+          <NeonButton onClick={() => setIsModalOpen(true)} className="gap-2" variant="primary" glow>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Subject</span>
+            <span className="sm:hidden">Add</span>
+          </NeonButton>
+        </div>
       </div>
 
       {/* Mobile Card View */}

@@ -59,7 +59,7 @@ const AppLayout = () => {
       </div>
 
       <Sidebar />
-      <main className="flex-1 min-w-0 overflow-auto h-screen relative pb-20 md:pb-0 z-10">
+      <main className="flex-1 min-w-0 overflow-auto h-screen relative pb-20 md:pb-0 z-10 safe-area-top">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="assignments" element={<Assignments />} />

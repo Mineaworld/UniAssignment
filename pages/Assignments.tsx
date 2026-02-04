@@ -16,6 +16,7 @@ import { cn } from '../utils/cn';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { AssignmentMobileCard } from '../components/AssignmentMobileCard';
 import { ScrollIndicator } from '../components/ScrollIndicator';
+import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 
 const Assignments = () => {
   const { assignments, subjects, updateAssignment, deleteAssignment } = useApp();
@@ -96,10 +97,13 @@ const Assignments = () => {
       />
 
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/60">Assignments</h1>
-          <p className="text-muted-foreground text-sm mt-1">Track and manage your academic tasks.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-4 md:pt-0">
+        <div className="flex items-start justify-between w-full md:w-auto">
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/60">Assignments</h1>
+            <p className="text-muted-foreground text-sm mt-1">Track and manage your academic tasks.</p>
+          </div>
+          <AnimatedThemeToggler className="md:hidden h-10 w-10 bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 rounded-xl shrink-0" />
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           {/* View Toggle */}

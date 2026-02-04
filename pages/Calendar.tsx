@@ -5,6 +5,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { NeonButton } from '../components/ui/NeonButton';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 
 const Calendar = () => {
   const { assignments, subjects } = useApp();
@@ -43,10 +44,13 @@ const Calendar = () => {
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 flex flex-col h-screen md:h-auto overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/40">Calendar</h1>
-          <p className="text-muted-foreground mt-1">Plan your study schedule effectively.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pt-4 md:pt-0">
+        <div className="flex items-start justify-between w-full md:w-auto">
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/40">Calendar</h1>
+            <p className="text-muted-foreground mt-1">Plan your study schedule effectively.</p>
+          </div>
+          <AnimatedThemeToggler className="md:hidden h-10 w-10 bg-white/80 dark:bg-white/5 border border-black/5 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 rounded-xl shrink-0" />
         </div>
 
         <GlassCard className="flex items-center gap-4 p-2 rounded-xl shadow-sm">
