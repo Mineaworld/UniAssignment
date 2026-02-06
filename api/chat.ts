@@ -6,7 +6,7 @@ import {
   type UIMessage,
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { admin } from "./lib/firebaseAdmin.js";
+import { admin } from "../server/lib/firebaseAdmin.js";
 import {
   CHAT_MODEL_BY_KEY,
   DEFAULT_CHAT_MODEL_KEY,
@@ -17,30 +17,30 @@ import {
 import {
   MAX_OUTPUT_TOKENS,
   OPENROUTER_POLICY_SETTINGS_URL,
-} from "./chat/constants.js";
+} from "../server/chat/constants.js";
 import {
   getUserFacingStreamErrorMessage,
   isOpenRouterPolicyBlockedError,
   toSafeErrorMeta,
-} from "./chat/error-utils.js";
-import { logChatEvent, hashUserId } from "./chat/logging.js";
+} from "../server/chat/error-utils.js";
+import { logChatEvent, hashUserId } from "../server/chat/logging.js";
 import {
   getRotatedPaidFallbackModelIds,
   isPaidFallbackModelId,
   resolveModel,
   trimMessageHistory,
-} from "./chat/model-routing.js";
+} from "../server/chat/model-routing.js";
 import {
   incrementAndCheckRateLimit,
   setRateLimitHeaders,
-} from "./chat/rate-limit.js";
+} from "../server/chat/rate-limit.js";
 import {
   ChatRequestValidationError,
   getBearerToken,
   parseRequestBody,
-} from "./chat/request.js";
-import { normalizeUIMessages } from "./chat/messages.js";
-import type { ChatMessageMetadata, ChatRequestBody } from "./chat/types.js";
+} from "../server/chat/request.js";
+import { normalizeUIMessages } from "../server/chat/messages.js";
+import type { ChatMessageMetadata, ChatRequestBody } from "../server/chat/types.js";
 
 const isModelKey = (value: string): value is ChatModelKey =>
   Object.hasOwn(CHAT_MODEL_BY_KEY, value);

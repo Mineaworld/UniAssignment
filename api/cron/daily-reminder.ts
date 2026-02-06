@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db, admin } from '../lib/firebaseAdmin.js';
-import { sendTelegramMessage } from '../lib/telegram.js';
-import type { AssignmentWithDate } from '../types.js';
-import { ASSIGNMENT_STATUS } from '../types.js';
+import { db, admin } from '../../server/lib/firebaseAdmin.js';
+import { sendTelegramMessage } from '../../server/lib/telegram.js';
+import type { AssignmentWithDate } from '../../server/telegram/types.js';
+import { ASSIGNMENT_STATUS } from '../../server/telegram/types.js';
 
 const CRON_SECRET = process.env.CRON_SECRET || '';
 
