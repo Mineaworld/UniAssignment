@@ -198,7 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const stream = streamText({
       model: openrouter(resolvedModel.modelId, {
-        user: uid,
+        user: uidHash,
         models: shouldUsePaidFallbackModels ? paidFallbackModelIds : undefined,
         provider: {
           sort: "throughput",
