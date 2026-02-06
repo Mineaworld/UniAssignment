@@ -6,6 +6,7 @@ import {
   FileText,
   Calendar as CalendarIcon,
   Book,
+  MessageSquare,
   Settings,
   LogOut,
   ChevronsUpDown
@@ -25,6 +26,7 @@ const Sidebar = () => {
     { name: 'Assignments', icon: FileText, path: '/dashboard/assignments' },
     { name: 'Calendar', icon: CalendarIcon, path: '/dashboard/calendar' },
     { name: 'Subjects', icon: Book, path: '/dashboard/subjects' },
+    { name: 'AI Chat', icon: MessageSquare, path: '/dashboard/chat' },
     { name: 'Settings', icon: Settings, path: '/dashboard/settings' },
   ];
 

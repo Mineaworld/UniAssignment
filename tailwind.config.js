@@ -91,6 +91,10 @@ export default {
                 marquee: {
                     from: { transform: 'translateX(0)' },
                     to: { transform: 'translateX(calc(-100% - var(--gap)))' }
+                },
+                "fade-in-fast": {
+                    "0%": { opacity: "0.4" },
+                    "100%": { opacity: "1" }
                 }
             },
             animation: {
@@ -98,6 +102,7 @@ export default {
                 "accordion-up": "accordion-up 0.2s ease-out",
                 blob: "blob 7s infinite",
                 marquee: 'marquee var(--duration) linear infinite',
+                "fade-in-fast": "fade-in-fast 0.15s ease-out forwards",
             },
             animationDelay: {
                 '2000': '2s',
@@ -105,5 +110,8 @@ export default {
             },
         },
     },
-    plugins: [require("tailwindcss-animate")],
+    plugins: [
+        require("tailwindcss-animate"),
+        require("@tailwindcss/typography"),
+    ],
 }

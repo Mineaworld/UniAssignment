@@ -1,7 +1,7 @@
 {
     "rewrites": [
         {
-            "source": "/((?!api/.*).*)",
+            "source": "/((?!api/|@vite/|@react-refresh|@id/|@fs/|__vite_ping|.*\\.(?:js|mjs|css|map|json|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot|txt|xml|webmanifest)$).*)",
             "destination": "/index.html"
         }
     ],
