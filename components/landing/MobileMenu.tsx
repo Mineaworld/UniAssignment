@@ -7,7 +7,7 @@ interface MobileMenuProps {
   className?: string;
 }
 
-export const MobileMenu: React.FC<MobileMenuProps> = ({ className }) => {
+export const MobileMenu = ({ className }: MobileMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [

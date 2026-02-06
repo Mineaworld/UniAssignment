@@ -15,7 +15,7 @@ interface ViewAssignmentModalProps {
     assignment: Assignment | null;
 }
 
-const ViewAssignmentModal: React.FC<ViewAssignmentModalProps> = ({ isOpen, onClose, assignment }) => {
+const ViewAssignmentModal = ({ isOpen, onClose, assignment }: ViewAssignmentModalProps) => {
     const { subjects, updateAssignment, uploadNoteImage } = useApp();
     const [isNotesFullscreen, setIsNotesFullscreen] = useState(false);
 

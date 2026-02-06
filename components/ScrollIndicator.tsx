@@ -7,7 +7,7 @@ interface ScrollIndicatorProps {
   className?: string;
 }
 
-export const ScrollIndicator: React.FC<ScrollIndicatorProps> = ({ children, className }) => {
+export const ScrollIndicator = ({ children, className }: ScrollIndicatorProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftIndicator, setShowLeftIndicator] = useState(false);
   const [showRightIndicator, setShowRightIndicator] = useState(false);

@@ -9,7 +9,7 @@ interface LogoProps {
  * Reusable Logo component for consistent branding across the app.
  * Use this component instead of inline <img> tags to ensure consistency.
  */
-const Logo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
+const Logo = ({ size = 'md', className = '' }: LogoProps) => {
     const sizeClasses = {
         xs: 'w-9 h-9',
         sm: 'w-10 h-10',

@@ -20,7 +20,7 @@ export interface NotesEditorProps {
  * Rich text notes editor with lazy-loaded BlockNote.
  * Supports text formatting, code blocks, images, and lists.
  */
-export const NotesEditor: React.FC<NotesEditorProps> = (props) => (
+export const NotesEditor = (props: NotesEditorProps) => (
   <Suspense fallback={<EditorSkeleton />}>
     <BlockNoteEditor {...props} />
   </Suspense>

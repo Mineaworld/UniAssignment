@@ -58,7 +58,7 @@ interface EditAssignmentModalProps {
     assignment: Assignment | null;
 }
 
-const EditAssignmentModal: React.FC<EditAssignmentModalProps> = ({ isOpen, onClose, assignment }) => {
+const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModalProps) => {
     const { subjects, updateAssignment } = useApp();
     const [formData, setFormData] = useState<FormData>(getResetFormData);
 

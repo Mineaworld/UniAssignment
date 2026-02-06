@@ -14,14 +14,14 @@ interface NotesFullscreenModalProps {
   assignmentTitle: string;
 }
 
-export const NotesFullscreenModal: React.FC<NotesFullscreenModalProps> = ({
+export const NotesFullscreenModal = ({
   isOpen,
   onClose,
   initialContent,
   onSave,
   uploadImage,
   assignmentTitle,
-}) => {
+}: NotesFullscreenModalProps) => {
   const [content, setContent] = useState<NotesContent | undefined>(initialContent);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);

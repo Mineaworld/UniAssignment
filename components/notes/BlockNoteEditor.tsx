@@ -16,14 +16,14 @@ interface BlockNoteEditorProps {
   className?: string;
 }
 
-export const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
+export const BlockNoteEditor = ({
   initialContent,
   onChange,
   uploadImage,
   readOnly = false,
   compact = false,
   className = '',
-}) => {
+}: BlockNoteEditorProps) => {
   const { theme } = useApp();
 
   // Parse initial blocks from content

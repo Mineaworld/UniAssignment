@@ -9,7 +9,7 @@ interface CreateSubjectModalProps {
   onClose: () => void;
 }
 
-const CreateSubjectModal: React.FC<CreateSubjectModalProps> = ({ isOpen, onClose }) => {
+const CreateSubjectModal = ({ isOpen, onClose }: CreateSubjectModalProps) => {
   const { addSubject, subjects } = useApp();
   const [name, setName] = useState('');
   const defaultColor = SUBJECT_COLORS[0] ?? 'bg-blue-500';

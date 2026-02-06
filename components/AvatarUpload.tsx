@@ -23,13 +23,13 @@ interface AvatarUploadProps {
 // Component
 // ============================================================================
 
-const AvatarUpload: React.FC<AvatarUploadProps> = ({
+const AvatarUpload = ({
   currentAvatarUrl,
   name = 'User',
   onUpload,
   size = 'md',
   className = ''
-}) => {
+}: AvatarUploadProps) => {
   const sizeClasses = {
     sm: 'w-16 h-16',
     md: 'w-24 h-24',

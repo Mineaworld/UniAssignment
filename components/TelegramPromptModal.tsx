@@ -9,7 +9,7 @@ interface TelegramPromptModalProps {
   userUid: string;
 }
 
-const TelegramPromptModal: React.FC<TelegramPromptModalProps> = ({ isOpen, onClose, userUid }) => {
+const TelegramPromptModal = ({ isOpen, onClose, userUid }: TelegramPromptModalProps) => {
   const [isLinking, setIsLinking] = useState(false);
 
   const handleLinkTelegram = async () => {
@@ -154,7 +154,7 @@ interface BenefitCardProps {
   description: string;
 }
 
-const BenefitCard: React.FC<BenefitCardProps> = ({ icon, title, description }) => (
+const BenefitCard = ({ icon, title, description }: BenefitCardProps) => (
   <motion.div
     initial={{ opacity: 0, x: -10 }}
     animate={{ opacity: 1, x: 0 }}

@@ -16,14 +16,14 @@ interface AssignmentMobileCardProps {
   index: number;
 }
 
-export const AssignmentMobileCard: React.FC<AssignmentMobileCardProps> = ({
+export const AssignmentMobileCard = ({
   assignment,
   subject,
   onClick,
   onEdit,
   onDelete,
   index,
-}) => {
+}: AssignmentMobileCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const isCompleted = assignment.status === Status.Completed;
   const isOverdue = checkOverdue(assignment.dueDate, isCompleted);

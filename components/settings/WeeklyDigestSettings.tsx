@@ -12,7 +12,7 @@ interface Props {
   telegramLinked: boolean;
 }
 
-const WeeklyDigestSettings: React.FC<Props> = ({ settings, onSave, telegramLinked }) => {
+const WeeklyDigestSettings = ({ settings, onSave, telegramLinked }: Props) => {
   const [enabled, setEnabled] = useState(settings?.enabled ?? false);
   const [dayOfWeek, setDayOfWeek] = useState(settings?.dayOfWeek ?? 0);
   const [sendTime, setSendTime] = useState(settings?.sendTime ?? '18:00');

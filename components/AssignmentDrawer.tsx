@@ -12,12 +12,12 @@ interface AssignmentDrawerProps {
   assignments: Assignment[];
 }
 
-export const AssignmentDrawer: React.FC<AssignmentDrawerProps> = ({
+export const AssignmentDrawer = ({
   isOpen,
   onClose,
   viewMode,
   assignments,
-}) => {
+}: AssignmentDrawerProps) => {
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {

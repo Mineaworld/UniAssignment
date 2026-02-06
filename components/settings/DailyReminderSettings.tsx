@@ -12,7 +12,7 @@ interface Props {
   telegramLinked: boolean;
 }
 
-const DailyReminderSettings: React.FC<Props> = ({ settings, onSave, telegramLinked }) => {
+const DailyReminderSettings = ({ settings, onSave, telegramLinked }: Props) => {
   const [enabled, setEnabled] = useState(settings?.enabled ?? false);
   const [sendTime, setSendTime] = useState(settings?.sendTime ?? '08:00');
   const [timezone, setTimezone] = useState(settings?.timezone ?? DEFAULT_TIMEZONE);
