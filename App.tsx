@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context';
 import LandingPage from './pages/LandingPage';
 import { ToastProvider } from './components/ToastContext';
@@ -9,11 +9,13 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import { PomodoroWidget } from './components/pomodoro';
+import MobileChatFab from './components/chat/MobileChatFab';
 import Dashboard from './pages/Dashboard';
 import Assignments from './pages/Assignments';
 import Subjects from './pages/Subjects';
 import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
+import AIChat from './pages/AIChat';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 
@@ -48,6 +50,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppLayout = () => {
   const { recordPomodoroSession } = useApp();
+  const location = useLocation();
+  const isChatRoute = location.pathname === '/dashboard/chat';
 
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans antialiased relative overflow-hidden">
@@ -59,17 +63,23 @@ const AppLayout = () => {
       </div>
 
       <Sidebar />
-      <main className="flex-1 min-w-0 overflow-auto h-screen relative pb-20 md:pb-0 z-10 safe-area-top">
+      <main
+        className={`flex-1 min-w-0 overflow-auto h-screen relative z-10 safe-area-top md:pb-0 ${
+          isChatRoute ? 'pb-0' : 'pb-20'
+        }`}
+      >
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="assignments" element={<Assignments />} />
           <Route path="subjects" element={<Subjects />} />
           <Route path="calendar" element={<Calendar />} />
+          <Route path="chat" element={<AIChat />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
-      <MobileNav />
+      {!isChatRoute && <MobileNav />}
+      <MobileChatFab />
       <PomodoroWidget
         onSessionComplete={(type, assignmentId, duration, assignmentTitle) => {
           recordPomodoroSession(type, assignmentId, duration, assignmentTitle || undefined);
