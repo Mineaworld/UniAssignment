@@ -38,6 +38,7 @@ firebase-debug.log
 .vercel
 
 .agent/
+agents.md
 .playwright-mcp
 .sisyphus/
 .qodo/
@@ -45,3 +46,4 @@ firebase-debug.log
 # Claude Code temp files
 tmpclaude-*
 nul
+.env*.local
