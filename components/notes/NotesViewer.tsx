@@ -12,11 +12,11 @@ interface NotesViewerProps {
  * Read-only notes display component.
  * Renders BlockNote content without editing capabilities.
  */
-export const NotesViewer: React.FC<NotesViewerProps> = ({
+export const NotesViewer = ({
   content,
   className = '',
   maxHeight = '300px',
-}) => {
+}: NotesViewerProps) => {
   if (!content?.blocks?.length) {
     return (
       <div className="text-muted-foreground text-sm italic py-4">

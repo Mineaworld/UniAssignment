@@ -12,7 +12,7 @@ interface ConfirmDeleteModalProps {
     loading?: boolean;
 }
 
-const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
+const ConfirmDeleteModal = ({
     isOpen,
     onClose,
     onConfirm,
@@ -20,7 +20,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     itemName,
     itemType,
     loading = false
-}) => {
+}: ConfirmDeleteModalProps) => {
     const handleConfirm = () => {
         onConfirm();
     };

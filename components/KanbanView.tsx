@@ -27,7 +27,7 @@ interface KanbanCardProps {
   isDragging?: boolean;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ assignment, isDragging = false }) => {
+const KanbanCard = ({ assignment, isDragging = false }: KanbanCardProps) => {
   const { subjects } = useApp();
   const subject = subjects.find((s) => s.id === assignment.subjectId);
   const daysLeft = Math.ceil((new Date(assignment.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24));
@@ -103,7 +103,7 @@ interface KanbanColumnProps {
   count: number;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, assignments, count }) => {
+const KanbanColumn = ({ status, assignments, count }: KanbanColumnProps) => {
   const columnConfig = {
     [Status.Pending]: {
       title: 'Pending',
@@ -193,7 +193,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, assignments, count 
   );
 };
 
-export const KanbanView: React.FC<KanbanViewProps> = ({ assignments }) => {
+export const KanbanView = ({ assignments }: KanbanViewProps) => {
   const { updateAssignment } = useApp();
   const [activeId, setActiveId] = useState<string | null>(null);
 

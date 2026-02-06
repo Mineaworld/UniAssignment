@@ -11,7 +11,7 @@ interface KanbanCardProps {
     onClick: () => void;
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({ assignment, onClick }) => {
+export const KanbanCard = ({ assignment, onClick }: KanbanCardProps) => {
     const {
         attributes,
         listeners,

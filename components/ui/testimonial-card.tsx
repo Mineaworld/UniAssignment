@@ -15,12 +15,12 @@ export interface TestimonialCardProps {
     className?: string
 }
 
-export const TestimonialCard: React.FC<TestimonialCardProps> = ({
+export const TestimonialCard = ({
     author,
     text,
     href,
     className
-}) => {
+}: TestimonialCardProps) => {
     const Card = href ? 'a' : 'div'
 
     return (

@@ -17,11 +17,11 @@ const variants = {
   danger: 'bg-red-500/20 text-red-300 border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]',
 };
 
-export const AnimatedBadge: React.FC<AnimatedBadgeProps> = ({
+export const AnimatedBadge = ({
   children,
   variant = 'default',
   className
-}) => {
+}: AnimatedBadgeProps) => {
   return (
     <motion.span
       initial={{ scale: 0.8, opacity: 0 }}

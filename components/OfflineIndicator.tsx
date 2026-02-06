@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export const OfflineIndicator: React.FC = () => {
+export const OfflineIndicator = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {

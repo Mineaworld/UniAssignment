@@ -40,7 +40,7 @@ interface CreateAssignmentModalProps {
   onClose: () => void;
 }
 
-const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({ isOpen, onClose }) => {
+const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) => {
   const { subjects, addAssignment, addSubject } = useApp();
   const [formData, setFormData] = useState<FormData>(getResetFormData);
 

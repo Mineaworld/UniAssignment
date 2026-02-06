@@ -28,10 +28,10 @@ const MIN_DROPDOWN_HEIGHT = 200;
 const DROPDOWN_WIDTH = 260;
 
 // Pulsing indicator component to avoid duplication
-const PulsingIndicator: React.FC<{ colorClass: string; isAnimating: boolean }> = ({
+const PulsingIndicator = ({
   colorClass,
   isAnimating
-}) => (
+}: { colorClass: string; isAnimating: boolean }) => (
   <motion.div
     className={`w-2.5 h-2.5 rounded-full ${colorClass}`}
     animate={isAnimating ? { scale: [1, 1.2, 1] } : {}}
@@ -168,7 +168,7 @@ const expandedVariants: Variants = {
   }
 };
 
-export const PomodoroWidget: React.FC<PomodoroWidgetProps> = ({ onSessionComplete }) => {
+export const PomodoroWidget = ({ onSessionComplete }: PomodoroWidgetProps) => {
   const { assignments } = useApp();
   // Start hidden by default
   const [isVisible, setIsVisible] = useState(false);

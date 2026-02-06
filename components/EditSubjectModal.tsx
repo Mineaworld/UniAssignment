@@ -11,7 +11,7 @@ interface EditSubjectModalProps {
     subject: Subject | null;
 }
 
-const EditSubjectModal: React.FC<EditSubjectModalProps> = ({ isOpen, onClose, subject }) => {
+const EditSubjectModal = ({ isOpen, onClose, subject }: EditSubjectModalProps) => {
     const { updateSubject } = useApp();
     const [name, setName] = useState('');
     const [selectedColor, setSelectedColor] = useState(SUBJECT_COLORS[0]);

@@ -9,7 +9,7 @@ interface ViewSwitcherProps {
   onViewChange: (view: ViewMode) => void;
 }
 
-export const ViewSwitcher: React.FC<ViewSwitcherProps> = ({ currentView, onViewChange }) => {
+export const ViewSwitcher = ({ currentView, onViewChange }: ViewSwitcherProps) => {
   const views: { value: ViewMode; icon: string; label: string }[] = [
     { value: 'list', icon: 'view_list', label: 'List' },
     { value: 'kanban', icon: 'view_kanban', label: 'Kanban' },
