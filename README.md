@@ -16,6 +16,9 @@ A modern academic workspace for university students. Track assignments, manage s
 - **Calendar View** — Visualize deadlines at a glance
 - **Rich Notes Editor** — Notion-like block editor with images and formatting
 - **Pomodoro Timer** — Floating productivity timer with assignment linking
+- **AI Study Chat** — OpenRouter-powered assistant for explanations, summaries, and study planning with streaming responses
+- **Kanban Board View** — Switch between list and board layouts to manage assignments by status
+- **PWA & Offline Support** — Installable web app with service worker caching and offline status indicator
 - **Smart Reminders** — Telegram bot notifications (customizable timing)
 - **Dark/Light Mode** — System-aware theme support
 - **Responsive Design** — Works on desktop, tablet, and mobile
