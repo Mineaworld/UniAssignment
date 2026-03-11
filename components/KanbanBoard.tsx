@@ -55,9 +55,31 @@ export const KanbanBoard = ({
   const [clicksSuppressed, setClicksSuppressed] = useState(false);
   const dragSnapshotRef = useRef<Assignment[]>(sortAssignments(assignments));
   const clickResetTimeoutRef = useRef<number | null>(null);
+  const pendingStatusUpdateRef = useRef<{
+    assignmentId: string;
+    nextStatus: Status;
+  } | null>(null);
 
   useEffect(() => {
-    setBoardAssignments(sortAssignments(assignments));
+    const sortedAssignments = sortAssignments(assignments);
+    const pendingStatusUpdate = pendingStatusUpdateRef.current;
+
+    if (!pendingStatusUpdate) {
+      setBoardAssignments(sortedAssignments);
+      return;
+    }
+
+    const pendingAssignment = sortedAssignments.find(
+      (assignment) => assignment.id === pendingStatusUpdate.assignmentId,
+    );
+
+    if (
+      !pendingAssignment ||
+      pendingAssignment.status === pendingStatusUpdate.nextStatus
+    ) {
+      pendingStatusUpdateRef.current = null;
+      setBoardAssignments(sortedAssignments);
+    }
   }, [assignments]);
 
   useEffect(
@@ -150,21 +172,28 @@ export const KanbanBoard = ({
     resetDragState();
 
     if (!originalAssignment || !nextStatus) {
+      pendingStatusUpdateRef.current = null;
       setBoardAssignments(dragSnapshotRef.current);
       return;
     }
 
     if (nextStatus === originalAssignment.status) {
+      pendingStatusUpdateRef.current = null;
       setBoardAssignments(sortAssignments(assignments));
       return;
     }
 
+    pendingStatusUpdateRef.current = {
+      assignmentId: nextActiveId,
+      nextStatus,
+    };
     applyOptimisticStatus(nextActiveId, nextStatus);
 
     try {
       await onStatusChange(nextActiveId, nextStatus);
     } catch (error) {
       console.error("Failed to persist kanban status change:", error);
+      pendingStatusUpdateRef.current = null;
       setBoardAssignments(dragSnapshotRef.current);
     }
   };
