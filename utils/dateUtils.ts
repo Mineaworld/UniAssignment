@@ -8,7 +8,56 @@ export interface DueDateInfo {
   urgent: boolean;
 }
 
+interface LocalDateParts {
+  day: number;
+  monthIndex: number;
+  year: number;
+}
+
 export const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+const parseLocalDateParts = (date: string): LocalDateParts => {
+  const [yearPart = '', monthPart = '', dayPart = ''] = date.split('-');
+  const year = Number(yearPart);
+  const monthIndex = Number(monthPart) - 1;
+  const day = Number(dayPart);
+
+  return {
+    day,
+    monthIndex,
+    year,
+  };
+};
+
+export const buildLocalDate = (date: string, time?: string): Date => {
+  const { year, monthIndex, day } = parseLocalDateParts(date);
+  const [hoursPart = '0', minutesPart = '0'] = (time || '').split(':');
+  const hours = Number(hoursPart);
+  const minutes = Number(minutesPart);
+
+  return new Date(year, monthIndex, day, hours, minutes, 0, 0);
+};
+
+export const buildLocalIsoString = (date: string, time?: string): string => {
+  return buildLocalDate(date, time).toISOString();
+};
+
+export const formatDateInputValue = (date: string | Date): string => {
+  const value = new Date(date);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+export const formatTimeInputValue = (date: string | Date): string => {
+  const value = new Date(date);
+  const hours = String(value.getHours()).padStart(2, '0');
+  const minutes = String(value.getMinutes()).padStart(2, '0');
+
+  return `${hours}:${minutes}`;
+};
 
 export const getDaysUntilDue = (dueDate: string | Date): number => {
   const due = new Date(dueDate);

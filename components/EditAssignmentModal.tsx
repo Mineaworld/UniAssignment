@@ -1,56 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status, Assignment, AssignmentReminder, NotesContent } from '../types';
+import { Assignment } from '../types';
 import { useApp } from '../context';
 import { ReminderSelector } from './ReminderSelector';
 import { NotesEditor } from './notes';
-import { getNotesContent } from '../utils/migrateNotes';
-
-// Form data type for type safety
-interface FormData {
-    title: string;
-    subjectId: string;
-    status: Status;
-    date: string;
-    time: string;
-    priority: Priority;
-    notes: NotesContent | undefined;
-    examType: 'midterm' | 'final' | null;
-    reminder: AssignmentReminder | undefined;
-}
-
-const DEFAULT_FORM_DATA: FormData = {
-    title: '',
-    subjectId: '',
-    status: Status.Pending,
-    date: '',
-    time: '',
-    priority: Priority.Medium,
-    notes: undefined,
-    examType: null,
-    reminder: undefined,
-};
-
-const getResetFormData = (): FormData => ({
-    ...DEFAULT_FORM_DATA,
-});
-
-// Convert assignment to form data
-const assignmentToFormData = (assignment: Assignment): FormData => {
-    const dueDate = new Date(assignment.dueDate);
-    return {
-        title: assignment.title,
-        subjectId: assignment.subjectId,
-        status: assignment.status,
-        date: dueDate.toISOString().split('T')[0] ?? '',
-        time: dueDate.toTimeString().slice(0, 5),
-        priority: assignment.priority,
-        notes: getNotesContent(assignment.notes, assignment.description),
-        examType: assignment.examType ?? null,
-        reminder: assignment.reminder,
-    };
-};
+import {
+    buildLocalIsoString,
+} from '../utils/dateUtils';
+import { AssignmentBasicsFields } from './assignment-form/AssignmentBasicsFields';
+import { AssignmentClassificationFields } from './assignment-form/AssignmentClassificationFields';
+import {
+    AssignmentFormState,
+    assignmentToFormState,
+    createEmptyAssignmentFormState,
+} from './assignment-form/types';
 
 interface EditAssignmentModalProps {
     isOpen: boolean;
@@ -60,14 +24,14 @@ interface EditAssignmentModalProps {
 
 const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModalProps) => {
     const { subjects, updateAssignment } = useApp();
-    const [formData, setFormData] = useState<FormData>(getResetFormData);
+    const [formData, setFormData] = useState<AssignmentFormState>(createEmptyAssignmentFormState);
 
     const [loading, setLoading] = useState(false);
 
     // Populate form when assignment changes
     useEffect(() => {
         if (assignment) {
-            setFormData(assignmentToFormData(assignment));
+            setFormData(assignmentToFormState(assignment));
         }
     }, [assignment]);
 
@@ -79,8 +43,8 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
 
         // Combine date and time
         const dateTime = formData.time
-            ? new Date(`${formData.date}T${formData.time}`).toISOString()
-            : new Date(formData.date).toISOString();
+            ? buildLocalIsoString(formData.date, formData.time)
+            : buildLocalIsoString(formData.date);
 
         try {
             await updateAssignment(assignment.id, {
@@ -135,168 +99,22 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
 
                             {/* Form */}
                             <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
-                                <label className="block">
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Assignment Title</span>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="e.g., History Essay - Chapter 5 Analysis"
-                                        className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
-                                        value={formData.title}
-                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                    />
-                                </label>
+                                <AssignmentBasicsFields
+                                    formData={formData}
+                                    onChange={(updates) => setFormData((current) => ({ ...current, ...updates }))}
+                                    subjects={subjects}
+                                />
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Subject Selection */}
-                                    <div className="block">
-                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Subject</span>
-                                        <div className="mt-1">
-                                            <select
-                                                required
-                                                className="w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
-                                                value={formData.subjectId}
-                                                onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
-                                            >
-                                                <option value="">Select a subject</option>
-                                                {subjects.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <label className="block">
-                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</span>
-                                        <select
-                                            className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
-                                            value={formData.status}
-                                            onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
-                                        >
-                                            <option value={Status.Pending}>Not Started</option>
-                                            <option value={Status.InProgress}>In Progress</option>
-                                            <option value={Status.Completed}>Completed</option>
-                                        </select>
-                                    </label>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <label className="block">
-                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Due Date</span>
-                                        <input
-                                            type="date"
-                                            required
-                                            className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
-                                            value={formData.date}
-                                            onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                        />
-                                    </label>
-                                    <label className="block">
-                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Due Time</span>
-                                        <input
-                                            type="time"
-                                            className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 h-12 px-4"
-                                            value={formData.time}
-                                            onChange={e => setFormData({ ...formData, time: e.target.value })}
-                                        />
-                                    </label>
-                                </div>
-
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Assignment Type</span>
-                                    <div className="mt-2 grid grid-cols-3 gap-3">
-                                        <label
-                                            className={`
-                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                        ${!formData.examType
-                                                    ? 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white ring-1 ring-gray-500'
-                                                    : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
-                                                }
-                      `}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="examType"
-                                                value=""
-                                                checked={!formData.examType}
-                                                onChange={() => setFormData({ ...formData, examType: null })}
-                                                className="sr-only"
-                                            />
-                                            <span className="font-medium">Regular</span>
-                                        </label>
-                                        <label
-                                            className={`
-                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                        ${formData.examType === 'midterm'
-                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500'
-                                                    : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
-                                                }
-                      `}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="examType"
-                                                value="midterm"
-                                                checked={formData.examType === 'midterm'}
-                                                onChange={() => setFormData({ ...formData, examType: 'midterm' })}
-                                                className="sr-only"
-                                            />
-                                            <span className="font-medium">Midterm</span>
-                                        </label>
-                                        <label
-                                            className={`
-                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                        ${formData.examType === 'final'
-                                                    ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500'
-                                                    : 'border-border/60 hover:bg-muted/50 text-muted-foreground'
-                                                }
-                      `}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="examType"
-                                                value="final"
-                                                checked={formData.examType === 'final'}
-                                                onChange={() => setFormData({ ...formData, examType: 'final' })}
-                                                className="sr-only"
-                                            />
-                                            <span className="font-medium">Final</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Priority</span>
-                                    <div className="mt-2 grid grid-cols-3 gap-3">
-                                        {[Priority.Low, Priority.Medium, Priority.High].map((p) => (
-                                            <label
-                                                key={p}
-                                                className={`
-                                                relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                                                ${formData.priority === p
-                                                        ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary'
-                                                        : 'border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
-                                                    }
-                                            `}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="priority"
-                                                    value={p}
-                                                    checked={formData.priority === p}
-                                                    onChange={() => setFormData({ ...formData, priority: p })}
-                                                    className="sr-only"
-                                                />
-                                                <span className="font-medium">{p}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
+                                <AssignmentClassificationFields
+                                    formData={formData}
+                                    onChange={(updates) => setFormData((current) => ({ ...current, ...updates }))}
+                                    tone="muted"
+                                />
 
                                 <ReminderSelector
                                     dueDate={
                                         formData.date
-                                            ? new Date(formData.time ? `${formData.date}T${formData.time}` : formData.date).toISOString()
+                                            ? buildLocalIsoString(formData.date, formData.time || undefined)
                                             : new Date().toISOString()
                                     }
                                     value={formData.reminder}
@@ -324,6 +142,7 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
                                         Cancel
                                     </button>
                                     <button
+                                        data-testid="assignment-submit-button"
                                         type="submit"
                                         disabled={loading}
                                         className="px-6 py-2.5 rounded-lg text-white bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"

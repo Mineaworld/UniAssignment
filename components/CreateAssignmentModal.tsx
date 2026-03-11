@@ -1,39 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status, AssignmentReminder, NotesContent } from '../types';
 import { useApp } from '../context';
 import { ReminderSelector } from './ReminderSelector';
 import { NotesEditor } from './notes';
-
-// Form data type for type safety
-interface FormData {
-  title: string;
-  subjectId: string;
-  status: Status;
-  date: string;
-  time: string;
-  priority: Priority;
-  notes: NotesContent | undefined;
-  examType: 'midterm' | 'final' | null;
-  reminder: AssignmentReminder | undefined;
-}
-
-const DEFAULT_FORM_DATA: FormData = {
-  title: '',
-  subjectId: '',
-  status: Status.Pending,
-  date: '',
-  time: '',
-  priority: Priority.Medium,
-  notes: undefined,
-  examType: null,
-  reminder: undefined,
-};
-
-const getResetFormData = (): FormData => ({
-  ...DEFAULT_FORM_DATA,
-});
+import { DEFAULT_SUBJECT_COLOR } from '../constants/colors';
+import { buildLocalIsoString } from '../utils/dateUtils';
+import { AssignmentBasicsFields } from './assignment-form/AssignmentBasicsFields';
+import { AssignmentClassificationFields } from './assignment-form/AssignmentClassificationFields';
+import { SubjectQuickCreatePanel } from './assignment-form/SubjectQuickCreatePanel';
+import { AssignmentFormState, createEmptyAssignmentFormState } from './assignment-form/types';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -42,22 +18,15 @@ interface CreateAssignmentModalProps {
 
 const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) => {
   const { subjects, addAssignment, addSubject } = useApp();
-  const [formData, setFormData] = useState<FormData>(getResetFormData);
+  const [formData, setFormData] = useState<AssignmentFormState>(createEmptyAssignmentFormState);
 
   const [loading, setLoading] = useState(false);
 
   // Inline subject creation state
   const [showSubjectForm, setShowSubjectForm] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
-  const [newSubjectColor, setNewSubjectColor] = useState('bg-blue-500');
   const [subjectLoading, setSubjectLoading] = useState(false);
   const [subjectSuccess, setSubjectSuccess] = useState('');
-
-  const colors = [
-    'bg-blue-500', 'bg-green-500', 'bg-red-500',
-    'bg-yellow-500', 'bg-purple-500', 'bg-pink-500',
-    'bg-indigo-500', 'bg-orange-500', 'bg-teal-500'
-  ];
 
   // Clear success message after 3 seconds
   useEffect(() => {
@@ -75,11 +44,10 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
     try {
       await addSubject({
         name: newSubjectName,
-        color: newSubjectColor
+        color: DEFAULT_SUBJECT_COLOR
       });
       // Reset form and close on success
       setNewSubjectName('');
-      setNewSubjectColor('bg-blue-500');
       setSubjectSuccess('');
       setShowSubjectForm(false);
     } catch (error) {
@@ -92,7 +60,6 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
   const handleCloseSubjectForm = () => {
     setShowSubjectForm(false);
     setNewSubjectName('');
-    setNewSubjectColor('bg-blue-500');
     setSubjectSuccess('');
   };
 
@@ -103,8 +70,8 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
     setLoading(true);
     // Combine date and time
     const dateTime = formData.time
-      ? new Date(`${formData.date}T${formData.time}`).toISOString()
-      : new Date(formData.date).toISOString();
+      ? buildLocalIsoString(formData.date, formData.time)
+      : buildLocalIsoString(formData.date);
 
     try {
       await addAssignment({
@@ -119,7 +86,7 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
       });
 
       // Reset and close
-      setFormData(getResetFormData());
+      setFormData(createEmptyAssignmentFormState());
       onClose();
     } catch (error) {
       console.error("Failed to create assignment:", error);
@@ -160,266 +127,32 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
-                <label className="block">
-                  <span className="text-sm font-medium text-foreground/80">Assignment Title</span>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., History Essay - Chapter 5 Analysis"
-                    className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/50 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
-                    value={formData.title}
-                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  />
-                </label>
+                <AssignmentBasicsFields
+                  formData={formData}
+                  onChange={(updates) => setFormData((current) => ({ ...current, ...updates }))}
+                  onOpenSubjectForm={() => setShowSubjectForm(true)}
+                  subjects={subjects}
+                />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Subject Selection with Add Button */}
-                  <div className="block">
-                    <span className="text-sm font-medium text-foreground/80">Subject</span>
-                    <div className="mt-1 flex gap-2">
-                      <select
-                        required
-                        className="flex-1 rounded-lg border-border/60 bg-background/80 dark:bg-slate-900 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
-                        value={formData.subjectId}
-                        onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
-                      >
-                        <option value="">Select a subject</option>
-                        {subjects.map(s => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => setShowSubjectForm(true)}
-                        className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 flex items-center justify-center transition-colors"
-                        title="Add new subject"
-                      >
-                        <span className="material-symbols-outlined">add</span>
-                      </button>
-                    </div>
-                  </div>
+                <SubjectQuickCreatePanel
+                  loading={subjectLoading}
+                  name={newSubjectName}
+                  onChangeName={setNewSubjectName}
+                  onClose={handleCloseSubjectForm}
+                  onSubmit={handleCreateSubject}
+                  open={showSubjectForm}
+                  successMessage={subjectSuccess}
+                />
 
-                  <label className="block">
-                    <span className="text-sm font-medium text-foreground/80">Status</span>
-                    <select
-                      className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-900 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
-                      value={formData.status}
-                      onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
-                    >
-                      <option value={Status.Pending}>Not Started</option>
-                      <option value={Status.InProgress}>In Progress</option>
-                      <option value={Status.Completed}>Completed</option>
-                    </select>
-                  </label>
-                </div>
-
-                {/* Inline Subject Creation Form */}
-                <AnimatePresence>
-                  {showSubjectForm && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-lg">add_circle</span>
-                            Quick Add Subject
-                          </h3>
-                          <button
-                            type="button"
-                            onClick={handleCloseSubjectForm}
-                            className="p-1 rounded-full hover:bg-white/50 dark:hover:bg-black/20 text-muted-foreground transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-sm">close</span>
-                          </button>
-                        </div>
-
-                        {/* Success Message */}
-                        <AnimatePresence>
-                          {subjectSuccess && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className="mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center gap-2"
-                            >
-                              <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-sm">check_circle</span>
-                              <span className="text-xs font-medium text-green-700 dark:text-green-300">{subjectSuccess}</span>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        <div className="space-y-3">
-                          <input
-                            type="text"
-                            placeholder="Subject name (e.g., Mathematics)"
-                            className="block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/80 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-10 px-3 text-sm transition-all"
-                            value={newSubjectName}
-                            onChange={e => setNewSubjectName(e.target.value)}
-                          />
-
-                          <div>
-                            <span className="text-xs font-medium text-muted-foreground mb-2 block">Color</span>
-                            <div className="flex flex-wrap gap-2">
-                              {colors.map((color) => (
-                                <button
-                                  key={color}
-                                  type="button"
-                                  onClick={() => setNewSubjectColor(color)}
-                                  className={`
-                                    min-w-[44px] min-h-[44px] w-11 h-11 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
-                                    ${newSubjectColor === color ? 'ring-2 ring-offset-1 ring-primary dark:ring-offset-[#101622] scale-110' : ''}
-                                  `}
-                                >
-                                  {newSubjectColor === color && <span className="material-symbols-outlined text-white text-sm">check</span>}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="flex justify-end gap-2 pt-2">
-                            <button
-                              type="button"
-                              onClick={handleCloseSubjectForm}
-                              className="px-3 py-1.5 rounded-lg text-muted-foreground bg-muted/50 dark:bg-black/20 hover:bg-muted dark:hover:bg-black/30 text-sm font-medium transition-colors"
-                            >
-                              Done
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleCreateSubject}
-                              disabled={!newSubjectName || subjectLoading}
-                              className="px-4 py-1.5 rounded-lg text-primary-foreground bg-primary hover:bg-primary/90 text-sm font-semibold shadow-md shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {subjectLoading ? 'Adding...' : 'Add'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <label className="block">
-                    <span className="text-sm font-medium text-foreground/80">Due Date</span>
-                    <input
-                      type="date"
-                      required
-                      className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/50 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
-                      value={formData.date}
-                      onChange={e => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-sm font-medium text-foreground/80">Due Time</span>
-                    <input
-                      type="time"
-                      className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/50 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
-                      value={formData.time}
-                      onChange={e => setFormData({ ...formData, time: e.target.value })}
-                    />
-                  </label>
-                </div>
-
-                <div>
-                  <span className="text-sm font-medium text-foreground/80">Assignment Type</span>
-                  <div className="mt-2 grid grid-cols-3 gap-3">
-                    <label
-                      className={`
-                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                        ${!formData.examType
-                          ? 'border-border bg-muted text-foreground ring-1 ring-primary'
-                          : 'border-border/60 hover:bg-muted/50 text-muted-foreground'
-                        }
-                    `}
-                    >
-                      <input
-                        type="radio"
-                        name="examType"
-                        value=""
-                        checked={!formData.examType}
-                        onChange={() => setFormData({ ...formData, examType: null })}
-                        className="sr-only"
-                      />
-                      <span className="font-medium">Regular</span>
-                    </label>
-                    <label
-                      className={`
-                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                        ${formData.examType === 'midterm'
-                          ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500'
-                          : 'border-border/60 hover:bg-muted/50 text-muted-foreground'
-                        }
-                    `}
-                    >
-                      <input
-                        type="radio"
-                        name="examType"
-                        value="midterm"
-                        checked={formData.examType === 'midterm'}
-                        onChange={() => setFormData({ ...formData, examType: 'midterm' })}
-                        className="sr-only"
-                      />
-                      <span className="font-medium">Midterm</span>
-                    </label>
-                    <label
-                      className={`
-                        relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                        ${formData.examType === 'final'
-                          ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500'
-                          : 'border-border/60 hover:bg-muted/50 text-muted-foreground'
-                        }
-                    `}
-                    >
-                      <input
-                        type="radio"
-                        name="examType"
-                        value="final"
-                        checked={formData.examType === 'final'}
-                        onChange={() => setFormData({ ...formData, examType: 'final' })}
-                        className="sr-only"
-                      />
-                      <span className="font-medium">Final</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-sm font-medium text-foreground/80">Priority</span>
-                  <div className="mt-2 grid grid-cols-3 gap-3">
-                    {[Priority.Low, Priority.Medium, Priority.High].map((p) => (
-                      <label
-                        key={p}
-                        className={`
-                          relative flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
-                          ${formData.priority === p
-                            ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary'
-                            : 'border-border/60 hover:bg-muted/50 text-muted-foreground'
-                          }
-                        `}
-                      >
-                        <input
-                          type="radio"
-                          name="priority"
-                          value={p}
-                          checked={formData.priority === p}
-                          onChange={() => setFormData({ ...formData, priority: p })}
-                          className="sr-only"
-                        />
-                        <span className="font-medium">{p}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <AssignmentClassificationFields
+                  formData={formData}
+                  onChange={(updates) => setFormData((current) => ({ ...current, ...updates }))}
+                />
 
                 <ReminderSelector
                   dueDate={
                     formData.date
-                      ? new Date(formData.time ? `${formData.date}T${formData.time}` : formData.date).toISOString()
+                      ? buildLocalIsoString(formData.date, formData.time || undefined)
                       : new Date().toISOString()
                   }
                   value={formData.reminder}
@@ -450,6 +183,7 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
                     Cancel
                   </button>
                   <button
+                    data-testid="assignment-submit-button"
                     type="submit"
                     disabled={loading}
                     className="px-6 py-2.5 rounded-lg text-primary-foreground bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
