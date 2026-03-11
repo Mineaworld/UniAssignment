@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../context';
 import { Priority, Status, Assignment } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +17,8 @@ import { KanbanBoard } from '../components/KanbanBoard';
 import { AssignmentMobileCard } from '../components/AssignmentMobileCard';
 import { ScrollIndicator } from '../components/ScrollIndicator';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
+import { SubjectBadge } from '../components/ui/SubjectBadge';
+import { AssignmentStatusSelect } from '../components/AssignmentStatusSelect';
 
 const Assignments = () => {
   const { assignments, subjects, updateAssignment, deleteAssignment } = useApp();
@@ -25,6 +27,7 @@ const Assignments = () => {
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const [deletingAssignment, setDeletingAssignment] = useState<Assignment | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [statusUpdatingIds, setStatusUpdatingIds] = useState<Set<string>>(() => new Set());
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
 
   // Filters State
@@ -42,21 +45,23 @@ const Assignments = () => {
   };
 
   // Derived State
-  const filtered = assignments.filter(a => {
-    if (filterSubject.length > 0 && !filterSubject.includes(a.subjectId)) return false;
-    if (filterPriority && a.priority !== filterPriority) return false;
-    if (filterStatus && a.status !== filterStatus) return false;
-    if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  }).sort((a, b) => {
-    if (sortBy === 'DueDate') return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-    if (sortBy === 'Priority') {
-      const pMap = { [Priority.High]: 3, [Priority.Medium]: 2, [Priority.Low]: 1 };
-      return pMap[b.priority] - pMap[a.priority];
-    }
-    if (sortBy === 'Title') return a.title.localeCompare(b.title);
-    return 0;
-  });
+  const filtered = useMemo(() => {
+    return assignments.filter(a => {
+      if (filterSubject.length > 0 && !filterSubject.includes(a.subjectId)) return false;
+      if (filterPriority && a.priority !== filterPriority) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    }).sort((a, b) => {
+      if (sortBy === 'DueDate') return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      if (sortBy === 'Priority') {
+        const pMap = { [Priority.High]: 3, [Priority.Medium]: 2, [Priority.Low]: 1 };
+        return pMap[b.priority] - pMap[a.priority];
+      }
+      if (sortBy === 'Title') return a.title.localeCompare(b.title);
+      return 0;
+    });
+  }, [assignments, filterSubject, filterPriority, filterStatus, search, sortBy]);
 
   const activeFilterCount = filterSubject.length + (filterPriority ? 1 : 0) + (filterStatus ? 1 : 0);
 
@@ -74,10 +79,21 @@ const Assignments = () => {
   };
 
   const handleStatusChange = async (id: string, newStatus: Status) => {
+    setStatusUpdatingIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      nextIds.add(id);
+      return nextIds;
+    });
     try {
       await updateAssignment(id, { status: newStatus });
     } catch (error) {
       console.error("Failed to update status", error);
+    } finally {
+      setStatusUpdatingIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.delete(id);
+        return nextIds;
+      });
     }
   };
 
@@ -109,12 +125,18 @@ const Assignments = () => {
           {/* View Toggle */}
           <div className="flex items-center bg-muted/30 p-1 rounded-xl border border-border backdrop-blur-sm dark:bg-black/20 dark:border-white/10">
             <button
+              data-testid="assignments-list-view-button"
+              aria-label="List view"
+              aria-pressed={viewMode === 'list'}
               onClick={() => setViewMode('list')}
               className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-white/60 dark:bg-white/10 text-foreground dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground dark:hover:text-white")}
             >
               <ListIcon className="h-4 w-4" />
             </button>
             <button
+              data-testid="assignments-board-view-button"
+              aria-label="Board view"
+              aria-pressed={viewMode === 'board'}
               onClick={() => setViewMode('board')}
               className={cn("p-2 rounded-lg transition-all", viewMode === 'board' ? "bg-white/60 dark:bg-white/10 text-foreground dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground dark:hover:text-white")}
             >
@@ -132,7 +154,7 @@ const Assignments = () => {
               className="pl-9 glass-surface focus:border-primary/50 focus:bg-white/60 dark:focus:bg-black/40 transition-all rounded-xl"
             />
           </div>
-          <NeonButton onClick={() => setIsModalOpen(true)} className="gap-2" variant="primary" glow>
+          <NeonButton data-testid="add-assignment-button" onClick={() => setIsModalOpen(true)} className="gap-2" variant="primary" glow>
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">Add Task</span>
             <span className="sm:hidden">Add</span>
@@ -143,9 +165,11 @@ const Assignments = () => {
       {/* Filter Island with Scroll Indicators */}
       <GlassCard className="rounded-2xl -mx-2 px-4 py-3">
         <ScrollIndicator className="flex flex-wrap items-center gap-x-2 gap-y-2.5 pb-2">
-          <div 
+          <button
+            type="button"
             onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-            className="flex items-center justify-between md:justify-start gap-1.5 pr-4 md:border-r border-border md:mr-2 text-muted-foreground cursor-pointer md:cursor-default w-full md:w-auto"
+            aria-expanded={isFiltersOpen}
+            className="flex items-center justify-between md:justify-start gap-1.5 pr-4 md:border-r border-border md:mr-2 text-muted-foreground cursor-pointer w-full md:w-auto"
           >
             <div className="flex items-center gap-1.5">
               <Filter className="h-3.5 w-3.5" />
@@ -159,7 +183,7 @@ const Assignments = () => {
               )}
               <ChevronDown className={cn("h-3 w-3 transition-transform duration-300", isFiltersOpen && "rotate-180")} />
             </div>
-          </div>
+          </button>
 
           <div className={cn(
             "flex flex-wrap items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out w-full md:w-auto",
@@ -220,12 +244,16 @@ const Assignments = () => {
                   ? "bg-primary/10 text-foreground border-primary/30 dark:bg-white/20 dark:text-white dark:border-white/30"
                   : "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
               )}
-              style={{
-                borderColor: filterSubject.includes(s.id) ? `var(--${s.color})` : undefined,
-                backgroundColor: filterSubject.includes(s.id) ? `color-mix(in srgb, var(--${s.color}) 20%, transparent)` : undefined
-              }}
             >
-              {s.name}
+              <SubjectBadge
+                className={cn(
+                  'border-none bg-transparent px-0 py-0 shadow-none dark:bg-transparent',
+                  filterSubject.includes(s.id) && 'text-foreground dark:text-white'
+                )}
+                initialsClassName="h-6 min-w-6 px-1.5 text-[10px]"
+                name={s.name}
+                size="sm"
+              />
             </NeonButton>
           ))}
 
@@ -256,7 +284,9 @@ const Assignments = () => {
                     <AssignmentMobileCard
                       key={assignment.id}
                       assignment={assignment}
+                      onStatusChange={(nextStatus) => handleStatusChange(assignment.id, nextStatus)}
                       subject={subject}
+                      statusUpdating={statusUpdatingIds.has(assignment.id)}
                       onClick={() => setViewingAssignment(assignment)}
                       onEdit={() => setEditingAssignment(assignment)}
                       onDelete={() => setDeletingAssignment(assignment)}
@@ -292,6 +322,7 @@ const Assignments = () => {
                       const isCompleted = assignment.status === Status.Completed;
                       return (
                         <motion.tr
+                          data-testid={`assignment-row-${assignment.id}`}
                           key={assignment.id}
                           layout
                           initial={{ opacity: 0, scale: 0.98 }}
@@ -305,26 +336,19 @@ const Assignments = () => {
                           onClick={() => setViewingAssignment(assignment)}
                         >
                           <TableCell>
-                            <div className={cn(
-                              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border",
-                              isCompleted ? "bg-green-500/10 text-green-400 border-green-900/50" :
-                                assignment.status === Status.InProgress ? "bg-blue-500/10 text-blue-400 border-blue-900/50" :
-                                  "bg-amber-500/10 text-amber-400 border-amber-900/50"
-                            )}>
-                              {isCompleted ? <CheckCircle className="h-3 w-3" /> :
-                                assignment.status === Status.InProgress ? <Clock className="h-3 w-3" /> :
-                                  <AlertCircle className="h-3 w-3" />}
-                              {assignment.status}
-                            </div>
+                            <AssignmentStatusSelect
+                              disabled={statusUpdatingIds.has(assignment.id)}
+                              onChange={(nextStatus) => handleStatusChange(assignment.id, nextStatus)}
+                              status={assignment.status}
+                              testId={`assignment-status-select-inline-${assignment.id}`}
+                            />
                           </TableCell>
                           <TableCell className="font-medium text-sm text-foreground">
                             <span className={cn(isCompleted && "line-through text-muted-foreground")}>{assignment.title}</span>
                           </TableCell>
                           <TableCell>
                             {subject && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-muted/50 text-foreground border border-border dark:bg-white/10 dark:text-white/80 dark:border-white/5">
-                                {subject.name}
-                              </span>
+                              <SubjectBadge name={subject.name} size="sm" />
                             )}
                           </TableCell>
                           <TableCell>
@@ -345,12 +369,12 @@ const Assignments = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
+                              <Button data-testid={`assignment-edit-${assignment.id}`} aria-label={`Edit assignment ${assignment.title}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
                                 onClick={(e) => { e.stopPropagation(); setEditingAssignment(assignment); }}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              <Button data-testid={`assignment-delete-${assignment.id}`} aria-label={`Delete assignment ${assignment.title}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                 onClick={(e) => { e.stopPropagation(); setDeletingAssignment(assignment); }}
                               >
                                 <Trash2 className="h-4 w-4" />

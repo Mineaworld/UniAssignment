@@ -1059,7 +1059,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 } else {
                     const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
                         name: subjectName,
-                        color: "bg-gray-500",
+                        color: "bg-blue-500",
                         createdAt: new Date().toISOString(),
                         lastUpdated: new Date().toISOString()
                     });
@@ -1137,9 +1137,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 } else {
                     const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
                         name: subjectName,
-                        color: "bg-gray-500",
+                        color: "bg-blue-500",
                         createdAt: new Date().toISOString(),
-                        lastUpdated: "Just now"
+                        lastUpdated: new Date().toISOString()
                     });
                     subjectId = newSubjectRef.id;
                 }

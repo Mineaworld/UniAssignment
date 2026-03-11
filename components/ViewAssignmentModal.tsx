@@ -8,6 +8,7 @@ import { getPriorityColor, getStatusColor } from '../utils/theme';
 import { formatReminderText } from '../utils/reminder';
 import { getNotesContent } from '../utils/migrateNotes';
 import { NotesViewer, NotesFullscreenModal } from './notes';
+import { SubjectBadge } from './ui/SubjectBadge';
 
 interface ViewAssignmentModalProps {
     isOpen: boolean;
@@ -66,9 +67,7 @@ const ViewAssignmentModal = ({ isOpen, onClose, assignment }: ViewAssignmentModa
                                             {assignment.title}
                                         </h1>
                                         {subject && (
-                                            <span className={`px-3 py-1.5 rounded-lg text-sm font-bold ${subject.color} bg-opacity-10 text-opacity-90 whitespace-nowrap`}>
-                                                {subject.name}
-                                            </span>
+                                            <SubjectBadge name={subject.name} size="sm" />
                                         )}
                                     </div>
                                 </div>

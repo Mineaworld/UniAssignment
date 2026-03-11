@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReminderPreset, AssignmentReminder } from '../types';
 import { calculateReminderTime, formatReminderText, getPresetShort } from '../utils/reminder';
+import { buildLocalIsoString, formatDateInputValue, formatTimeInputValue } from '../utils/dateUtils';
 
 interface ReminderSelectorProps {
   dueDate: string;
@@ -96,7 +97,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
       const time = timeInput?.value || '';
 
       if (date && time) {
-        const customTime = new Date(`${date}T${time}`).toISOString();
+        const customTime = buildLocalIsoString(date, time);
         onChange({ enabled: true, preset: ReminderPreset.Custom, customTime });
       } else {
         setCustomError('Please select both date and time');
@@ -275,7 +276,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                         name="date"
                         type="date"
                         required
-                        defaultValue={value?.customTime ? new Date(value.customTime).toISOString().split('T')[0] : ''}
+                        defaultValue={value?.customTime ? formatDateInputValue(value.customTime) : ''}
                         className="flex-1 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                         aria-label="Reminder date"
                       />
@@ -283,7 +284,7 @@ export function ReminderSelector({ dueDate, value, onChange, disabled }: Reminde
                         name="time"
                         type="time"
                         required
-                        defaultValue={value?.customTime ? new Date(value.customTime).toTimeString().slice(0, 5) : ''}
+                        defaultValue={value?.customTime ? formatTimeInputValue(value.customTime) : ''}
                         className="w-28 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                         aria-label="Reminder time"
                       />

@@ -14,9 +14,11 @@ import {
   getDoc,
   setDoc,
   deleteField,
-  FieldValue
+  FieldValue,
 } from 'firebase/firestore';
 import { Assignment, AppContextType, Subject, User, PomodoroSession, PomodoroStats, PomodoroSessionType } from './types';
+import { prepareAssignmentUpdates } from './utils/assignmentUpdate';
+import { DEFAULT_SUBJECT_COLOR } from './constants/colors';
 
 // ============================================================================
 // Types & Constants
@@ -478,36 +480,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const updateAssignment = async (id: string, updates: Partial<Assignment>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
 
-    // If dueDate or reminder settings changed, reset sentAt to allow re-triggering
-    if (updates.dueDate !== undefined || updates.reminder !== undefined) {
-      if (updates.reminder && updates.reminder.enabled) {
-        // Clear sentAt so the reminder can trigger again
-        updates = {
-          ...updates,
-          reminder: {
-            ...updates.reminder,
-            sentAt: undefined,
-          },
-        };
-      }
-    }
+    const processedUpdates = prepareAssignmentUpdates(
+      updates,
+      () => deleteField()
+    ) as Record<string, FieldValue | Partial<unknown> | undefined>;
 
-    // Convert undefined values to deleteField() for proper Firestore field deletion
-    type FirestoreUpdateValue = string | number | boolean | null | FieldValue | object;
-    const processedUpdates: Record<string, FirestoreUpdateValue> = {};
-    for (const [key, value] of Object.entries(updates)) {
-      if (key === 'reminder' && value !== undefined && typeof value === 'object' && value !== null) {
-        // Handle nested reminder object - convert nested undefined to deleteField
-        const reminderObj = value as unknown as Record<string, unknown>;
-        for (const [rKey, rValue] of Object.entries(reminderObj)) {
-          processedUpdates[`reminder.${rKey}`] = rValue === undefined ? deleteField() : (rValue as FirestoreUpdateValue);
-        }
-      } else {
-        processedUpdates[key] = value === undefined ? deleteField() : (value as FirestoreUpdateValue);
-      }
-    }
-
-await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
+    await updateDoc(
+      doc(db, `users/${user.uid}/assignments`, id),
+      processedUpdates
+    );
   };
 
   const deleteAssignment = async (id: string): Promise<void> => {
@@ -526,10 +507,12 @@ await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
 
   const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt' | 'lastUpdated'>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
+    const timestamp = new Date().toISOString();
     await addDoc(collection(db, `users/${user.uid}/subjects`), {
       ...subject,
-      createdAt: new Date().toISOString(),
-      lastUpdated: 'Just now',
+      color: subject.color || DEFAULT_SUBJECT_COLOR,
+      createdAt: timestamp,
+      lastUpdated: timestamp,
     });
   };
 
@@ -537,7 +520,7 @@ await updateDoc(doc(db, `users/${user.uid}/assignments`, id), processedUpdates);
     if (!user?.uid) throw new Error('User not authenticated');
     await updateDoc(doc(db, `users/${user.uid}/subjects`, id), {
       ...updates,
-      lastUpdated: 'Just now',
+      lastUpdated: new Date().toISOString(),
     });
   };
 

@@ -33,5 +33,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "exclude": [
+    "functions",
+    "functions/**/*"
+  ]
 }

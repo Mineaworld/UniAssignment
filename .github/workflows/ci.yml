@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  functions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Build functions
+        run: npm --prefix functions run build
+
+  unit:
+    runs-on: ubuntu-latest
+    needs: typecheck
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run test
+
+  build:
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  playwright:
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      VITE_FIREBASE_API_KEY: ${{ secrets.E2E_VITE_FIREBASE_API_KEY || 'test-api-key' }}
+      VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.E2E_VITE_FIREBASE_AUTH_DOMAIN || 'test.firebaseapp.com' }}
+      VITE_FIREBASE_PROJECT_ID: ${{ secrets.E2E_VITE_FIREBASE_PROJECT_ID || 'test-project' }}
+      VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.E2E_VITE_FIREBASE_STORAGE_BUCKET || 'test.appspot.com' }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.E2E_VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789' }}
+      VITE_FIREBASE_APP_ID: ${{ secrets.E2E_VITE_FIREBASE_APP_ID || '1:123:web:test' }}
+      E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+      E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke suite on PR
+        if: github.event_name == 'pull_request'
+        run: npm run e2e -- --grep @smoke
+
+      - name: Run full Playwright suite on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm run e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+      - name: Upload Playwright test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/

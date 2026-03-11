@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { Assignment, Priority, Status } from '../types';
+import { Assignment, Priority, Status, Subject } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { cn } from '../utils/cn';
-import { getColorValue } from '../constants/colors';
 import { STATUS_CONFIG, PRIORITY_CONFIG } from '../constants/statusConfig';
 import { formatDueDate, isOverdue as checkOverdue } from '../utils/dateUtils';
+import { SubjectBadge } from './ui/SubjectBadge';
+import { AssignmentStatusSelect } from './AssignmentStatusSelect';
 
 interface AssignmentMobileCardProps {
   assignment: Assignment;
-  subject?: { name: string; color: string };
+  onStatusChange: (nextStatus: Status) => Promise<void> | void;
+  statusUpdating?: boolean;
+  subject?: Subject;
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -18,7 +21,9 @@ interface AssignmentMobileCardProps {
 
 export const AssignmentMobileCard = ({
   assignment,
+  onStatusChange,
   subject,
+  statusUpdating = false,
   onClick,
   onEdit,
   onDelete,
@@ -42,6 +47,7 @@ export const AssignmentMobileCard = ({
 
   return (
     <motion.div
+      data-testid={`assignment-mobile-card-${assignment.id}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -56,37 +62,25 @@ export const AssignmentMobileCard = ({
         isCompleted && 'opacity-70'
       )}
     >
-      {subject && (
-        <div
-          className="absolute left-0 top-0 bottom-0 w-1.5 rounded-r-full"
-          style={{
-            background: getColorValue(subject.color),
-            boxShadow: `0 0 12px ${getColorValue(subject.color)}`
-          }}
-        />
-      )}
-
-      <div className={cn(
-        'absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full border',
-        'min-h-[44px] min-w-[44px] justify-center',
-        statusStyle.bg,
-        statusStyle.border
-      )}>
-        <StatusIcon className={cn('h-4 w-4', statusStyle.color)} />
-        <span className={cn('text-xs font-medium', statusStyle.color)}>
-          {assignment.status}
-        </span>
-      </div>
-
       {hasActiveReminder && (
         <div className="absolute top-4 left-4 flex items-center justify-center h-10 w-10 rounded-full bg-violet-500/10 border border-violet-500/30">
           <Bell className="h-4 w-4 text-violet-400" />
         </div>
       )}
 
-      <div className="relative space-y-3 mt-2">
+      <div className="relative mt-2 space-y-3">
+        <div className="flex justify-end">
+          <AssignmentStatusSelect
+            className="shrink-0"
+            disabled={statusUpdating}
+            onChange={onStatusChange}
+            status={assignment.status}
+            testId={`assignment-status-select-inline-${assignment.id}`}
+          />
+        </div>
+
         <h3 className={cn(
-          'font-bold leading-tight tracking-tight pr-24',
+          'min-w-0 font-bold leading-tight tracking-tight',
           hasActiveReminder && 'pl-14',
           titleSize,
           isCompleted ? 'line-through text-muted-foreground' : 'text-foreground',
@@ -97,15 +91,7 @@ export const AssignmentMobileCard = ({
 
         <div className="flex items-center gap-2 flex-wrap">
           {subject && (
-            <span
-              className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold min-h-[32px]"
-              style={{
-                backgroundColor: `${getColorValue(subject.color)}20`,
-                color: getColorValue(subject.color)
-              }}
-            >
-              {subject.name}
-            </span>
+            <SubjectBadge className="max-w-full" name={subject.name} size="sm" />
           )}
 
           <div className="flex items-center gap-1.5 px-2 py-1 min-h-[32px]">
@@ -145,6 +131,7 @@ export const AssignmentMobileCard = ({
 
       <div className="absolute bottom-2 right-2 z-10">
         <button
+          aria-label={`Assignment actions for ${assignment.title}`}
           onClick={(e) => {
             e.stopPropagation();
             setShowMenu(!showMenu);
@@ -174,6 +161,7 @@ export const AssignmentMobileCard = ({
                 className="absolute bottom-full right-0 mb-2 min-w-[120px] bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-black/5 dark:border-white/10 overflow-hidden z-30"
               >
                 <button
+                  aria-label={`Edit assignment ${assignment.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowMenu(false);
@@ -186,6 +174,7 @@ export const AssignmentMobileCard = ({
                 </button>
                 <div className="h-px bg-border/50" />
                 <button
+                  aria-label={`Delete assignment ${assignment.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowMenu(false);
