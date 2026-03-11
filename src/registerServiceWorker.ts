@@ -17,6 +17,30 @@ export function registerServiceWorker(
   const wb = new Workbox('/sw.js');
   let shouldReloadOnControl = false;
   let hasReloaded = false;
+  let updateCheckScheduled = false;
+
+  const reloadOnUpdate = () => {
+    shouldReloadOnControl = true;
+    wb.messageSkipWaiting();
+    // Fallback: if "controlling" doesn't fire for some reason, reload anyway.
+    window.setTimeout(() => {
+      if (shouldReloadOnControl && !hasReloaded) {
+        hasReloaded = true;
+        window.location.reload();
+      }
+    }, 3000);
+  };
+
+  const checkForUpdate = () => {
+    if (updateCheckScheduled) return;
+    updateCheckScheduled = true;
+    window.setTimeout(() => {
+      updateCheckScheduled = false;
+      void wb.update().catch((error) => {
+        console.error('Service worker update check failed:', error);
+      });
+    }, 0);
+  };
 
   wb.addEventListener('controlling', () => {
     if (shouldReloadOnControl && !hasReloaded) {
@@ -29,17 +53,7 @@ export function registerServiceWorker(
     console.log('Service worker update available');
     onUpdateAvailable({
       show: true,
-      onUpdate: () => {
-        shouldReloadOnControl = true;
-        wb.messageSkipWaiting();
-        // Fallback: if "controlling" doesn't fire for some reason, reload anyway.
-        window.setTimeout(() => {
-          if (shouldReloadOnControl && !hasReloaded) {
-            hasReloaded = true;
-            window.location.reload();
-          }
-        }, 3000);
-      },
+      onUpdate: reloadOnUpdate,
       onDismiss: () => {
         console.log('Update dismissed by user');
       }
@@ -57,6 +71,12 @@ export function registerServiceWorker(
   wb.register()
     .then(() => {
       console.log('Service worker registered successfully');
+      window.addEventListener('focus', checkForUpdate);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          checkForUpdate();
+        }
+      });
     })
     .catch((error) => {
       console.error('Service worker registration failed:', error);

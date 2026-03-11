@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
+        injectRegister: false,
         registerType: 'prompt',
         includeAssets: ['favicon.ico', 'icons/*.png'],
         workbox: {

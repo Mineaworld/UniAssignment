@@ -17,7 +17,7 @@ root.render(
 // Register service worker in production
 if (import.meta.env.PROD) {
   registerServiceWorker((notification) => {
-    console.log('Update available:', notification);
-    // TODO: Show toast notification with update button
+    console.log('Applying app update automatically');
+    notification.onUpdate();
   });
 }
