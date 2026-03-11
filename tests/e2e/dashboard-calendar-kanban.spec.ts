@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { hasE2EAuth, login } from './helpers/auth';
+import { hasE2EAuth, login, uniqueName } from './helpers/auth';
+
+const formatDateValue = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 test.describe('dashboard/calendar/kanban', () => {
   test.skip(!hasE2EAuth, 'Missing E2E auth credentials');
@@ -19,17 +26,56 @@ test.describe('dashboard/calendar/kanban', () => {
   });
 
   test('opens calendar details from a desktop calendar item', async ({ page }) => {
+    const subjectName = uniqueName('CalendarSubject');
+    const assignmentName = uniqueName('CalendarAssignment');
+    const dueDate = new Date();
+    dueDate.setHours(9, 0, 0, 0);
+    const dateValue = formatDateValue(dueDate);
+
     await page.setViewportSize({ width: 1280, height: 900 });
 
     await login(page);
 
-    await page.goto('/dashboard/calendar');
-    const desktopCalendarAssignment = page.locator('[data-testid^="calendar-assignment-desktop-"]').first();
-    await expect(desktopCalendarAssignment).toBeVisible();
-    await desktopCalendarAssignment.click();
-    await expect(page.getByRole('heading', { name: 'Assignment Details' })).toBeVisible();
-    await page.getByRole('button', { name: 'Close', exact: true }).last().click();
-    await expect(page.getByRole('heading', { name: 'Assignment Details' })).toHaveCount(0);
+    try {
+      await page.goto('/dashboard/subjects');
+      await page.getByTestId('add-subject-button').click();
+      await page.getByTestId('subject-name-input').fill(subjectName);
+      await page.getByTestId('subject-submit-button').click();
+      await expect(page.getByTestId(/subject-row-/).filter({ hasText: subjectName }).first()).toBeVisible();
+
+      await page.goto('/dashboard/assignments');
+      await page.getByTestId('add-assignment-button').click();
+      await page.getByTestId('assignment-title-input').fill(assignmentName);
+      await page.getByTestId('assignment-subject-select').selectOption({ label: subjectName });
+      await page.getByTestId('assignment-date-input').fill(dateValue);
+      await page.getByTestId('assignment-time-input').fill('09:00');
+      await page.getByTestId('assignment-submit-button').click();
+      await expect(page.locator('tr', { hasText: assignmentName }).first()).toBeVisible();
+
+      await page.goto('/dashboard/calendar');
+      const desktopCalendarAssignment = page
+        .locator('[data-testid^="calendar-assignment-desktop-"]', { hasText: assignmentName })
+        .first();
+      await expect(desktopCalendarAssignment).toBeVisible();
+      await desktopCalendarAssignment.click();
+      await expect(page.getByRole('heading', { name: 'Assignment Details' })).toBeVisible();
+      await page.getByRole('button', { name: 'Close', exact: true }).last().click();
+      await expect(page.getByRole('heading', { name: 'Assignment Details' })).toHaveCount(0);
+    } finally {
+      await page.goto('/dashboard/assignments');
+      const createdAssignmentRow = page.locator('tr', { hasText: assignmentName }).first();
+      if (await createdAssignmentRow.count()) {
+        await createdAssignmentRow.locator('[data-testid^="assignment-delete-"]').click({ force: true });
+        await page.getByTestId('delete-confirm-button').click();
+      }
+
+      await page.goto('/dashboard/subjects');
+      const createdSubjectRow = page.getByTestId(/subject-row-/).filter({ hasText: subjectName }).first();
+      if (await createdSubjectRow.count()) {
+        await createdSubjectRow.locator('[data-testid^="subject-delete-"]').click({ force: true });
+        await page.getByTestId('delete-confirm-button').click();
+      }
+    }
   });
 
   test.fixme('persists kanban drag updates in headless chromium', async ({ page }) => {

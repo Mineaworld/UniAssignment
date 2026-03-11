@@ -37,6 +37,7 @@ export const SubjectBadge = ({
 
   return (
     <span
+      aria-label={showName ? undefined : name}
       className={cn(
         'inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/40 px-1.5 py-1 text-foreground backdrop-blur-sm dark:border-white/10 dark:bg-white/5',
         className

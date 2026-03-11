@@ -32,7 +32,7 @@ test.describe('assignments @smoke', () => {
     const createdRow = page.locator('tr', { hasText: assignmentName }).first();
     await expect(createdRow).toBeVisible();
 
-    const inlineStatusTrigger = createdRow.getByTestId(/assignment-status-select-inline-/);
+    const inlineStatusTrigger = createdRow.locator('button[aria-haspopup="listbox"][data-testid^="assignment-status-select-inline-"]');
     await inlineStatusTrigger.click();
     await page.getByTestId(/assignment-status-select-inline-.*-Completed/).click();
     await expect(page.getByRole('heading', { name: 'Assignment Details' })).toHaveCount(0);

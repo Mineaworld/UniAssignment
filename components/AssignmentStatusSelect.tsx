@@ -54,9 +54,16 @@ export const AssignmentStatusSelect = ({
   }, [isOpen, status]);
 
   const handleOptionClick = async (nextStatus: Status) => {
-    setIsOpen(false);
-    if (nextStatus !== status) {
+    if (nextStatus === status) {
+      setIsOpen(false);
+      return;
+    }
+
+    try {
       await onChange(nextStatus);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Failed to update assignment status', error);
     }
   };
 

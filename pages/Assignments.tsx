@@ -27,7 +27,7 @@ const Assignments = () => {
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const [deletingAssignment, setDeletingAssignment] = useState<Assignment | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [statusUpdatingIds, setStatusUpdatingIds] = useState<Set<string>>(() => new Set());
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
 
   // Filters State
@@ -79,13 +79,21 @@ const Assignments = () => {
   };
 
   const handleStatusChange = async (id: string, newStatus: Status) => {
-    setStatusUpdatingId(id);
+    setStatusUpdatingIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      nextIds.add(id);
+      return nextIds;
+    });
     try {
       await updateAssignment(id, { status: newStatus });
     } catch (error) {
       console.error("Failed to update status", error);
     } finally {
-      setStatusUpdatingId((currentId) => currentId === id ? null : currentId);
+      setStatusUpdatingIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.delete(id);
+        return nextIds;
+      });
     }
   };
 
@@ -118,6 +126,8 @@ const Assignments = () => {
           <div className="flex items-center bg-muted/30 p-1 rounded-xl border border-border backdrop-blur-sm dark:bg-black/20 dark:border-white/10">
             <button
               data-testid="assignments-list-view-button"
+              aria-label="List view"
+              aria-pressed={viewMode === 'list'}
               onClick={() => setViewMode('list')}
               className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-white/60 dark:bg-white/10 text-foreground dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground dark:hover:text-white")}
             >
@@ -125,6 +135,8 @@ const Assignments = () => {
             </button>
             <button
               data-testid="assignments-board-view-button"
+              aria-label="Board view"
+              aria-pressed={viewMode === 'board'}
               onClick={() => setViewMode('board')}
               className={cn("p-2 rounded-lg transition-all", viewMode === 'board' ? "bg-white/60 dark:bg-white/10 text-foreground dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground dark:hover:text-white")}
             >
@@ -274,7 +286,7 @@ const Assignments = () => {
                       assignment={assignment}
                       onStatusChange={(nextStatus) => handleStatusChange(assignment.id, nextStatus)}
                       subject={subject}
-                      statusUpdating={statusUpdatingId === assignment.id}
+                      statusUpdating={statusUpdatingIds.has(assignment.id)}
                       onClick={() => setViewingAssignment(assignment)}
                       onEdit={() => setEditingAssignment(assignment)}
                       onDelete={() => setDeletingAssignment(assignment)}
@@ -325,7 +337,7 @@ const Assignments = () => {
                         >
                           <TableCell>
                             <AssignmentStatusSelect
-                              disabled={statusUpdatingId === assignment.id}
+                              disabled={statusUpdatingIds.has(assignment.id)}
                               onChange={(nextStatus) => handleStatusChange(assignment.id, nextStatus)}
                               status={assignment.status}
                               testId={`assignment-status-select-inline-${assignment.id}`}
@@ -357,12 +369,12 @@ const Assignments = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button data-testid={`assignment-edit-${assignment.id}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
+                              <Button data-testid={`assignment-edit-${assignment.id}`} aria-label={`Edit assignment ${assignment.title}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-white/10"
                                 onClick={(e) => { e.stopPropagation(); setEditingAssignment(assignment); }}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button data-testid={`assignment-delete-${assignment.id}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              <Button data-testid={`assignment-delete-${assignment.id}`} aria-label={`Delete assignment ${assignment.title}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                 onClick={(e) => { e.stopPropagation(); setDeletingAssignment(assignment); }}
                               >
                                 <Trash2 className="h-4 w-4" />

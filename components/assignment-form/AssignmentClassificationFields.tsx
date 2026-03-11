@@ -23,6 +23,8 @@ const defaultTone = {
   inactive: 'border-border/60 hover:bg-muted/50 text-muted-foreground',
 };
 
+const focusRingClasses = 'focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-background';
+
 export const AssignmentClassificationFields = ({
   formData,
   onChange,
@@ -36,7 +38,7 @@ export const AssignmentClassificationFields = ({
         <span className="text-sm font-medium text-foreground/80">Assignment Type</span>
         <div className="mt-2 grid grid-cols-3 gap-3">
           <label
-            className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${!formData.examType ? palette.active.exam : palette.inactive}`}
+            className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${focusRingClasses} ${!formData.examType ? palette.active.exam : palette.inactive}`}
           >
             <input
               type="radio"
@@ -50,7 +52,7 @@ export const AssignmentClassificationFields = ({
           </label>
 
           <label
-            className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${
+            className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${focusRingClasses} ${
               formData.examType === 'midterm'
                 ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500'
                 : palette.inactive
@@ -68,7 +70,7 @@ export const AssignmentClassificationFields = ({
           </label>
 
           <label
-            className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${
+            className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${focusRingClasses} ${
               formData.examType === 'final'
                 ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500'
                 : palette.inactive
@@ -93,7 +95,7 @@ export const AssignmentClassificationFields = ({
           {[Priority.Low, Priority.Medium, Priority.High].map((priority) => (
             <label
               key={priority}
-              className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${
+              className={`relative flex items-center justify-center gap-2 rounded-lg border p-3 transition-all ${focusRingClasses} ${
                 formData.priority === priority ? palette.active.priority : palette.inactive
               }`}
             >

@@ -164,6 +164,8 @@ const Calendar = () => {
               {selectedDayAssignments.map((assignment) => {
                 const isCompleted = assignment.status === 'Completed';
                 const subjectName = getSubjectName(assignment.subjectId);
+                const dueDate = new Date(assignment.dueDate);
+                const showDueTime = dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0;
 
                 return (
                   <motion.button
@@ -185,12 +187,14 @@ const Calendar = () => {
                         <div className={cn('text-base font-semibold leading-tight text-foreground', isCompleted && 'line-through text-muted-foreground')}>
                           {assignment.title}
                         </div>
-                        <div className="mt-1 text-sm text-muted-foreground">
-                          {new Date(assignment.dueDate).toLocaleTimeString(undefined, {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </div>
+                        {showDueTime && (
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {dueDate.toLocaleTimeString(undefined, {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        )}
                       </div>
                       <span className="rounded-full border border-border/70 bg-background/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:border-white/10 dark:bg-[#111827]">
                         {assignment.priority}

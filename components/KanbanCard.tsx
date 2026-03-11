@@ -129,7 +129,7 @@ const DraggableKanbanCard = ({
   });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: CSS.Transform.toString(transform),
   };
 
   const handleClick = () => {

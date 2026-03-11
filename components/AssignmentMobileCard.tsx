@@ -131,6 +131,7 @@ export const AssignmentMobileCard = ({
 
       <div className="absolute bottom-2 right-2 z-10">
         <button
+          aria-label={`Assignment actions for ${assignment.title}`}
           onClick={(e) => {
             e.stopPropagation();
             setShowMenu(!showMenu);
@@ -160,6 +161,7 @@ export const AssignmentMobileCard = ({
                 className="absolute bottom-full right-0 mb-2 min-w-[120px] bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-black/5 dark:border-white/10 overflow-hidden z-30"
               >
                 <button
+                  aria-label={`Edit assignment ${assignment.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowMenu(false);
@@ -172,6 +174,7 @@ export const AssignmentMobileCard = ({
                 </button>
                 <div className="h-px bg-border/50" />
                 <button
+                  aria-label={`Delete assignment ${assignment.title}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowMenu(false);

@@ -71,6 +71,7 @@ const Subjects = () => {
         <AnimatePresence mode="popLayout" initial={false}>
           {subjects.map((subject, index) => (
             <motion.div
+              data-testid={`subject-mobile-card-${subject.id}`}
               key={subject.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -91,12 +92,14 @@ const Subjects = () => {
 
                 <div className="flex items-center gap-1">
                   <button
+                    aria-label={`Edit subject ${subject.name}`}
                     onClick={() => setEditingSubject(subject)}
                     className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-muted/50 text-muted-foreground hover:text-primary transition-colors"
                   >
                     <Edit className="h-5 w-5" />
                   </button>
                   <button
+                    aria-label={`Delete subject ${subject.name}`}
                     onClick={() => setDeletingSubject(subject)}
                     className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                   >
