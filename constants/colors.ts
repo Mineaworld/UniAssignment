@@ -22,6 +22,7 @@ export const TAILWIND_COLORS: Record<string, string> = {
 };
 
 export const DEFAULT_COLOR = '#6366f1';
+export const DEFAULT_SUBJECT_COLOR = 'bg-blue-500';
 
 export const getColorValue = (tailwindClass: string): string => {
   return TAILWIND_COLORS[tailwindClass] || DEFAULT_COLOR;

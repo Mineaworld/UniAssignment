@@ -280,9 +280,9 @@ async function handleSubjectStep(chatId, userUid, text, currentState) {
         // Create new subject automatically
         const newSubjectRef = await db.collection(`users/${userUid}/subjects`).add({
             name: subjectName,
-            color: "bg-gray-500", // Default
+            color: "bg-blue-500",
             createdAt: new Date().toISOString(),
-            lastUpdated: "Just now"
+            lastUpdated: new Date().toISOString()
         });
         subjectId = newSubjectRef.id;
     }

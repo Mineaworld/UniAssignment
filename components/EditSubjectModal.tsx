@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context';
 import { Subject } from '../types';
-import { SUBJECT_COLORS } from '../constants/colors';
 
 interface EditSubjectModalProps {
     isOpen: boolean;
@@ -14,13 +13,11 @@ interface EditSubjectModalProps {
 const EditSubjectModal = ({ isOpen, onClose, subject }: EditSubjectModalProps) => {
     const { updateSubject } = useApp();
     const [name, setName] = useState('');
-    const [selectedColor, setSelectedColor] = useState(SUBJECT_COLORS[0]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (subject) {
             setName(subject.name);
-            setSelectedColor(subject.color);
         }
     }, [subject]);
 
@@ -32,7 +29,6 @@ const EditSubjectModal = ({ isOpen, onClose, subject }: EditSubjectModalProps) =
         try {
             await updateSubject(subject.id, {
                 name,
-                color: selectedColor
             });
 
             onClose();
@@ -77,6 +73,7 @@ const EditSubjectModal = ({ isOpen, onClose, subject }: EditSubjectModalProps) =
                                 <label className="block">
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Subject Name</span>
                                     <input
+                                        data-testid="subject-name-input"
                                         type="text"
                                         required
                                         placeholder="e.g., Advanced Calculus"
@@ -86,23 +83,8 @@ const EditSubjectModal = ({ isOpen, onClose, subject }: EditSubjectModalProps) =
                                     />
                                 </label>
 
-                                <div>
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Color Code</span>
-                                    <div className="mt-3 grid grid-cols-4 sm:grid-cols-5 gap-3">
-                                        {SUBJECT_COLORS.map((color) => (
-                                            <button
-                                                key={color}
-                                                type="button"
-                                                onClick={() => setSelectedColor(color)}
-                                                className={`
-                        min-w-[44px] min-h-[44px] w-11 h-11 rounded-full ${color} transition-all transform hover:scale-110 flex items-center justify-center
-                        ${selectedColor === color ? 'ring-2 ring-offset-2 ring-primary dark:ring-offset-[#101622] scale-110' : ''}
-                      `}
-                                            >
-                                                {selectedColor === color && <span className="material-symbols-outlined text-white text-sm">check</span>}
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground dark:border-white/10 dark:bg-white/5">
+                                    Subject badges are generated automatically from the subject name.
                                 </div>
 
                                 <div className="flex items-center justify-end gap-3 pt-4">
@@ -114,6 +96,7 @@ const EditSubjectModal = ({ isOpen, onClose, subject }: EditSubjectModalProps) =
                                         Cancel
                                     </button>
                                     <button
+                                        data-testid="subject-submit-button"
                                         type="submit"
                                         disabled={loading}
                                         className="px-6 py-2 rounded-lg text-white bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/25 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
