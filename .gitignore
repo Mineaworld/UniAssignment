@@ -7,6 +7,9 @@ node_modules/
 dist/
 build/
 /lib/
+coverage/
+playwright-report/
+test-results/
 
 # Environment files
 .env

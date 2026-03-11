@@ -76,6 +76,7 @@ const ConfirmDeleteModal = ({
                             {/* Actions */}
                             <div className="p-6 pt-0 flex items-center justify-center gap-3">
                                 <button
+                                    data-testid="delete-cancel-button"
                                     type="button"
                                     onClick={onClose}
                                     disabled={loading}
@@ -84,6 +85,7 @@ const ConfirmDeleteModal = ({
                                     Cancel
                                 </button>
                                 <button
+                                    data-testid="delete-confirm-button"
                                     type="button"
                                     onClick={handleConfirm}
                                     disabled={loading}

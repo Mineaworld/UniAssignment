@@ -16,6 +16,9 @@ A modern academic workspace for university students. Track assignments, manage s
 - **Calendar View** — Visualize deadlines at a glance
 - **Rich Notes Editor** — Notion-like block editor with images and formatting
 - **Pomodoro Timer** — Floating productivity timer with assignment linking
+- **AI Study Chat** — OpenRouter-powered assistant for explanations, summaries, and study planning with streaming responses
+- **Kanban Board View** — Switch between list and board layouts to manage assignments by status
+- **PWA & Offline Support** — Installable web app with service worker caching and offline status indicator
 - **Smart Reminders** — Telegram bot notifications (customizable timing)
 - **Dark/Light Mode** — System-aware theme support
 - **Responsive Design** — Works on desktop, tablet, and mobile
@@ -64,6 +67,36 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 ```
+
+## Testing
+
+### Run locally
+
+```bash
+# Type checks
+npm run typecheck
+
+# Unit/component tests
+npm run test
+
+# Unit coverage
+npm run test:coverage
+
+# End-to-end tests
+npm run e2e
+```
+
+### E2E environment
+
+Playwright auth-required tests use these env vars:
+
+```env
+E2E_TEST_EMAIL=your_test_user_email
+E2E_TEST_PASSWORD=your_test_user_password
+```
+
+E2E app runtime requires Firebase config (`VITE_FIREBASE_*`).
+See `docs/TestingPlan.md` for the full test strategy and CI behavior.
 
 ## Contributing
 
