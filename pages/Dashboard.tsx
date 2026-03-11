@@ -165,7 +165,7 @@ const Dashboard = () => {
         {/* 2. Stats Column - 3 Columns */}
         <div className="lg:col-span-3 lg:row-span-2 flex flex-col gap-6">
           {/* Total Tasks */}
-          <BentoCard delay={0.2} href="/assignments" className="min-h-[120px] md:min-h-0 flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
+          <BentoCard delay={0.2} href="/dashboard/assignments" className="min-h-[120px] md:min-h-0 flex-1 flex flex-col justify-center p-6 relative overflow-hidden group">
             <div className="absolute right-4 top-4 p-3 bg-muted/50 dark:bg-white/5 rounded-2xl group-hover:scale-110 transition-transform duration-300">
               <BookOpen className="h-5 w-5 text-foreground/70" />
             </div>
