@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { Assignment, Priority, Status, Subject } from '../types';
+import { Assignment, Priority, Status, SubjectSnapshot } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { STATUS_CONFIG, PRIORITY_CONFIG } from '../constants/statusConfig';
 import { formatDueDate, isOverdue as checkOverdue } from '../utils/dateUtils';
 import { SubjectBadge } from './ui/SubjectBadge';
+import { SharedAssignmentBadge } from './ui/SharedAssignmentBadge';
+import { SharedPermissionBadge } from './ui/SharedPermissionBadge';
 import { AssignmentStatusSelect } from './AssignmentStatusSelect';
 
 interface AssignmentMobileCardProps {
   assignment: Assignment;
   onStatusChange: (nextStatus: Status) => Promise<void> | void;
   statusUpdating?: boolean;
-  subject?: Subject;
+  subject?: SubjectSnapshot | null;
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -93,6 +95,12 @@ export const AssignmentMobileCard = ({
           {subject && (
             <SubjectBadge className="max-w-full" name={subject.name} size="sm" />
           )}
+          {assignment.isShared && (
+            <SharedAssignmentBadge compact />
+          )}
+          {assignment.isShared && (
+            <SharedPermissionBadge role={assignment.sharedRole} />
+          )}
 
           <div className="flex items-center gap-1.5 px-2 py-1 min-h-[32px]">
             <div className={cn('h-2.5 w-2.5 rounded-full', priorityStyle.dot, priorityStyle.glow)} />
@@ -172,19 +180,23 @@ export const AssignmentMobileCard = ({
                   <Edit className="h-4 w-4" />
                   Edit
                 </button>
-                <div className="h-px bg-border/50" />
-                <button
-                  aria-label={`Delete assignment ${assignment.title}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(false);
-                    onDelete();
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium hover:bg-red-500/10 text-red-500 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </button>
+                {assignment.canDelete && (
+                  <>
+                    <div className="h-px bg-border/50" />
+                    <button
+                      aria-label={`Delete assignment ${assignment.title}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMenu(false);
+                        onDelete();
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium hover:bg-red-500/10 text-red-500 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </button>
+                  </>
+                )}
               </motion.div>
             </>
           )}

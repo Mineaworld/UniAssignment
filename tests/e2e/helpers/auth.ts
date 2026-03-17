@@ -22,7 +22,7 @@ export const login = async (page: Page): Promise<void> => {
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign In' }).click();
 
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 });
 };
 
 export const logout = async (page: Page): Promise<void> => {

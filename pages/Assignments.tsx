@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context';
 import { Priority, Status, Assignment } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,10 +19,22 @@ import { AssignmentMobileCard } from '../components/AssignmentMobileCard';
 import { ScrollIndicator } from '../components/ScrollIndicator';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 import { SubjectBadge } from '../components/ui/SubjectBadge';
+import { SharedAssignmentBadge } from '../components/ui/SharedAssignmentBadge';
+import { SharedPermissionBadge } from '../components/ui/SharedPermissionBadge';
 import { AssignmentStatusSelect } from '../components/AssignmentStatusSelect';
+import { getAssignmentSubject } from '../utils/assignmentSubject';
+
+type AssignmentScopeFilter = 'all' | 'personal' | 'shared';
+
+interface JoinedAssignmentLocationState {
+  joinedSharedSpaceId?: string;
+  joinedSharedTargetType?: 'subject' | 'assignment';
+}
 
 const Assignments = () => {
   const { assignments, subjects, updateAssignment, deleteAssignment } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
@@ -34,11 +47,10 @@ const Assignments = () => {
   const [filterSubject, setFilterSubject] = useState<string[]>([]);
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null);
   const [filterStatus, setFilterStatus] = useState<Status | null>(null);
+  const [filterScope, setFilterScope] = useState<AssignmentScopeFilter>('all');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('DueDate');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-
-  const getSubject = (id: string) => subjects.find(s => s.id === id);
 
   const toggleSubjectFilter = (id: string) => {
     setFilterSubject(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -47,6 +59,8 @@ const Assignments = () => {
   // Derived State
   const filtered = useMemo(() => {
     return assignments.filter(a => {
+      if (filterScope === 'personal' && a.isShared) return false;
+      if (filterScope === 'shared' && !a.isShared) return false;
       if (filterSubject.length > 0 && !filterSubject.includes(a.subjectId)) return false;
       if (filterPriority && a.priority !== filterPriority) return false;
       if (filterStatus && a.status !== filterStatus) return false;
@@ -61,9 +75,29 @@ const Assignments = () => {
       if (sortBy === 'Title') return a.title.localeCompare(b.title);
       return 0;
     });
-  }, [assignments, filterSubject, filterPriority, filterStatus, search, sortBy]);
+  }, [assignments, filterPriority, filterScope, filterStatus, filterSubject, search, sortBy]);
 
-  const activeFilterCount = filterSubject.length + (filterPriority ? 1 : 0) + (filterStatus ? 1 : 0);
+  const activeFilterCount = filterSubject.length + (filterPriority ? 1 : 0) + (filterStatus ? 1 : 0) + (filterScope === 'all' ? 0 : 1);
+
+  useEffect(() => {
+    const joinedState = location.state as JoinedAssignmentLocationState | null;
+
+    if (joinedState?.joinedSharedTargetType !== 'assignment' || !joinedState.joinedSharedSpaceId) {
+      return;
+    }
+
+    const joinedAssignment = assignments.find((assignment) => (
+      assignment.sharedSpaceId === joinedState.joinedSharedSpaceId &&
+      assignment.sharedTargetType === 'assignment'
+    ));
+
+    if (!joinedAssignment) {
+      return;
+    }
+
+    setViewingAssignment(joinedAssignment);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [assignments, location.pathname, location.state, navigate]);
 
   const handleDeleteAssignment = async () => {
     if (!deletingAssignment) return;
@@ -190,6 +224,24 @@ const Assignments = () => {
             isFiltersOpen ? "max-h-[500px] opacity-100 mt-2 md:mt-0" : "max-h-0 opacity-0 md:max-h-none md:opacity-100 mt-0",
             "md:contents"
           )}>
+          {(['all', 'personal', 'shared'] as const).map((scope) => (
+            <NeonButton
+              key={scope}
+              variant={filterScope === scope ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilterScope(scope)}
+              className={cn(
+                "h-8 text-xs font-medium border transition-colors",
+                filterScope !== scope && "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              )}
+              glow={filterScope === scope}
+            >
+              {scope === 'all' ? 'All' : scope === 'personal' ? 'Personal' : 'Shared'}
+            </NeonButton>
+          ))}
+
+          <div className="w-px h-6 bg-border mx-1" />
+
           {/* Status Chips */}
           {[Status.Pending, Status.InProgress, Status.Completed].map((s) => (
             <NeonButton
@@ -261,7 +313,7 @@ const Assignments = () => {
             <NeonButton
               variant="ghost"
               size="sm"
-              onClick={() => { setFilterSubject([]); setFilterPriority(null); setFilterStatus(null); }}
+              onClick={() => { setFilterSubject([]); setFilterPriority(null); setFilterStatus(null); setFilterScope('all'); }}
               className="ml-auto h-7 px-2 text-xs hover:text-destructive text-muted-foreground"
             >
               <X className="h-3 w-3 mr-1" /> Clear
@@ -279,7 +331,7 @@ const Assignments = () => {
             <div className="md:hidden space-y-3 overflow-y-auto h-full custom-scrollbar px-1 pb-20">
               <AnimatePresence mode="popLayout" initial={false}>
                 {filtered.map((assignment, index) => {
-                  const subject = getSubject(assignment.subjectId);
+                  const subject = getAssignmentSubject(assignment, subjects);
                   return (
                     <AssignmentMobileCard
                       key={assignment.id}
@@ -318,7 +370,7 @@ const Assignments = () => {
                 <TableBody>
                   <AnimatePresence mode="popLayout" initial={false}>
                     {filtered.map((assignment) => {
-                      const subject = getSubject(assignment.subjectId);
+                      const subject = getAssignmentSubject(assignment, subjects);
                       const isCompleted = assignment.status === Status.Completed;
                       return (
                         <motion.tr
@@ -344,7 +396,15 @@ const Assignments = () => {
                             />
                           </TableCell>
                           <TableCell className="font-medium text-sm text-foreground">
-                            <span className={cn(isCompleted && "line-through text-muted-foreground")}>{assignment.title}</span>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={cn(isCompleted && "line-through text-muted-foreground")}>{assignment.title}</span>
+                              {assignment.isShared && (
+                                <SharedAssignmentBadge compact />
+                              )}
+                              {assignment.isShared && (
+                                <SharedPermissionBadge role={assignment.sharedRole} />
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {subject && (
@@ -374,11 +434,13 @@ const Assignments = () => {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button data-testid={`assignment-delete-${assignment.id}`} aria-label={`Delete assignment ${assignment.title}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                onClick={(e) => { e.stopPropagation(); setDeletingAssignment(assignment); }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {assignment.canDelete && (
+                                <Button data-testid={`assignment-delete-${assignment.id}`} aria-label={`Delete assignment ${assignment.title}`} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={(e) => { e.stopPropagation(); setDeletingAssignment(assignment); }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </motion.tr>
