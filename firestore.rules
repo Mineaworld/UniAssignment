@@ -2,25 +2,142 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUserOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isSharedMember(spaceId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/sharedSpaces/$(spaceId)/members/$(request.auth.uid));
+    }
+
+    function sharedRole(spaceId) {
+      return get(/databases/$(database)/documents/sharedSpaces/$(spaceId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function isSharedOwner(spaceId) {
+      return isSharedMember(spaceId) && sharedRole(spaceId) == 'owner';
+    }
+
+    function canEditSharedSpace(spaceId) {
+      return isSharedMember(spaceId) &&
+        (sharedRole(spaceId) == 'owner' || sharedRole(spaceId) == 'editor');
+    }
+
+    function sharedTargetType(spaceId) {
+      return get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.targetType;
+    }
+
     // Users collection - users can only access their own document
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isUserOwner(userId);
       
       // Subjects subcollection
       match /subjects/{subjectId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isUserOwner(userId);
       }
       
       // Assignments subcollection
       match /assignments/{assignmentId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isUserOwner(userId);
       }
+
+      // Shared space membership pointers
+      match /sharedSpaces/{spaceId} {
+        allow read, write: if isUserOwner(userId);
+      }
+    }
+
+    match /sharedSpaces/{spaceId} {
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow read: if isSharedMember(spaceId) || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      allow update: if isSharedOwner(spaceId) ||
+        (
+          canEditSharedSpace(spaceId) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['title', 'color', 'updatedAt'])
+        );
+      allow delete: if isSharedOwner(spaceId);
+
+      match /members/{memberId} {
+        allow read: if isSignedIn() && (
+          resource.data.uid == request.auth.uid ||
+          isSharedMember(spaceId) ||
+          get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid
+        );
+        allow create: if isSignedIn() &&
+          request.auth.uid == memberId &&
+          request.resource.data.uid == request.auth.uid &&
+          (
+            (
+              request.resource.data.role == 'owner' &&
+              getAfter(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid
+            ) ||
+            (
+              request.resource.data.joinedViaInviteId is string &&
+              exists(/databases/$(database)/documents/sharedInvites/$(request.resource.data.joinedViaInviteId)) &&
+              get(/databases/$(database)/documents/sharedInvites/$(request.resource.data.joinedViaInviteId)).data.spaceId == spaceId &&
+              get(/databases/$(database)/documents/sharedInvites/$(request.resource.data.joinedViaInviteId)).data.defaultRole == request.resource.data.role &&
+              exists(/databases/$(database)/documents/sharedSpaces/$(spaceId)) &&
+              get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.inviteEnabled == true &&
+              get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.activeInviteId == request.resource.data.joinedViaInviteId
+            )
+          );
+        allow update: if isSharedOwner(spaceId) &&
+          memberId != request.auth.uid &&
+          request.resource.data.uid == resource.data.uid &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['role', 'lastUpdated']);
+        allow delete: if isSharedOwner(spaceId) && memberId != request.auth.uid;
+
+        match /assignmentState/{assignmentId} {
+          allow read, write: if isSignedIn() &&
+            request.auth.uid == memberId &&
+            (
+              exists(/databases/$(database)/documents/sharedSpaces/$(spaceId)/members/$(memberId)) ||
+              getAfter(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid
+            );
+        }
+      }
+
+      match /assignments/{assignmentId} {
+        allow read: if isSharedMember(spaceId) || get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid;
+        allow create: if (
+          getAfter(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.targetType == 'subject' &&
+          (canEditSharedSpace(spaceId) || getAfter(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid)
+        ) || (
+          getAfter(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.targetType == 'assignment' &&
+          getAfter(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid
+        );
+        allow update: if
+          (canEditSharedSpace(spaceId) || get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['title', 'dueDate', 'priority', 'examType']);
+        allow delete: if
+          ((canEditSharedSpace(spaceId) || get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid) && sharedTargetType(spaceId) == 'subject') ||
+          isSharedOwner(spaceId);
+      }
+    }
+
+    match /sharedInvites/{inviteId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() &&
+        request.resource.data.createdBy == request.auth.uid &&
+        getAfter(/databases/$(database)/documents/sharedSpaces/$(request.resource.data.spaceId)).data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() &&
+        get(/databases/$(database)/documents/sharedSpaces/$(resource.data.spaceId)).data.ownerId == request.auth.uid &&
+        request.resource.data.spaceId == resource.data.spaceId &&
+        request.resource.data.createdBy == resource.data.createdBy &&
+        request.resource.data.targetType == resource.data.targetType;
+      allow delete: if isSignedIn() &&
+        get(/databases/$(database)/documents/sharedSpaces/$(resource.data.spaceId)).data.ownerId == request.auth.uid;
     }
     
     // Telegram links - users can only read their own link status
     match /telegramLinks/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isUserOwner(userId);
       // Write should only be done by Cloud Functions, not client
       allow write: if false;
     }
@@ -29,7 +146,7 @@ service cloud.firestore {
     // Users can create tokens for themselves, but only Cloud Functions can read/delete
     match /telegramLinkTokens/{tokenId} {
       // Allow authenticated users to create tokens, but only if the token contains their UID
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
       // Read and delete only allowed from server (Cloud Functions) - not client
       allow read, update, delete: if false;
     }

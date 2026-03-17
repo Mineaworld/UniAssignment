@@ -18,9 +18,12 @@ import Settings from './pages/Settings';
 import AIChat from './pages/AIChat';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import JoinSharedSpace from './pages/JoinSharedSpace';
+import { consumePostAuthRedirect } from './utils/sharedSpaces';
 
 const ConditionalRoot = () => {
   const { user, loading } = useApp();
+  const redirectPath = user ? consumePostAuthRedirect() : null;
 
   if (loading) {
     return (
@@ -28,6 +31,10 @@ const ConditionalRoot = () => {
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
       </div>
     );
+  }
+
+  if (user && redirectPath) {
+    return <Navigate to={redirectPath} replace />;
   }
 
   return user ? <Navigate to="/dashboard" replace /> : <LandingPage />;
@@ -96,6 +103,7 @@ const AppContent = () => {
         <Route path="/" element={<ConditionalRoot />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/join/:inviteId" element={<JoinSharedSpace />} />
         <Route path="/dashboard/*" element={
           <ProtectedRoute>
             <AppLayout />

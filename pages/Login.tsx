@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context';
 import { Button } from '../components/ui/Button';
@@ -11,6 +11,7 @@ import GoogleIcon from '../components/GoogleIcon';
 import { AuthBackground } from '../components/auth/AuthBackground';
 import { Loader2, ArrowRight, Eye as ViewIcon, EyeOff as ViewOffIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { consumePostAuthRedirect } from '../utils/sharedSpaces';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,8 +20,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loginWithGoogle } = useApp();
+  const { login, loginWithGoogle, user } = useApp();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    navigate(consumePostAuthRedirect() ?? '/', { replace: true });
+  }, [navigate, user]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +35,6 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to sign in.';
       setError(message);
@@ -43,7 +48,6 @@ export default function Login() {
     setIsGoogleLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to sign in with Google.';
       setError(message);

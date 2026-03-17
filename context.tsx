@@ -8,17 +8,14 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
-  deleteDoc,
   doc,
   orderBy,
   getDoc,
   setDoc,
-  deleteField,
-  FieldValue,
 } from 'firebase/firestore';
 import { Assignment, AppContextType, Subject, User, PomodoroSession, PomodoroStats, PomodoroSessionType } from './types';
-import { prepareAssignmentUpdates } from './utils/assignmentUpdate';
 import { DEFAULT_SUBJECT_COLOR } from './constants/colors';
+import { useSharedSpaces } from './hooks/useSharedSpaces';
 
 // ============================================================================
 // Types & Constants
@@ -55,10 +52,30 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   // =========================================================================
 
   const [user, setUser] = useState<User | null>(null);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [personalAssignments, setPersonalAssignments] = useState<Assignment[]>([]);
+  const [personalSubjects, setPersonalSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => getInitialTheme());
+  const {
+    assignments,
+    subjects,
+    addAssignment,
+    updateAssignment,
+    deleteAssignment,
+    updateSubject,
+    deleteSubject,
+    shareSubject,
+    shareAssignment,
+    joinSharedSpace,
+    updateSharedMemberRole,
+    removeSharedMember,
+    setSharedInviteState,
+    getSharedMembers,
+  } = useSharedSpaces({
+    personalAssignments,
+    personalSubjects,
+    user,
+  });
 
   // =========================================================================
   // Theme Management
@@ -118,8 +135,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         });
       } else {
         setUser(null);
-        setAssignments([]);
-        setSubjects([]);
+        setPersonalAssignments([]);
+        setPersonalSubjects([]);
       }
       setLoading(false);
     });
@@ -203,7 +220,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribeSubjects = onSnapshot(
       subjectsQuery,
       (snapshot) => {
-        setSubjects(snapshot.docs.map(doc => ({
+        setPersonalSubjects(snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         })) as Subject[]);
@@ -216,7 +233,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribeAssignments = onSnapshot(
       assignmentsQuery,
       (snapshot) => {
-        setAssignments(snapshot.docs.map(doc => ({
+        setPersonalAssignments(snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         })) as Assignment[]);
@@ -462,49 +479,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return sanitized as Partial<T>;
   };
 
-  // =========================================================================
-  // Assignment Operations
-  // =========================================================================
-
-  const addAssignment = async (assignment: Omit<Assignment, 'id' | 'createdAt'>): Promise<void> => {
-    if (!user?.uid) throw new Error('User not authenticated');
-
-    const assignmentData = sanitizeForFirestore({
-      ...assignment,
-      createdAt: new Date().toISOString(),
-    });
-
-    await addDoc(collection(db, `users/${user.uid}/assignments`), assignmentData);
-  };
-
-  const updateAssignment = async (id: string, updates: Partial<Assignment>): Promise<void> => {
-    if (!user?.uid) throw new Error('User not authenticated');
-
-    const processedUpdates = prepareAssignmentUpdates(
-      updates,
-      () => deleteField()
-    ) as Record<string, FieldValue | Partial<unknown> | undefined>;
-
-    await updateDoc(
-      doc(db, `users/${user.uid}/assignments`, id),
-      processedUpdates
-    );
-  };
-
-  const deleteAssignment = async (id: string): Promise<void> => {
-    if (!user?.uid) throw new Error('User not authenticated');
-
-    // Note: Image cleanup disabled - Firebase Storage requires Blaze plan
-    // Images in notes will be orphaned but won't affect functionality
-
-    // Delete the assignment document
-    await deleteDoc(doc(db, `users/${user.uid}/assignments`, id));
-  };
-
-  // =========================================================================
-  // Subject Operations
-  // =========================================================================
-
   const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt' | 'lastUpdated'>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');
     const timestamp = new Date().toISOString();
@@ -514,19 +488,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       createdAt: timestamp,
       lastUpdated: timestamp,
     });
-  };
-
-  const updateSubject = async (id: string, updates: Partial<Subject>): Promise<void> => {
-    if (!user?.uid) throw new Error('User not authenticated');
-    await updateDoc(doc(db, `users/${user.uid}/subjects`, id), {
-      ...updates,
-      lastUpdated: new Date().toISOString(),
-    });
-  };
-
-  const deleteSubject = async (id: string): Promise<void> => {
-    if (!user?.uid) throw new Error('User not authenticated');
-    await deleteDoc(doc(db, `users/${user.uid}/subjects`, id));
   };
 
 // =========================================================================
@@ -672,6 +633,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     addSubject,
     updateSubject,
     deleteSubject,
+    shareSubject,
+    shareAssignment,
+    joinSharedSpace,
+    updateSharedMemberRole,
+    removeSharedMember,
+    setSharedInviteState,
+    getSharedMembers,
     updateUserProfile,
     dismissTelegramPrompt,
     uploadNoteImage,
@@ -693,6 +661,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     addSubject,
     updateSubject,
     deleteSubject,
+    shareSubject,
+    shareAssignment,
+    joinSharedSpace,
+    updateSharedMemberRole,
+    removeSharedMember,
+    setSharedInviteState,
+    getSharedMembers,
     updateUserProfile,
     dismissTelegramPrompt,
     uploadNoteImage,
