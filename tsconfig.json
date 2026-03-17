@@ -35,6 +35,8 @@
     "forceConsistentCasingInFileNames": true
   },
   "exclude": [
+    "dist",
+    "dist/**/*",
     "functions",
     "functions/**/*"
   ]
