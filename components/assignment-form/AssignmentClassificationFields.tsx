@@ -2,6 +2,7 @@ import { Priority } from '../../types';
 import { AssignmentFormState } from './types';
 
 interface AssignmentClassificationFieldsProps {
+  disabled?: boolean;
   formData: AssignmentFormState;
   onChange: (updates: Partial<AssignmentFormState>) => void;
   tone?: 'default' | 'muted';
@@ -26,6 +27,7 @@ const defaultTone = {
 const focusRingClasses = 'focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-background';
 
 export const AssignmentClassificationFields = ({
+  disabled = false,
   formData,
   onChange,
   tone = 'default',
@@ -44,6 +46,7 @@ export const AssignmentClassificationFields = ({
               type="radio"
               name="examType"
               value=""
+              disabled={disabled}
               checked={!formData.examType}
               onChange={() => onChange({ examType: null })}
               className="sr-only"
@@ -62,6 +65,7 @@ export const AssignmentClassificationFields = ({
               type="radio"
               name="examType"
               value="midterm"
+              disabled={disabled}
               checked={formData.examType === 'midterm'}
               onChange={() => onChange({ examType: 'midterm' })}
               className="sr-only"
@@ -80,6 +84,7 @@ export const AssignmentClassificationFields = ({
               type="radio"
               name="examType"
               value="final"
+              disabled={disabled}
               checked={formData.examType === 'final'}
               onChange={() => onChange({ examType: 'final' })}
               className="sr-only"
@@ -103,6 +108,7 @@ export const AssignmentClassificationFields = ({
                 type="radio"
                 name="priority"
                 value={priority}
+                disabled={disabled}
                 checked={formData.priority === priority}
                 onChange={() => onChange({ priority })}
                 className="sr-only"

@@ -17,6 +17,7 @@ import confetti from 'canvas-confetti';
 import { Assignment, Status, Priority } from '../types';
 import { useApp } from '../context';
 import { AnimatedBadge } from './ui/AnimatedBadge';
+import { getAssignmentSubject } from '../utils/assignmentSubject';
 
 interface KanbanViewProps {
   assignments: Assignment[];
@@ -29,7 +30,7 @@ interface KanbanCardProps {
 
 const KanbanCard = ({ assignment, isDragging = false }: KanbanCardProps) => {
   const { subjects } = useApp();
-  const subject = subjects.find((s) => s.id === assignment.subjectId);
+  const subject = getAssignmentSubject(assignment, subjects);
   const daysLeft = Math.ceil((new Date(assignment.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24));
 
   const {

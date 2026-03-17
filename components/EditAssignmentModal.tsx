@@ -15,6 +15,7 @@ import {
     assignmentToFormState,
     createEmptyAssignmentFormState,
 } from './assignment-form/types';
+import { getAssignmentSubject } from '../utils/assignmentSubject';
 
 interface EditAssignmentModalProps {
     isOpen: boolean;
@@ -37,7 +38,14 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!assignment || !formData.title || !formData.subjectId || !formData.date) return;
+        if (!assignment || !formData.date) return;
+
+        const canEditSharedFields = assignment.isShared ? Boolean(assignment.canEditSharedFields) : true;
+        const canEditPersonalFields = assignment.isShared ? Boolean(assignment.canEditPersonalFields) : true;
+        const lockedSubject = assignment.isShared;
+
+        if (canEditSharedFields && !formData.title) return;
+        if (!lockedSubject && !formData.subjectId) return;
 
         setLoading(true);
 
@@ -47,16 +55,26 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
             : buildLocalIsoString(formData.date);
 
         try {
-            await updateAssignment(assignment.id, {
-                title: formData.title,
-                subjectId: formData.subjectId,
-                status: formData.status,
-                dueDate: dateTime,
-                priority: formData.priority,
-                notes: formData.notes,
-                examType: formData.examType,
-                reminder: formData.reminder,
-            });
+            const nextUpdates: Partial<Assignment> = {};
+
+            if (canEditSharedFields) {
+                nextUpdates.title = formData.title;
+                nextUpdates.dueDate = dateTime;
+                nextUpdates.priority = formData.priority;
+                nextUpdates.examType = formData.examType;
+
+                if (!lockedSubject) {
+                    nextUpdates.subjectId = formData.subjectId;
+                }
+            }
+
+            if (canEditPersonalFields) {
+                nextUpdates.status = formData.status;
+                nextUpdates.notes = formData.notes;
+                nextUpdates.reminder = formData.reminder;
+            }
+
+            await updateAssignment(assignment.id, nextUpdates);
 
             onClose();
         } catch (error) {
@@ -67,6 +85,14 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
     };
 
     if (!assignment) return null;
+
+    const canEditSharedFields = assignment.isShared ? Boolean(assignment.canEditSharedFields) : true;
+    const lockedSubjectLabel = assignment.isShared
+        ? getAssignmentSubject(assignment, subjects)?.name ?? 'Shared subject'
+        : null;
+    const selectableSubjects = subjects.filter((subject) => (
+        subject.canCreateAssignments !== false || subject.id === formData.subjectId
+    ));
 
     return ReactDOM.createPortal(
         <AnimatePresence>
@@ -100,12 +126,15 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
                             {/* Form */}
                             <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
                                 <AssignmentBasicsFields
+                                    disableScheduleFields={!canEditSharedFields}
                                     formData={formData}
+                                    lockedSubjectLabel={lockedSubjectLabel}
                                     onChange={(updates) => setFormData((current) => ({ ...current, ...updates }))}
-                                    subjects={subjects}
+                                    subjects={selectableSubjects}
                                 />
 
                                 <AssignmentClassificationFields
+                                    disabled={!canEditSharedFields}
                                     formData={formData}
                                     onChange={(updates) => setFormData((current) => ({ ...current, ...updates }))}
                                     tone="muted"
@@ -117,6 +146,7 @@ const EditAssignmentModal = ({ isOpen, onClose, assignment }: EditAssignmentModa
                                             ? buildLocalIsoString(formData.date, formData.time || undefined)
                                             : new Date().toISOString()
                                     }
+                                    disabled={assignment.isShared ? !assignment.canEditPersonalFields : false}
                                     value={formData.reminder}
                                     onChange={(reminder) => setFormData({ ...formData, reminder })}
                                 />

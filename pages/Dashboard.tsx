@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
-import { Status } from '../types';
+import { Assignment, Status } from '../types';
 import { ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
+import { getAssignmentSubject } from '../utils/assignmentSubject';
 
 // Wrapper to delay chart rendering until container is mounted
 const DelayedChart = ({ children, delay = 100 }: { children: React.ReactNode; delay?: number }) => {
@@ -80,7 +81,9 @@ const Dashboard = () => {
     value: s.count
   }));
 
-  const getSubjectName = (id: string) => subjects.find(s => s.id === id)?.name || 'Unknown';
+  const getAssignmentSubjectName = (assignment: Assignment) => (
+    getAssignmentSubject(assignment, subjects)?.name || 'Unknown'
+  );
 
   // Time-aware greeting
   const getGreeting = () => {
@@ -219,7 +222,7 @@ const Dashboard = () => {
                         <h4 className="font-semibold text-sm truncate">{item.title}</h4>
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                           <span className="w-1 h-1 rounded-full bg-foreground/30" />
-                          {getSubjectName(item.subjectId)}
+                          {getAssignmentSubjectName(item)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">

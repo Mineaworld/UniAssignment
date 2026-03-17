@@ -96,6 +96,8 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
     }
   };
 
+  const selectableSubjects = subjects.filter((subject) => subject.canCreateAssignments !== false);
+
   return ReactDOM.createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -131,7 +133,7 @@ const CreateAssignmentModal = ({ isOpen, onClose }: CreateAssignmentModalProps) 
                   formData={formData}
                   onChange={(updates) => setFormData((current) => ({ ...current, ...updates }))}
                   onOpenSubjectForm={() => setShowSubjectForm(true)}
-                  subjects={subjects}
+                  subjects={selectableSubjects}
                 />
 
                 <SubjectQuickCreatePanel

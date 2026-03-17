@@ -9,6 +9,7 @@ import { cn } from '../utils/cn';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 import ViewAssignmentModal from '../components/ViewAssignmentModal';
 import { SubjectBadge } from '../components/ui/SubjectBadge';
+import { getAssignmentSubject } from '../utils/assignmentSubject';
 
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -61,8 +62,6 @@ const Calendar = () => {
   const getAssignmentsForDate = (date: Date) => assignments
     .filter((assignment) => isSameCalendarDay(new Date(assignment.dueDate), date))
     .sort((left, right) => new Date(left.dueDate).getTime() - new Date(right.dueDate).getTime());
-
-  const getSubjectName = (subjectId: string) => subjects.find((subject) => subject.id === subjectId)?.name;
 
   const today = new Date();
   const daysInMonth = getDaysInMonth(currentDate);
@@ -163,7 +162,7 @@ const Calendar = () => {
             <AnimatePresence mode="popLayout" initial={false}>
               {selectedDayAssignments.map((assignment) => {
                 const isCompleted = assignment.status === 'Completed';
-                const subjectName = getSubjectName(assignment.subjectId);
+                const subject = getAssignmentSubject(assignment, subjects);
                 const dueDate = new Date(assignment.dueDate);
                 const showDueTime = dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0;
 
@@ -200,9 +199,9 @@ const Calendar = () => {
                         {assignment.priority}
                       </span>
                     </div>
-                    {subjectName && (
+                    {subject && (
                       <div className="mt-3">
-                        <SubjectBadge name={subjectName} size="sm" />
+                        <SubjectBadge name={subject.name} size="sm" />
                       </div>
                     )}
                   </motion.button>
@@ -259,7 +258,7 @@ const Calendar = () => {
                 <div className="flex flex-col gap-1.5 overflow-hidden">
                   <AnimatePresence>
                     {dayAssignments.map((assignment) => {
-                      const subjectName = getSubjectName(assignment.subjectId);
+                      const subject = getAssignmentSubject(assignment, subjects);
                       const isCompleted = assignment.status === 'Completed';
 
                       return (
@@ -278,7 +277,7 @@ const Calendar = () => {
                           title={assignment.title}
                         >
                           <div className="flex items-center gap-1.5">
-                            {subjectName && <SubjectBadge initialsClassName="h-5 min-w-5 px-1 text-[9px]" name={subjectName} showName={false} size="sm" />}
+                            {subject && <SubjectBadge initialsClassName="h-5 min-w-5 px-1 text-[9px]" name={subject.name} showName={false} size="sm" />}
                             <span className={cn('truncate text-foreground/80 dark:text-slate-200', isCompleted && 'line-through')}>
                               {assignment.title}
                             </span>
