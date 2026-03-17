@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../server/lib/firebaseAdmin.js';
+import { listUserAssignmentRecords } from '../../server/sharedAssignments.js';
 import { sendTelegramMessage } from '../../server/lib/telegram.js';
 import type { AssignmentWithDate } from '../../server/telegram/types.js';
 import { ASSIGNMENT_STATUS } from '../../server/telegram/types.js';
@@ -138,10 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const weekEnd = new Date(now);
                 weekEnd.setDate(weekEnd.getDate() + 7);
 
-                const assignmentsSnapshot = await db
-                    .collection(`users/${userId}/assignments`)
-                    .orderBy('dueDate', 'asc')
-                    .get();
+                const assignments = await listUserAssignmentRecords(db, userId);
 
                 const upcomingAssignments: AssignmentWithDate[] = [];
                 const highPriorityAssignments: AssignmentWithDate[] = [];
@@ -151,8 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const lastWeekStart = new Date(now);
                 lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
-                for (const doc of assignmentsSnapshot.docs) {
-                    const data = doc.data();
+                for (const data of assignments) {
                     const dueDate = new Date(data.dueDate);
 
                     if (dueDate >= lastWeekStart && dueDate < now) {
@@ -165,7 +162,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     if (data.status === ASSIGNMENT_STATUS.COMPLETED) continue;
 
                     if (dueDate >= now && dueDate <= weekEnd) {
-                        const assignment = { ...data, id: doc.id, dueDate } as AssignmentWithDate;
+                        const assignment = { ...data, dueDate } as AssignmentWithDate;
                         upcomingAssignments.push(assignment);
 
                         if (data.priority === 'High') {

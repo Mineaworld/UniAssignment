@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
+import { listUserAssignmentRecords, updateUserAssignmentRecord } from '../../server/sharedAssignments.js';
 
 // Initialize Firebase Admin (only once)
 if (!admin.apps || admin.apps.length === 0) {
@@ -197,24 +198,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             usersChecked++;
 
             // Get assignments with enabled reminders
-            const assignmentsSnapshot = await db
-                .collection(`users/${userUid}/assignments`)
-                .where('reminder.enabled', '==', true)
-                .get();
+            const assignments = (await listUserAssignmentRecords(db, userUid))
+                .filter((assignment) => assignment.reminder?.enabled);
 
-            for (const doc of assignmentsSnapshot.docs) {
-                const assignment = doc.data() as Assignment;
+            for (const assignment of assignments) {
+                const reminder = assignment.reminder;
+                if (!reminder) continue;
 
                 // Skip completed assignments
                 if (assignment.status === 'Completed') continue;
 
                 // Skip if already sent
-                if (assignment.reminder?.sentAt) continue;
+                if (reminder.sentAt) continue;
 
                 // Calculate reminder time
                 const reminderTime = calculateReminderTime(
                     assignment.dueDate,
-                    assignment.reminder!
+                    reminder
                 );
                 if (!reminderTime) continue;
 
@@ -223,8 +223,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     await sendReminderNotification(chatId, assignment);
 
                     // Mark as sent
-                    await doc.ref.update({
-                        'reminder.sentAt': now.toISOString(),
+                    await updateUserAssignmentRecord(db, userUid, assignment.id, {
+                        reminder: {
+                            customMinutes: reminder.customMinutes,
+                            customTime: reminder.customTime,
+                            enabled: reminder.enabled,
+                            preset: reminder.preset,
+                            sentAt: now.toISOString(),
+                        },
                     });
 
                     remindersSent++;

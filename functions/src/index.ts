@@ -3,6 +3,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { defineString } from "firebase-functions/params";
 import * as chrono from "chrono-node";
+import { listUserAssignments, markReminderSent } from "./sharedAssignments";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -271,22 +272,17 @@ async function handleStartIdentifier(chatId: string, userId: string | undefined,
 }
 
 async function handleAssignmentsCommand(chatId: string, userUid: string) {
-    const assignmentsSnapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .limit(10)
-        .get();
+    const assignments = (await listUserAssignments(db, userUid)).slice(0, 10);
 
-    if (assignmentsSnapshot.empty) {
+    if (assignments.length === 0) {
         await sendTelegramMessage(chatId, "📚 You have no assignments yet!");
     } else {
         let message = "📚 <b>Your Assignments:</b>\n\n";
-        assignmentsSnapshot.docs.forEach((doc, index) => {
-            const data = doc.data();
-            const dueDate = new Date(data.dueDate).toLocaleDateString();
-            const statusEmoji = data.status === "Completed" ? "✅" :
-                data.status === "In Progress" ? "🔄" : "⏳";
-            message += `${index + 1}. ${statusEmoji} <b>${data.title}</b>\n`;
+        assignments.forEach((assignment, index) => {
+            const dueDate = new Date(assignment.dueDate).toLocaleDateString();
+            const statusEmoji = assignment.status === "Completed" ? "✅" :
+                assignment.status === "In Progress" ? "🔄" : "⏳";
+            message += `${index + 1}. ${statusEmoji} <b>${assignment.title}</b>\n`;
             message += `   📅 ${dueDate}\n\n`;
         });
         await sendTelegramMessage(chatId, message);
@@ -513,22 +509,21 @@ export const checkDeadlines = onSchedule("every 15 minutes", async () => {
         // Get assignments with enabled reminders
         // Note: Filter out Completed assignments in JavaScript to avoid
         // Firestore inequality + orderBy constraint if we add sorting later
-        const assignmentsSnapshot = await db
-            .collection(`users/${userUid}/assignments`)
-            .where("reminder.enabled", "==", true)
-            .get();
+        const assignments = (await listUserAssignments(db, userUid))
+            .filter((assignment) => assignment.reminder?.enabled);
 
-        for (const doc of assignmentsSnapshot.docs) {
-            const assignment = doc.data();
+        for (const assignment of assignments) {
+            const reminder = assignment.reminder;
+            if (!reminder) continue;
 
             // Skip completed assignments
             if (assignment.status === "Completed") continue;
 
             // Skip if already sent
-            if (assignment.reminder?.sentAt) continue;
+            if (reminder.sentAt) continue;
 
             // Calculate reminder time
-            const reminderTime = calculateReminderTime(assignment.dueDate, assignment.reminder);
+            const reminderTime = calculateReminderTime(assignment.dueDate, reminder);
             if (!reminderTime) continue;
 
             // Check if reminder time is within execution window
@@ -536,9 +531,7 @@ export const checkDeadlines = onSchedule("every 15 minutes", async () => {
                 await sendReminderNotification(chatId, assignment as Assignment);
 
                 // Mark as sent
-                await doc.ref.update({
-                    "reminder.sentAt": now.toISOString()
-                });
+                await markReminderSent(db, userUid, assignment.id, now.toISOString());
             }
         }
     }
