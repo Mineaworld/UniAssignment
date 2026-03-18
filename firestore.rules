@@ -36,6 +36,37 @@ service cloud.firestore {
       return role == 'viewer' || role == 'editor';
     }
 
+    function hasValidSharedSpaceKeys() {
+      return request.resource.data.keys().hasOnly([
+        'activeInviteId',
+        'color',
+        'createdAt',
+        'inviteDefaultRole',
+        'inviteEnabled',
+        'ownerId',
+        'targetType',
+        'title',
+        'updatedAt',
+      ]);
+    }
+
+    function hasRequiredSharedSpaceKeys() {
+      return request.resource.data.keys().hasAll([
+        'createdAt',
+        'inviteEnabled',
+        'ownerId',
+        'targetType',
+        'title',
+        'updatedAt',
+      ]);
+    }
+
+    function hasValidInviteDefaultRole() {
+      return !('inviteDefaultRole' in request.resource.data) ||
+        request.resource.data.inviteDefaultRole == null ||
+        isInviteJoinRole(request.resource.data.inviteDefaultRole);
+    }
+
     // Users collection - users can only access their own document
     match /users/{userId} {
       allow read, write: if isUserOwner(userId);
@@ -57,7 +88,11 @@ service cloud.firestore {
     }
 
     match /sharedSpaces/{spaceId} {
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        hasValidSharedSpaceKeys() &&
+        hasRequiredSharedSpaceKeys() &&
+        hasValidInviteDefaultRole();
       allow read: if isSharedMember(spaceId) || (isSignedIn() && resource.data.ownerId == request.auth.uid);
       allow update: if isSharedOwner(spaceId) ||
         (
@@ -68,7 +103,7 @@ service cloud.firestore {
 
       match /members/{memberId} {
         allow read: if isSignedIn() && (
-          resource.data.uid == request.auth.uid ||
+          memberId == request.auth.uid ||
           isSharedMember(spaceId) ||
           get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid
         );
@@ -94,7 +129,8 @@ service cloud.firestore {
         allow update: if isSharedOwner(spaceId) &&
           memberId != request.auth.uid &&
           request.resource.data.uid == resource.data.uid &&
-          request.resource.data.diff(resource.data).changedKeys().hasOnly(['role', 'lastUpdated']);
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['role', 'lastUpdated']) &&
+          isInviteJoinRole(request.resource.data.role);
         allow delete: if isSharedOwner(spaceId) && memberId != request.auth.uid;
 
         match /assignmentState/{assignmentId} {

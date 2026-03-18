@@ -84,7 +84,9 @@ async function sendTelegramMessage(chatId, text, keyboard) {
     });
     if (!response.ok) {
         console.error("Failed to send Telegram message:", await response.text());
+        return false;
     }
+    return true;
 }
 // --- HELPER: Format time before due (human-readable) ---
 function formatTimeBeforeDue(hours) {
@@ -135,10 +137,10 @@ function calculateReminderTime(dueDate, reminder) {
 async function sendReminderNotification(chatId, assignment) {
     const { dueDate, title, reminder } = assignment;
     if (!reminder)
-        return;
+        return false;
     const reminderTime = calculateReminderTime(dueDate, reminder);
     if (!reminderTime)
-        return;
+        return false;
     const timeDiff = new Date(dueDate).getTime() - reminderTime.getTime();
     const hoursBefore = timeDiff / MS_PER_HOUR;
     const timeText = formatTimeBeforeDue(hoursBefore);
@@ -157,7 +159,7 @@ async function sendReminderNotification(chatId, assignment) {
     const message = `🔔 <b>Reminder!</b>\n\n` +
         `<b>${title}</b> is due in ${timeText}.\n` +
         `📅 Due: ${dateFormatter.format(dueDateTime)} at ${timeFormatter.format(dueDateTime)}`;
-    await sendTelegramMessage(chatId, message);
+    return sendTelegramMessage(chatId, message);
 }
 async function getState(chatId) {
     const doc = await db.collection("telegramStates").doc(chatId).get();
@@ -437,7 +439,10 @@ exports.checkDeadlines = (0, scheduler_1.onSchedule)("every 15 minutes", async (
                 continue;
             // Check if reminder time is within execution window
             if (reminderTime >= windowStart && reminderTime <= windowEnd) {
-                await sendReminderNotification(chatId, assignment);
+                const sent = await sendReminderNotification(chatId, assignment);
+                if (!sent) {
+                    continue;
+                }
                 // Mark as sent
                 await (0, sharedAssignments_1.markReminderSent)(db, userUid, assignment.id, now.toISOString());
             }

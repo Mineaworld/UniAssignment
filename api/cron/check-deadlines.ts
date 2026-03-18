@@ -48,10 +48,10 @@ interface Assignment {
 }
 
 // --- HELPER: Send Telegram Message ---
-async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
+async function sendTelegramMessage(chatId: string, text: string): Promise<boolean> {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     try {
-        await fetch(url, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -60,8 +60,10 @@ async function sendTelegramMessage(chatId: string, text: string): Promise<void> 
                 parse_mode: 'HTML',
             }),
         });
+        return response.ok;
     } catch (e) {
         console.error('Failed to send telegram message', e);
+        return false;
     }
 }
 
@@ -125,12 +127,12 @@ function formatTimeBeforeDue(hours: number): string {
 }
 
 // --- HELPER: Send Reminder Notification ---
-async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<void> {
+async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<boolean> {
     const { dueDate, title, reminder } = assignment;
-    if (!reminder) return;
+    if (!reminder) return false;
 
     const reminderTime = calculateReminderTime(dueDate, reminder);
-    if (!reminderTime) return;
+    if (!reminderTime) return false;
 
     const timeDiff = new Date(dueDate).getTime() - reminderTime.getTime();
     const hoursBefore = timeDiff / MS_PER_HOUR;
@@ -155,7 +157,7 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
         `<b>${title}</b> is due in ${timeText}.\n` +
         `📅 Due: ${dateFormatter.format(dueDateTime)} at ${timeFormatter.format(dueDateTime)}`;
 
-    await sendTelegramMessage(chatId, message);
+    return sendTelegramMessage(chatId, message);
 }
 
 // --- MAIN HANDLER ---
@@ -219,7 +221,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 // Check if reminder time is within execution window
                 if (reminderTime >= windowStart && reminderTime <= windowEnd) {
-                    await sendReminderNotification(chatId, assignment);
+                    const sent = await sendReminderNotification(chatId, assignment);
+
+                    if (!sent) {
+                        continue;
+                    }
 
                     // Mark as sent
                     await updateUserAssignmentRecord(db, userUid, assignment.id, {

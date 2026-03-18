@@ -721,8 +721,10 @@ export const useSharedSpaces = ({
           sharedSpaceUpdates.title = sharedBaseUpdates.title;
         }
 
+        const sanitizedSharedBaseUpdates = sanitizeForFirestore(sharedBaseUpdates);
+
         await Promise.all([
-          updateDoc(doc(db, `sharedSpaces/${spaceId}/assignments`, assignmentId), sharedBaseUpdates),
+          updateDoc(doc(db, `sharedSpaces/${spaceId}/assignments`, assignmentId), sanitizedSharedBaseUpdates),
           updateDoc(doc(db, 'sharedSpaces', spaceId), sharedSpaceUpdates),
         ]);
       }

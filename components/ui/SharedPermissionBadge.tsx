@@ -33,7 +33,12 @@ export const SharedPermissionBadge = ({
     return null;
   }
 
-  const { icon: Icon, label, tone } = ROLE_CONFIG[role];
+  const config = ROLE_CONFIG[role];
+  if (!config) {
+    return null;
+  }
+
+  const { icon: Icon, label, tone } = config;
 
   return (
     <span

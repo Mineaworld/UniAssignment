@@ -58,7 +58,7 @@ async function sendTelegramMessage(
     chatId: string,
     text: string,
     keyboard?: TelegramKeyboard
-): Promise<void> {
+): Promise<boolean> {
     const token = getTelegramToken();
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
@@ -80,7 +80,10 @@ async function sendTelegramMessage(
 
     if (!response.ok) {
         console.error("Failed to send Telegram message:", await response.text());
+        return false;
     }
+
+    return true;
 }
 
 // --- HELPER: Format time before due (human-readable) ---
@@ -143,12 +146,12 @@ function calculateReminderTime(dueDate: string, reminder: Reminder): Date | null
 }
 
 // --- HELPER: Send Reminder Notification ---
-async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<void> {
+async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<boolean> {
     const { dueDate, title, reminder } = assignment;
-    if (!reminder) return;
+    if (!reminder) return false;
 
     const reminderTime = calculateReminderTime(dueDate, reminder);
-    if (!reminderTime) return;
+    if (!reminderTime) return false;
 
     const timeDiff = new Date(dueDate).getTime() - reminderTime.getTime();
     const hoursBefore = timeDiff / MS_PER_HOUR;
@@ -171,7 +174,7 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
         `<b>${title}</b> is due in ${timeText}.\n` +
         `📅 Due: ${dateFormatter.format(dueDateTime)} at ${timeFormatter.format(dueDateTime)}`;
 
-    await sendTelegramMessage(chatId, message);
+    return sendTelegramMessage(chatId, message);
 }
 
 // --- HELPER: Manage State ---
@@ -527,7 +530,11 @@ export const checkDeadlines = onSchedule("every 15 minutes", async () => {
 
             // Check if reminder time is within execution window
             if (reminderTime >= windowStart && reminderTime <= windowEnd) {
-                await sendReminderNotification(chatId, assignment as Assignment);
+                const sent = await sendReminderNotification(chatId, assignment as Assignment);
+
+                if (!sent) {
+                    continue;
+                }
 
                 // Mark as sent
                 await markReminderSent(db, userUid, assignment.id, now.toISOString());
