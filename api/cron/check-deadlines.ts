@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
-import { listUserAssignmentRecords, updateUserAssignmentRecord } from '../../server/sharedAssignments.js';
+import { listUserReminderRecords, updateUserAssignmentRecord } from '../../server/sharedAssignments.js';
 
 // Initialize Firebase Admin (only once)
 if (!admin.apps || admin.apps.length === 0) {
@@ -198,8 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             usersChecked++;
 
             // Get assignments with enabled reminders
-            const assignments = (await listUserAssignmentRecords(db, userUid))
-                .filter((assignment) => assignment.reminder?.enabled);
+            const assignments = await listUserReminderRecords(db, userUid);
 
             for (const assignment of assignments) {
                 const reminder = assignment.reminder;

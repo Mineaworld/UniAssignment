@@ -32,6 +32,10 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.targetType;
     }
 
+    function isInviteJoinRole(role) {
+      return role == 'viewer' || role == 'editor';
+    }
+
     // Users collection - users can only access their own document
     match /users/{userId} {
       allow read, write: if isUserOwner(userId);
@@ -78,6 +82,7 @@ service cloud.firestore {
             ) ||
             (
               request.resource.data.joinedViaInviteId is string &&
+              isInviteJoinRole(request.resource.data.role) &&
               exists(/databases/$(database)/documents/sharedInvites/$(request.resource.data.joinedViaInviteId)) &&
               get(/databases/$(database)/documents/sharedInvites/$(request.resource.data.joinedViaInviteId)).data.spaceId == spaceId &&
               get(/databases/$(database)/documents/sharedInvites/$(request.resource.data.joinedViaInviteId)).data.defaultRole == request.resource.data.role &&
@@ -125,12 +130,14 @@ service cloud.firestore {
       allow list: if false;
       allow create: if isSignedIn() &&
         request.resource.data.createdBy == request.auth.uid &&
+        isInviteJoinRole(request.resource.data.defaultRole) &&
         getAfter(/databases/$(database)/documents/sharedSpaces/$(request.resource.data.spaceId)).data.ownerId == request.auth.uid;
       allow update: if isSignedIn() &&
         get(/databases/$(database)/documents/sharedSpaces/$(resource.data.spaceId)).data.ownerId == request.auth.uid &&
         request.resource.data.spaceId == resource.data.spaceId &&
         request.resource.data.createdBy == resource.data.createdBy &&
-        request.resource.data.targetType == resource.data.targetType;
+        request.resource.data.targetType == resource.data.targetType &&
+        isInviteJoinRole(request.resource.data.defaultRole);
       allow delete: if isSignedIn() &&
         get(/databases/$(database)/documents/sharedSpaces/$(resource.data.spaceId)).data.ownerId == request.auth.uid;
     }

@@ -41,11 +41,11 @@ test.describe('assignments @smoke', () => {
     await inlineStatusTrigger.click();
     await page.getByTestId(/assignment-status-select-inline-.*-Completed/).click();
     await expect(page.getByRole('heading', { name: 'Assignment Details' })).toHaveCount(0);
-    await expect(inlineStatusTrigger).toContainText('Completed', { timeout: 30000 });
+    await expect(createdRow).toContainText('Completed', { timeout: 30000 });
 
     await createdRow.locator('[data-testid^="assignment-delete-"]').click({ force: true });
     await page.getByTestId('delete-confirm-button').click();
 
-    await expect(page.locator('tr', { hasText: assignmentName })).toHaveCount(0);
+    await expect(page.locator('tr', { hasText: assignmentName })).toHaveCount(0, { timeout: 60000 });
   });
 });

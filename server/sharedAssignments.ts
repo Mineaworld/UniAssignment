@@ -111,6 +111,44 @@ const deleteRefsInBatches = async (
     }
 };
 
+const sanitizeForFirestore = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+        if (value === undefined) {
+            continue;
+        }
+
+        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+            const nestedSanitized = sanitizeForFirestore(value as Record<string, unknown>);
+            if (Object.keys(nestedSanitized).length > 0) {
+                sanitized[key] = nestedSanitized;
+            }
+            continue;
+        }
+
+        if (Array.isArray(value)) {
+            sanitized[key] = value
+                .filter((item) => item !== undefined)
+                .map((item) => (
+                    item !== null && typeof item === 'object' && !Array.isArray(item)
+                        ? sanitizeForFirestore(item as Record<string, unknown>)
+                        : item
+                ));
+            continue;
+        }
+
+        sanitized[key] = value;
+    }
+
+    return sanitized as Partial<T>;
+};
+
+const getParticipantIds = (
+    ownerId: string,
+    memberIds: string[]
+): string[] => Array.from(new Set([...memberIds, ownerId]));
+
 const getPersonalSubjectsById = async (
     db: Firestore,
     userUid: string
@@ -193,7 +231,8 @@ const buildSharedAssignmentRecord = (
 
 const listSharedAssignmentRecords = async (
     db: Firestore,
-    userUid: string
+    userUid: string,
+    options: { reminderEnabledOnly?: boolean } = {}
 ): Promise<UserAssignmentRecord[]> => {
     const sharedPointersSnapshot = await db.collection(`users/${userUid}/sharedSpaces`).get();
 
@@ -201,13 +240,16 @@ const listSharedAssignmentRecords = async (
         return [];
     }
 
+    const { reminderEnabledOnly = false } = options;
     const sharedGroups = await Promise.all(sharedPointersSnapshot.docs.map(async (sharedPointerDoc) => {
         const spaceId = sharedPointerDoc.id;
-        const [spaceSnapshot, memberSnapshot, assignmentsSnapshot, stateSnapshot] = await Promise.all([
+        const stateQuery = reminderEnabledOnly
+            ? db.collection(`sharedSpaces/${spaceId}/members/${userUid}/assignmentState`).where('reminder.enabled', '==', true)
+            : db.collection(`sharedSpaces/${spaceId}/members/${userUid}/assignmentState`);
+        const [spaceSnapshot, memberSnapshot, stateSnapshot] = await Promise.all([
             db.doc(`sharedSpaces/${spaceId}`).get(),
             db.doc(`sharedSpaces/${spaceId}/members/${userUid}`).get(),
-            db.collection(`sharedSpaces/${spaceId}/assignments`).get(),
-            db.collection(`sharedSpaces/${spaceId}/members/${userUid}/assignmentState`).get(),
+            stateQuery.get(),
         ]);
 
         if (!spaceSnapshot.exists) {
@@ -229,6 +271,36 @@ const listSharedAssignmentRecords = async (
         stateSnapshot.docs.forEach((stateDoc) => {
             privateStateByAssignmentId.set(stateDoc.id, stateDoc.data() as SharedAssignmentStateDoc);
         });
+
+        if (reminderEnabledOnly && privateStateByAssignmentId.size === 0) {
+            return [] as UserAssignmentRecord[];
+        }
+
+        if (reminderEnabledOnly) {
+            const assignmentRefs = stateSnapshot.docs.map((stateDoc) => (
+                db.doc(`sharedSpaces/${spaceId}/assignments/${stateDoc.id}`)
+            ));
+
+            const assignmentSnapshots = assignmentRefs.length > 0
+                ? await db.getAll(...assignmentRefs)
+                : [];
+
+            return assignmentSnapshots
+                .filter((assignmentDoc) => assignmentDoc.exists)
+                .map((assignmentDoc) => buildSharedAssignmentRecord(
+                    db,
+                    userUid,
+                    spaceId,
+                    space,
+                    role,
+                    assignmentDoc.ref,
+                    assignmentDoc.id,
+                    assignmentDoc.data() as SharedAssignmentBaseDoc,
+                    privateStateByAssignmentId.get(assignmentDoc.id)
+                ));
+        }
+
+        const assignmentsSnapshot = await db.collection(`sharedSpaces/${spaceId}/assignments`).get();
 
         return assignmentsSnapshot.docs.map((assignmentDoc) => buildSharedAssignmentRecord(
             db,
@@ -254,6 +326,28 @@ export const listUserAssignmentRecords = async (
         getPersonalSubjectsById(db, userUid),
         db.collection(`users/${userUid}/assignments`).orderBy('dueDate', 'asc').get(),
         listSharedAssignmentRecords(db, userUid),
+    ]);
+
+    const personalAssignments = personalAssignmentsSnapshot.docs.map((assignmentDoc) => buildPersonalAssignmentRecord(
+        assignmentDoc.ref,
+        assignmentDoc.id,
+        assignmentDoc.data(),
+        personalSubjectsById.get(assignmentDoc.data().subjectId as string)
+    ));
+
+    return [...personalAssignments, ...sharedAssignments].sort(sortByDueDate);
+};
+
+export const listUserReminderRecords = async (
+    db: Firestore,
+    userUid: string
+): Promise<UserAssignmentRecord[]> => {
+    const [personalSubjectsById, personalAssignmentsSnapshot, sharedAssignments] = await Promise.all([
+        getPersonalSubjectsById(db, userUid),
+        db.collection(`users/${userUid}/assignments`)
+            .where('reminder.enabled', '==', true)
+            .get(),
+        listSharedAssignmentRecords(db, userUid, { reminderEnabledOnly: true }),
     ]);
 
     const personalAssignments = personalAssignmentsSnapshot.docs.map((assignmentDoc) => buildPersonalAssignmentRecord(
@@ -342,7 +436,9 @@ export const updateUserAssignmentRecord = async (
     }
 
     if (record.source === 'personal') {
-        await record.ref.update(updates);
+        await record.ref.update(
+            sanitizeForFirestore(updates) as FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>
+        );
         return;
     }
 
@@ -377,7 +473,7 @@ export const updateUserAssignmentRecord = async (
         const batch = db.batch();
         batch.update(
             record.ref,
-            sharedUpdates as FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>
+            sanitizeForFirestore(sharedUpdates) as FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>
         );
 
         const sharedSpaceUpdates: Record<string, unknown> = {
@@ -390,7 +486,7 @@ export const updateUserAssignmentRecord = async (
 
         batch.update(
             db.doc(`sharedSpaces/${record.sharedSpaceId}`),
-            sharedSpaceUpdates as FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>
+            sanitizeForFirestore(sharedSpaceUpdates) as FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>
         );
         await batch.commit();
     }
@@ -400,8 +496,10 @@ export const updateUserAssignmentRecord = async (
             throw new Error('Missing shared assignment state reference.');
         }
 
-        await record.stateRef.set(personalUpdates, {
-            mergeFields: Object.keys(personalUpdates),
+        const sanitizedPersonalUpdates = sanitizeForFirestore(personalUpdates);
+
+        await record.stateRef.set(sanitizedPersonalUpdates, {
+            mergeFields: Object.keys(sanitizedPersonalUpdates),
         });
     }
 };
@@ -425,21 +523,27 @@ const deleteSharedSpace = async (
 
     const assignmentsSnapshot = await db.collection(`sharedSpaces/${spaceId}/assignments`).get();
     const membersSnapshot = await db.collection(`sharedSpaces/${spaceId}/members`).get();
+    const participantIds = getParticipantIds(
+        space.ownerId,
+        membersSnapshot.docs.map((memberDoc) => memberDoc.id)
+    );
     const refsToDelete: DocumentReference[] = [];
 
     assignmentsSnapshot.docs.forEach((assignmentDoc) => {
         refsToDelete.push(assignmentDoc.ref);
 
-        membersSnapshot.docs.forEach((memberDoc) => {
+        participantIds.forEach((participantId) => {
             refsToDelete.push(db.doc(
-                `sharedSpaces/${spaceId}/members/${memberDoc.id}/assignmentState/${assignmentDoc.id}`
+                `sharedSpaces/${spaceId}/members/${participantId}/assignmentState/${assignmentDoc.id}`
             ));
         });
     });
 
     membersSnapshot.docs.forEach((memberDoc) => {
         refsToDelete.push(memberDoc.ref);
-        refsToDelete.push(db.doc(`users/${memberDoc.id}/sharedSpaces/${spaceId}`));
+    });
+    participantIds.forEach((participantId) => {
+        refsToDelete.push(db.doc(`users/${participantId}/sharedSpaces/${spaceId}`));
     });
 
     if (space.activeInviteId) {
@@ -475,12 +579,20 @@ export const deleteUserAssignmentRecord = async (
         return;
     }
 
-    const membersSnapshot = await db.collection(`sharedSpaces/${record.sharedSpaceId}/members`).get();
+    const [spaceSnapshot, membersSnapshot] = await Promise.all([
+        db.doc(`sharedSpaces/${record.sharedSpaceId}`).get(),
+        db.collection(`sharedSpaces/${record.sharedSpaceId}/members`).get(),
+    ]);
+    const space = spaceSnapshot.data() as SharedSpaceDoc | undefined;
+    const participantIds = getParticipantIds(
+        space?.ownerId ?? userUid,
+        membersSnapshot.docs.map((memberDoc) => memberDoc.id)
+    );
     const refsToDelete: DocumentReference[] = [record.ref];
 
-    membersSnapshot.docs.forEach((memberDoc) => {
+    participantIds.forEach((participantId) => {
         refsToDelete.push(db.doc(
-            `sharedSpaces/${record.sharedSpaceId}/members/${memberDoc.id}/assignmentState/${record.sharedAssignmentId}`
+            `sharedSpaces/${record.sharedSpaceId}/members/${participantId}/assignmentState/${record.sharedAssignmentId}`
         ));
     });
 

@@ -267,9 +267,10 @@ const ViewAssignmentModal = ({ isOpen, onClose, assignment }: ViewAssignmentModa
                         assignmentTitle={liveAssignment.title}
                     />
                     <ShareManagerModal
-                        assignment={assignment}
+                        assignment={liveAssignment}
                         isOpen={isShareModalOpen}
                         onClose={() => setIsShareModalOpen(false)}
+                        resetKey={assignment.id}
                     />
                 </>
             )}

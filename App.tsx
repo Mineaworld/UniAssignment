@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context';
 import LandingPage from './pages/LandingPage';
@@ -19,11 +19,26 @@ import AIChat from './pages/AIChat';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import JoinSharedSpace from './pages/JoinSharedSpace';
-import { consumePostAuthRedirect } from './utils/sharedSpaces';
+import { consumePostAuthRedirect, peekPostAuthRedirect } from './utils/sharedSpaces';
 
 const ConditionalRoot = () => {
   const { user, loading } = useApp();
-  const redirectPath = user ? consumePostAuthRedirect() : null;
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setRedirectPath(null);
+      return;
+    }
+
+    const pendingRedirect = peekPostAuthRedirect();
+    if (!pendingRedirect) {
+      setRedirectPath(null);
+      return;
+    }
+
+    setRedirectPath(consumePostAuthRedirect());
+  }, [user]);
 
   if (loading) {
     return (

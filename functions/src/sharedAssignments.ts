@@ -131,6 +131,82 @@ export async function listUserAssignments(
     );
 }
 
+export async function listUserAssignmentsWithReminders(
+    db: Firestore,
+    userUid: string
+): Promise<AssignmentRecord[]> {
+    const [personalAssignmentsSnapshot, sharedPointersSnapshot] = await Promise.all([
+        db.collection(`users/${userUid}/assignments`)
+            .where("reminder.enabled", "==", true)
+            .get(),
+        db.collection(`users/${userUid}/sharedSpaces`).get(),
+    ]);
+
+    const personalAssignments = personalAssignmentsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<AssignmentRecord, "id">),
+    }));
+
+    const sharedGroups = await Promise.all(sharedPointersSnapshot.docs.map(async (sharedPointerDoc) => {
+        const spaceId = sharedPointerDoc.id;
+        const [spaceSnapshot, memberSnapshot, stateSnapshot] = await Promise.all([
+            db.doc(`sharedSpaces/${spaceId}`).get(),
+            db.doc(`sharedSpaces/${spaceId}/members/${userUid}`).get(),
+            db.collection(`sharedSpaces/${spaceId}/members/${userUid}/assignmentState`)
+                .where("reminder.enabled", "==", true)
+                .get(),
+        ]);
+
+        if (!spaceSnapshot.exists || stateSnapshot.empty) {
+            return [] as AssignmentRecord[];
+        }
+
+        const space = spaceSnapshot.data() as SharedSpaceDoc;
+        const role: SharedRole | undefined = space.ownerId === userUid
+            ? "owner"
+            : memberSnapshot.exists
+                ? (memberSnapshot.data() as SharedMemberDoc).role
+                : undefined;
+
+        if (!role) {
+            return [] as AssignmentRecord[];
+        }
+
+        const privateStateByAssignmentId = new Map<string, SharedAssignmentStateDoc>();
+        stateSnapshot.docs.forEach((stateDoc) => {
+            privateStateByAssignmentId.set(stateDoc.id, stateDoc.data() as SharedAssignmentStateDoc);
+        });
+
+        const assignmentRefs = stateSnapshot.docs.map((stateDoc) => (
+            db.doc(`sharedSpaces/${spaceId}/assignments/${stateDoc.id}`)
+        ));
+        const assignmentSnapshots = assignmentRefs.length > 0
+            ? await db.getAll(...assignmentRefs)
+            : [];
+
+        return assignmentSnapshots
+            .filter((assignmentDoc) => assignmentDoc.exists)
+            .map((assignmentDoc) => {
+                const baseAssignment = assignmentDoc.data() as SharedAssignmentBaseDoc;
+                const privateState = privateStateByAssignmentId.get(assignmentDoc.id);
+
+                return {
+                    createdAt: baseAssignment.createdAt,
+                    dueDate: baseAssignment.dueDate,
+                    id: createSharedAssignmentId(spaceId, assignmentDoc.id),
+                    priority: baseAssignment.priority,
+                    reminder: privateState?.reminder,
+                    status: privateState?.status ?? "Pending",
+                    title: baseAssignment.title,
+                } satisfies AssignmentRecord;
+            });
+    }));
+
+    return [...personalAssignments, ...sharedGroups.flat()].sort(
+        (left, right) => new Date(left.dueDate).getTime() - new Date(right.dueDate).getTime()
+    );
+}
+
 export async function markReminderSent(
     db: Firestore,
     userUid: string,
@@ -146,16 +222,10 @@ export async function markReminderSent(
         return;
     }
 
-    const assignment = (await listUserAssignments(db, userUid)).find((item) => item.id === assignmentId);
-    if (!assignment?.reminder) {
-        return;
-    }
-
     await db.doc(
         `sharedSpaces/${sharedAssignmentId.spaceId}/members/${userUid}/assignmentState/${sharedAssignmentId.assignmentId}`
     ).set({
         reminder: {
-            ...assignment.reminder,
             sentAt,
         }
     }, { merge: true });

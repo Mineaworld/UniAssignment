@@ -645,10 +645,6 @@ export const useSharedSpaces = ({
     refsToDelete.push(doc(db, 'sharedSpaces', spaceId));
 
     await deleteRefsInBatches(refsToDelete);
-
-    if (space.ownerId !== currentUser.uid) {
-      throw new Error('Unexpected owner mismatch while deleting shared space.');
-    }
   }, [assertUser, sharedSpacesById]);
 
   const addAssignment = useCallback(async (assignment: Omit<Assignment, 'id' | 'createdAt'>): Promise<void> => {
@@ -810,10 +806,13 @@ export const useSharedSpaces = ({
       return;
     }
 
-    await updateDoc(doc(db, `users/${currentUser.uid}/subjects`, id), {
-      ...updates,
-      lastUpdated: new Date().toISOString(),
-    });
+    await updateDoc(
+      doc(db, `users/${currentUser.uid}/subjects`, id),
+      sanitizeForFirestore({
+        ...updates,
+        lastUpdated: new Date().toISOString(),
+      })
+    );
   }, [assertUser, getSubjectById]);
 
   const deleteSubject = useCallback(async (id: string): Promise<void> => {
@@ -1079,15 +1078,13 @@ export const useSharedSpaces = ({
     }
 
     const privateStateSnapshot = await getDocs(collection(db, `sharedSpaces/${spaceId}/members/${memberUid}/assignmentState`));
-    const batch = writeBatch(db);
+    const refsToDelete: DocumentReference[] = [
+      ...privateStateSnapshot.docs.map((stateDoc) => stateDoc.ref),
+      doc(db, `sharedSpaces/${spaceId}/members`, memberUid),
+      doc(db, `users/${memberUid}/sharedSpaces`, spaceId),
+    ];
 
-    privateStateSnapshot.docs.forEach((stateDoc) => {
-      batch.delete(stateDoc.ref);
-    });
-    batch.delete(doc(db, `sharedSpaces/${spaceId}/members`, memberUid));
-    batch.delete(doc(db, `users/${memberUid}/sharedSpaces`, spaceId));
-
-    await batch.commit();
+    await deleteRefsInBatches(refsToDelete);
   }, [assertUser, sharedSpacesById]);
 
   const getSharedMembers = useCallback(

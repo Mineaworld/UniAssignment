@@ -3,7 +3,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { defineString } from "firebase-functions/params";
 import * as chrono from "chrono-node";
-import { listUserAssignments, markReminderSent } from "./sharedAssignments";
+import { listUserAssignments, listUserAssignmentsWithReminders, markReminderSent } from "./sharedAssignments";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -509,8 +509,7 @@ export const checkDeadlines = onSchedule("every 15 minutes", async () => {
         // Get assignments with enabled reminders
         // Note: Filter out Completed assignments in JavaScript to avoid
         // Firestore inequality + orderBy constraint if we add sorting later
-        const assignments = (await listUserAssignments(db, userUid))
-            .filter((assignment) => assignment.reminder?.enabled);
+        const assignments = await listUserAssignmentsWithReminders(db, userUid);
 
         for (const assignment of assignments) {
             const reminder = assignment.reminder;

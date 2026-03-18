@@ -227,6 +227,7 @@ const Assignments = () => {
           {(['all', 'personal', 'shared'] as const).map((scope) => (
             <NeonButton
               key={scope}
+              aria-pressed={filterScope === scope}
               variant={filterScope === scope ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setFilterScope(scope)}

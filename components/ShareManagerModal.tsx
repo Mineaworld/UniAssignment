@@ -12,6 +12,7 @@ interface ShareManagerModalProps {
   assignment?: Assignment | null;
   isOpen: boolean;
   onClose: () => void;
+  resetKey?: string;
   subject?: Subject | null;
 }
 
@@ -27,6 +28,7 @@ const ShareManagerModal = ({
   assignment = null,
   isOpen,
   onClose,
+  resetKey,
   subject = null,
 }: ShareManagerModalProps) => {
   const {
@@ -46,11 +48,11 @@ const ShareManagerModal = ({
     ? allAssignments.find((item) => item.id === assignment.id || item.sharedAssignmentId === assignment.id) ?? assignment
     : null;
   const target = liveSubject ?? liveAssignment;
-  const modalTargetKey = subject
+  const modalTargetKey = resetKey ?? (subject
     ? `subject:${subject.id}`
     : assignment
       ? `assignment:${assignment.id}`
-      : '';
+      : '');
   const [defaultRole, setDefaultRole] = useState<SharedRole>('viewer');
   const [copyStatus, setCopyStatus] = useState('');
   const [createdShareResult, setCreatedShareResult] = useState<ShareLinkResult | null>(null);

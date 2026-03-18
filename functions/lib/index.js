@@ -420,8 +420,7 @@ exports.checkDeadlines = (0, scheduler_1.onSchedule)("every 15 minutes", async (
         // Get assignments with enabled reminders
         // Note: Filter out Completed assignments in JavaScript to avoid
         // Firestore inequality + orderBy constraint if we add sorting later
-        const assignments = (await (0, sharedAssignments_1.listUserAssignments)(db, userUid))
-            .filter((assignment) => { var _a; return (_a = assignment.reminder) === null || _a === void 0 ? void 0 : _a.enabled; });
+        const assignments = await (0, sharedAssignments_1.listUserAssignmentsWithReminders)(db, userUid);
         for (const assignment of assignments) {
             const reminder = assignment.reminder;
             if (!reminder)

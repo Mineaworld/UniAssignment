@@ -18,6 +18,6 @@ describe('sharedSpaces utils', () => {
   });
 
   it('builds a share link for the current app origin', () => {
-    expect(buildShareLink('invite-123')).toContain('/join/invite-123');
+    expect(buildShareLink('invite-123')).toMatch(/\/join\/invite-123$/);
   });
 });

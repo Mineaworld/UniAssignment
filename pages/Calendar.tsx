@@ -9,6 +9,8 @@ import { cn } from '../utils/cn';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 import ViewAssignmentModal from '../components/ViewAssignmentModal';
 import { SubjectBadge } from '../components/ui/SubjectBadge';
+import { SharedAssignmentBadge } from '../components/ui/SharedAssignmentBadge';
+import { SharedPermissionBadge } from '../components/ui/SharedPermissionBadge';
 import { getAssignmentSubject } from '../utils/assignmentSubject';
 
 const monthNames = [
@@ -200,8 +202,10 @@ const Calendar = () => {
                       </span>
                     </div>
                     {subject && (
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         <SubjectBadge name={subject.name} size="sm" />
+                        {assignment.isShared && <SharedAssignmentBadge compact />}
+                        {assignment.isShared && <SharedPermissionBadge role={assignment.sharedRole} />}
                       </div>
                     )}
                   </motion.button>
@@ -278,6 +282,10 @@ const Calendar = () => {
                         >
                           <div className="flex items-center gap-1.5">
                             {subject && <SubjectBadge initialsClassName="h-5 min-w-5 px-1 text-[9px]" name={subject.name} showName={false} size="sm" />}
+                            {assignment.isShared && <SharedAssignmentBadge compact />}
+                            {assignment.isShared && (
+                              <SharedPermissionBadge className="px-2 py-0.5 text-[10px]" role={assignment.sharedRole} />
+                            )}
                             <span className={cn('truncate text-foreground/80 dark:text-slate-200', isCompleted && 'line-through')}>
                               {assignment.title}
                             </span>

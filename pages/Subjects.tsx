@@ -12,6 +12,7 @@ import { Plus, FolderIcon, Edit, Trash2, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 import { SubjectBadge } from '../components/ui/SubjectBadge';
+import { SharedPermissionBadge } from '../components/ui/SharedPermissionBadge';
 import { formatSubjectLastUpdated } from '../utils/subjectPresentation';
 
 const Subjects = () => {
@@ -98,9 +99,7 @@ const Subjects = () => {
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-foreground">{subject.name}</h3>
                       {subject.isShared && (
-                        <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
-                          Shared
-                        </span>
+                        <SharedPermissionBadge role={subject.sharedRole} />
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -172,9 +171,7 @@ const Subjects = () => {
                     <div className="flex items-center gap-2">
                       <SubjectBadge name={subject.name} size="md" />
                       {subject.isShared && (
-                        <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
-                          Shared
-                        </span>
+                        <SharedPermissionBadge role={subject.sharedRole} />
                       )}
                     </div>
                   </TableCell>
