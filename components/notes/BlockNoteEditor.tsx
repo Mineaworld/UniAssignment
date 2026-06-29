@@ -49,8 +49,12 @@ export const BlockNoteEditor = ({
     onChange(content);
   }, [editor, onChange, readOnly]);
 
-  // Allow one-click link navigation even for plain pasted URLs or anchors
+  // Allow link navigation in readOnly mode, or when holding Cmd/Ctrl in editable mode
   const handleClickCapture = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!readOnly && !e.metaKey && !e.ctrlKey) {
+      return;
+    }
+
     // Ignore clicks on toolbars, popovers, menus, or interactive buttons
     if ((e.target as HTMLElement).closest('.bn-toolbar, .bn-popover, .bn-menu, .bn-side-menu, button, [role="button"]')) {
       return;
@@ -66,6 +70,8 @@ export const BlockNoteEditor = ({
     const link = (e.target as HTMLElement).closest('a');
     if (link && link.href) {
       if (link.href.startsWith('http://') || link.href.startsWith('https://') || link.href.startsWith('mailto:')) {
+        e.preventDefault();
+        e.stopPropagation();
         window.open(link.href, '_blank', 'noopener,noreferrer');
         return;
       }
@@ -107,6 +113,8 @@ export const BlockNoteEditor = ({
           if (url.toLowerCase().startsWith('www.')) {
             url = 'https://' + url;
           }
+          e.preventDefault();
+          e.stopPropagation();
           window.open(url, '_blank', 'noopener,noreferrer');
           return;
         }
@@ -118,11 +126,13 @@ export const BlockNoteEditor = ({
         if (url.toLowerCase().startsWith('www.')) {
           url = 'https://' + url;
         }
+        e.preventDefault();
+        e.stopPropagation();
         window.open(url, '_blank', 'noopener,noreferrer');
         return;
       }
     }
-  }, []);
+  }, [readOnly]);
 
   return (
     <div
