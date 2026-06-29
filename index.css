@@ -159,6 +159,10 @@
   @apply rounded-lg;
 }
 
+.notes-editor a {
+  @apply text-primary underline cursor-pointer hover:opacity-80 transition-opacity font-medium;
+}
+
 .notes-editor .bn-container {
   @apply bg-transparent;
 }
