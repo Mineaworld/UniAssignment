@@ -22,12 +22,38 @@ export enum Status {
   Completed = 'Completed',
 }
 
+export type ShareTarget = 'subject' | 'assignment';
+export type SharedRole = 'owner' | 'editor' | 'viewer';
+
+export interface SubjectSnapshot {
+  name: string;
+  color: string;
+}
+
+export interface SharedMember {
+  uid: string;
+  name: string;
+  email: string;
+  role: SharedRole;
+  joinedAt: string;
+}
+
 export interface Subject {
   id: string;
   name: string;
   color: string; // Tailwind color class like 'bg-blue-500'
   createdAt: string;
   lastUpdated: string;
+  kind?: 'personal' | 'shared';
+  isShared?: boolean;
+  sharedSpaceId?: string;
+  sharedRole?: SharedRole;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canCreateAssignments?: boolean;
+  canManageShare?: boolean;
+  activeInviteId?: string | null;
+  inviteDefaultRole?: SharedRole;
 }
 
 export interface AssignmentReminder {
@@ -57,6 +83,31 @@ export interface Assignment {
   examType?: 'midterm' | 'final' | null;
   createdAt: string;
   reminder?: AssignmentReminder;
+  kind?: 'personal' | 'shared';
+  isShared?: boolean;
+  sharedSpaceId?: string;
+  sharedAssignmentId?: string;
+  sharedTargetType?: ShareTarget;
+  sharedRole?: SharedRole;
+  canEditSharedFields?: boolean;
+  canEditPersonalFields?: boolean;
+  canDelete?: boolean;
+  canManageShare?: boolean;
+  canChangeSubject?: boolean;
+  subjectSnapshot?: SubjectSnapshot | null;
+  activeInviteId?: string | null;
+  inviteDefaultRole?: SharedRole;
+}
+
+export interface ShareLinkResult {
+  inviteId: string;
+  spaceId: string;
+  url: string;
+}
+
+export interface JoinedSharedSpaceResult {
+  spaceId: string;
+  targetType: ShareTarget;
 }
 
 // Daily reminder settings for Telegram notifications
@@ -132,6 +183,13 @@ export interface AppContextType {
   addSubject: (subject: Omit<Subject, 'id' | 'createdAt' | 'lastUpdated'>) => Promise<void>;
   updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
+  shareSubject: (subjectId: string, defaultRole: SharedRole) => Promise<ShareLinkResult>;
+  shareAssignment: (assignmentId: string, defaultRole: SharedRole) => Promise<ShareLinkResult>;
+  joinSharedSpace: (inviteId: string) => Promise<JoinedSharedSpaceResult>;
+  updateSharedMemberRole: (spaceId: string, memberUid: string, role: SharedRole) => Promise<void>;
+  removeSharedMember: (spaceId: string, memberUid: string) => Promise<void>;
+  setSharedInviteState: (spaceId: string, enabled: boolean, defaultRole?: SharedRole) => Promise<ShareLinkResult | null>;
+  getSharedMembers: (spaceId: string) => SharedMember[];
   updateUserProfile: (updates: Partial<User>, avatarFile?: File) => Promise<void>;
   dismissTelegramPrompt: (permanent: boolean) => Promise<void>;
   uploadNoteImage: (assignmentId: string, file: File) => Promise<string>;

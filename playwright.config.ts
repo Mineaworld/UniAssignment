@@ -9,6 +9,12 @@ for (const [key, value] of Object.entries(env)) {
   }
 }
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4173';
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER === '1';
+const localWebServerURL = 'http://127.0.0.1:4173';
+const shouldStartWebServer = !skipWebServer &&
+  /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(baseURL);
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -18,17 +24,17 @@ export default defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  webServer: {
+  webServer: shouldStartWebServer ? {
     command: 'npm run dev -- --host 127.0.0.1 --port 4173',
-    url: 'http://127.0.0.1:4173',
+    url: localWebServerURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
-  },
+  } : undefined,
   projects: [
     {
       name: 'chromium',

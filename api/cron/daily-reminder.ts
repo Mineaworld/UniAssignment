@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../server/lib/firebaseAdmin.js';
+import { listUserAssignmentRecords } from '../../server/sharedAssignments.js';
 import { sendTelegramMessage } from '../../server/lib/telegram.js';
 import type { AssignmentWithDate } from '../../server/telegram/types.js';
 import { ASSIGNMENT_STATUS } from '../../server/telegram/types.js';
@@ -111,24 +112,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const todayBounds = getDayBoundsInTimezone(now, timezone, 0);
                 const tomorrowBounds = getDayBoundsInTimezone(now, timezone, 1);
 
-                const assignmentsSnapshot = await db
-                    .collection(`users/${userId}/assignments`)
-                    .orderBy('dueDate', 'asc')
-                    .get();
+                const assignments = await listUserAssignmentRecords(db, userId);
 
                 const todayAssignments: AssignmentWithDate[] = [];
                 const tomorrowAssignments: AssignmentWithDate[] = [];
 
-                for (const doc of assignmentsSnapshot.docs) {
-                    const data = doc.data();
+                for (const data of assignments) {
                     if (data.status === ASSIGNMENT_STATUS.COMPLETED) continue;
 
                     const dueDate = new Date(data.dueDate);
 
                     if (dueDate >= todayBounds.start && dueDate <= todayBounds.end) {
-                        todayAssignments.push({ ...data, id: doc.id, dueDate } as AssignmentWithDate);
+                        todayAssignments.push({ ...data, dueDate } as AssignmentWithDate);
                     } else if (dueDate >= tomorrowBounds.start && dueDate <= tomorrowBounds.end) {
-                        tomorrowAssignments.push({ ...data, id: doc.id, dueDate } as AssignmentWithDate);
+                        tomorrowAssignments.push({ ...data, dueDate } as AssignmentWithDate);
                     }
                 }
 

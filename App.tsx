@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context';
 import LandingPage from './pages/LandingPage';
@@ -18,9 +18,27 @@ import Settings from './pages/Settings';
 import AIChat from './pages/AIChat';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import JoinSharedSpace from './pages/JoinSharedSpace';
+import { consumePostAuthRedirect, peekPostAuthRedirect } from './utils/sharedSpaces';
 
 const ConditionalRoot = () => {
   const { user, loading } = useApp();
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setRedirectPath(null);
+      return;
+    }
+
+    const pendingRedirect = peekPostAuthRedirect();
+    if (!pendingRedirect) {
+      setRedirectPath(null);
+      return;
+    }
+
+    setRedirectPath(consumePostAuthRedirect());
+  }, [user]);
 
   if (loading) {
     return (
@@ -28,6 +46,10 @@ const ConditionalRoot = () => {
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
       </div>
     );
+  }
+
+  if (user && redirectPath) {
+    return <Navigate to={redirectPath} replace />;
   }
 
   return user ? <Navigate to="/dashboard" replace /> : <LandingPage />;
@@ -96,6 +118,7 @@ const AppContent = () => {
         <Route path="/" element={<ConditionalRoot />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/join/:inviteId" element={<JoinSharedSpace />} />
         <Route path="/dashboard/*" element={
           <ProtectedRoute>
             <AppLayout />

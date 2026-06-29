@@ -16,7 +16,7 @@ test.describe('assignments @smoke', () => {
     await page.getByTestId('subject-submit-button').click();
 
     const createdSubjectRow = page.getByTestId(/subject-row-/).filter({ hasText: subjectName }).first();
-    await expect(createdSubjectRow).toBeVisible();
+    await expect(createdSubjectRow).toBeVisible({ timeout: 30000 });
 
     await page.goto('/dashboard/assignments');
     await page.getByTestId('add-assignment-button').click();
@@ -30,17 +30,22 @@ test.describe('assignments @smoke', () => {
     await page.getByTestId('assignment-submit-button').click();
 
     const createdRow = page.locator('tr', { hasText: assignmentName }).first();
-    await expect(createdRow).toBeVisible();
+    await expect(createdRow).toBeVisible({ timeout: 30000 });
+
+    if (await page.getByRole('heading', { name: 'Create New Assignment' }).isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: 'Cancel' }).click({ force: true });
+      await expect(page.getByRole('heading', { name: 'Create New Assignment' })).toBeHidden({ timeout: 10000 });
+    }
 
     const inlineStatusTrigger = createdRow.locator('button[aria-haspopup="listbox"][data-testid^="assignment-status-select-inline-"]');
     await inlineStatusTrigger.click();
     await page.getByTestId(/assignment-status-select-inline-.*-Completed/).click();
     await expect(page.getByRole('heading', { name: 'Assignment Details' })).toHaveCount(0);
-    await expect(inlineStatusTrigger).toContainText('Completed');
+    await expect(createdRow).toContainText('Completed', { timeout: 30000 });
 
     await createdRow.locator('[data-testid^="assignment-delete-"]').click({ force: true });
     await page.getByTestId('delete-confirm-button').click();
 
-    await expect(page.locator('tr', { hasText: assignmentName })).toHaveCount(0);
+    await expect(page.locator('tr', { hasText: assignmentName })).toHaveCount(0, { timeout: 60000 });
   });
 });

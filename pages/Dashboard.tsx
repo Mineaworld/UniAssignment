@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context';
-import { Status } from '../types';
+import { Assignment, Status } from '../types';
 import { ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
+import { getAssignmentSubject } from '../utils/assignmentSubject';
 
 // Wrapper to delay chart rendering until container is mounted
 const DelayedChart = ({ children, delay = 100 }: { children: React.ReactNode; delay?: number }) => {
@@ -69,10 +70,17 @@ const Dashboard = () => {
     .slice(0, 4);
 
   // Subject Heatmap Data
-  const subjectData = subjects.map(s => ({
-    name: s.name,
-    full: s.name,
-    count: assignments.filter(a => a.subjectId === s.id).length
+  const subjectData = Array.from(
+    assignments.reduce((groups, assignment) => {
+      const subjectName = getAssignmentSubject(assignment, subjects)?.name || 'Unknown';
+      const currentCount = groups.get(subjectName) || 0;
+      groups.set(subjectName, currentCount + 1);
+      return groups;
+    }, new Map<string, number>())
+  ).map(([name, count]) => ({
+    count,
+    full: name,
+    name,
   })).sort((a, b) => b.count - a.count).slice(0, 6);
 
   const miniChartData = subjectData.map(s => ({
@@ -80,7 +88,9 @@ const Dashboard = () => {
     value: s.count
   }));
 
-  const getSubjectName = (id: string) => subjects.find(s => s.id === id)?.name || 'Unknown';
+  const getAssignmentSubjectName = (assignment: Assignment) => (
+    getAssignmentSubject(assignment, subjects)?.name || 'Unknown'
+  );
 
   // Time-aware greeting
   const getGreeting = () => {
@@ -219,7 +229,7 @@ const Dashboard = () => {
                         <h4 className="font-semibold text-sm truncate">{item.title}</h4>
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                           <span className="w-1 h-1 rounded-full bg-foreground/30" />
-                          {getSubjectName(item.subjectId)}
+                          {getAssignmentSubjectName(item)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">

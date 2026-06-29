@@ -8,6 +8,12 @@ import type {
     AssignmentWithDate
 } from '../server/telegram/types.js';
 import { ASSIGNMENT_STATUS } from '../server/telegram/types.js';
+import {
+    deleteUserAssignmentRecord,
+    getUserAssignmentRecord,
+    listUserAssignmentRecords,
+    updateUserAssignmentRecord,
+} from '../server/sharedAssignments.js';
 
 if (!admin.apps || admin.apps.length === 0) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
@@ -269,15 +275,10 @@ async function handleTodayCommand(chatId: string, userUid: string): Promise<void
     const now = new Date();
     const { start, end } = getDayBounds(now);
 
-    const snapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .get();
-
-    const todayAssignments = snapshot.docs.filter(doc => {
-        const data = doc.data();
-        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
-        const dueDate = new Date(data.dueDate);
+    const assignments = await listUserAssignmentRecords(db, userUid);
+    const todayAssignments = assignments.filter((assignment) => {
+        if (assignment.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(assignment.dueDate);
         return dueDate >= start && dueDate <= end;
     });
 
@@ -298,20 +299,19 @@ async function handleTodayCommand(chatId: string, userUid: string): Promise<void
 
     let message = `📅 <b>Due Today</b> (${todayAssignments.length} assignment${todayAssignments.length !== 1 ? 's' : ''})\n\n`;
 
-    for (const doc of todayAssignments) {
-        const data = doc.data();
-        const dueDate = new Date(data.dueDate);
+    for (const assignment of todayAssignments) {
+        const dueDate = new Date(assignment.dueDate);
         const urgency = getUrgencyEmoji(dueDate);
         const timeStr = dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-        message += `${urgency} <b>${escapeHtml(data.title)}</b>\n`;
+        message += `${urgency} <b>${escapeHtml(assignment.title)}</b>\n`;
         message += `   Due: ${timeStr} (${formatTimeRemaining(dueDate)})\n`;
-        message += `   Priority: ${data.priority}\n\n`;
+        message += `   Priority: ${assignment.priority}\n\n`;
     }
 
-    const keyboard: any[][] = todayAssignments.slice(0, 5).map(doc => [{
-        text: `✅ Done: ${doc.data().title.substring(0, 20)}`,
-        callback_data: `toggle_${doc.id}`
+    const keyboard: any[][] = todayAssignments.slice(0, 5).map((assignment) => [{
+        text: `✅ Done: ${assignment.title.substring(0, 20)}`,
+        callback_data: `toggle_${assignment.id}`
     }]);
     keyboard.push([{ text: "📋 View Details", callback_data: "list_all" }]);
 
@@ -323,15 +323,10 @@ async function handleTomorrowCommand(chatId: string, userUid: string): Promise<v
     tomorrow.setDate(tomorrow.getDate() + 1);
     const { start, end } = getDayBounds(tomorrow);
 
-    const snapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .get();
-
-    const tomorrowAssignments = snapshot.docs.filter(doc => {
-        const data = doc.data();
-        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
-        const dueDate = new Date(data.dueDate);
+    const assignments = await listUserAssignmentRecords(db, userUid);
+    const tomorrowAssignments = assignments.filter((assignment) => {
+        if (assignment.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(assignment.dueDate);
         return dueDate >= start && dueDate <= end;
     });
 
@@ -352,20 +347,19 @@ async function handleTomorrowCommand(chatId: string, userUid: string): Promise<v
 
     let message = `📅 <b>Due Tomorrow</b> (${tomorrowAssignments.length} assignment${tomorrowAssignments.length !== 1 ? 's' : ''})\n\n`;
 
-    for (const doc of tomorrowAssignments) {
-        const data = doc.data();
-        const dueDate = new Date(data.dueDate);
+    for (const assignment of tomorrowAssignments) {
+        const dueDate = new Date(assignment.dueDate);
         const urgency = getUrgencyEmoji(dueDate);
         const timeStr = dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-        message += `${urgency} <b>${escapeHtml(data.title)}</b>\n`;
+        message += `${urgency} <b>${escapeHtml(assignment.title)}</b>\n`;
         message += `   Due: ${timeStr}\n`;
-        message += `   Priority: ${data.priority}\n\n`;
+        message += `   Priority: ${assignment.priority}\n\n`;
     }
 
-    const keyboard: any[][] = tomorrowAssignments.slice(0, 5).map(doc => [{
-        text: `✅ Done: ${doc.data().title.substring(0, 20)}`,
-        callback_data: `toggle_${doc.id}`
+    const keyboard: any[][] = tomorrowAssignments.slice(0, 5).map((assignment) => [{
+        text: `✅ Done: ${assignment.title.substring(0, 20)}`,
+        callback_data: `toggle_${assignment.id}`
     }]);
     keyboard.push([{ text: "📋 View Details", callback_data: "list_all" }]);
 
@@ -378,15 +372,10 @@ async function handleWeekCommand(chatId: string, userUid: string): Promise<void>
     weekEnd.setDate(weekEnd.getDate() + 7);
     weekEnd.setHours(23, 59, 59, 999);
 
-    const snapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .get();
-
-    const weekAssignments = snapshot.docs.filter(doc => {
-        const data = doc.data();
-        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
-        const dueDate = new Date(data.dueDate);
+    const assignments = await listUserAssignmentRecords(db, userUid);
+    const weekAssignments = assignments.filter((assignment) => {
+        if (assignment.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(assignment.dueDate);
         return dueDate >= now && dueDate <= weekEnd;
     });
 
@@ -407,14 +396,13 @@ async function handleWeekCommand(chatId: string, userUid: string): Promise<void>
 
     let message = `📅 <b>This Week</b> (${weekAssignments.length} assignment${weekAssignments.length !== 1 ? 's' : ''})\n\n`;
 
-    for (const doc of weekAssignments) {
-        const data = doc.data();
-        const dueDate = new Date(data.dueDate);
+    for (const assignment of weekAssignments) {
+        const dueDate = new Date(assignment.dueDate);
         const urgency = getUrgencyEmoji(dueDate);
 
-        message += `${urgency} <b>${escapeHtml(data.title)}</b>\n`;
+        message += `${urgency} <b>${escapeHtml(assignment.title)}</b>\n`;
         message += `   Due: ${formatDueDate(dueDate)} (${formatTimeRemaining(dueDate)})\n`;
-        message += `   Priority: ${data.priority}\n\n`;
+        message += `   Priority: ${assignment.priority}\n\n`;
     }
 
     const keyboard: any[][] = [[{ text: "📋 View Details", callback_data: "list_all" }]];
@@ -425,15 +413,10 @@ async function handleWeekCommand(chatId: string, userUid: string): Promise<void>
 async function handleOverdueCommand(chatId: string, userUid: string): Promise<void> {
     const now = new Date();
 
-    const snapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .get();
-
-    const overdueAssignments = snapshot.docs.filter(doc => {
-        const data = doc.data();
-        if (data.status === ASSIGNMENT_STATUS.COMPLETED) return false;
-        const dueDate = new Date(data.dueDate);
+    const assignments = await listUserAssignmentRecords(db, userUid);
+    const overdueAssignments = assignments.filter((assignment) => {
+        if (assignment.status === ASSIGNMENT_STATUS.COMPLETED) return false;
+        const dueDate = new Date(assignment.dueDate);
         return dueDate < now;
     });
 
@@ -454,18 +437,17 @@ async function handleOverdueCommand(chatId: string, userUid: string): Promise<vo
 
     let message = `⚠️ <b>Overdue</b> (${overdueAssignments.length} assignment${overdueAssignments.length !== 1 ? 's' : ''})\n\n`;
 
-    for (const doc of overdueAssignments) {
-        const data = doc.data();
-        const dueDate = new Date(data.dueDate);
+    for (const assignment of overdueAssignments) {
+        const dueDate = new Date(assignment.dueDate);
 
-        message += `⚫ <b>${escapeHtml(data.title)}</b>\n`;
+        message += `⚫ <b>${escapeHtml(assignment.title)}</b>\n`;
         message += `   Was due: ${formatDueDate(dueDate)}\n`;
         message += `   ${formatTimeRemaining(dueDate)}\n\n`;
     }
 
-    const keyboard: any[][] = overdueAssignments.slice(0, 5).map(doc => [{
-        text: `✅ Complete: ${doc.data().title.substring(0, 18)}`,
-        callback_data: `toggle_${doc.id}`
+    const keyboard: any[][] = overdueAssignments.slice(0, 5).map((assignment) => [{
+        text: `✅ Complete: ${assignment.title.substring(0, 18)}`,
+        callback_data: `toggle_${assignment.id}`
     }]);
     keyboard.push([{ text: "📋 View All", callback_data: "list_all" }]);
 
@@ -500,26 +482,21 @@ async function handleStartIdentifier(chatId: string, userId: string | undefined,
 }
 
 async function handleAssignmentsCommand(chatId: string, userUid: string) {
-    const assignmentsSnapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .limit(10)
-        .get();
+    const assignments = (await listUserAssignmentRecords(db, userUid)).slice(0, 10);
 
-    if (assignmentsSnapshot.empty) {
+    if (assignments.length === 0) {
         await sendTelegramMessage(chatId, "📚 You have no assignments yet!");
     } else {
         const inlineKeyboard: any[][] = [];
 
-        assignmentsSnapshot.docs.forEach((doc) => {
-            const data = doc.data();
-            const dueDate = new Date(data.dueDate).toLocaleDateString();
-            const statusEmoji = data.status === "Completed" ? "✅" : "⏳";
+        assignments.forEach((assignment) => {
+            const dueDate = new Date(assignment.dueDate).toLocaleDateString();
+            const statusEmoji = assignment.status === "Completed" ? "✅" : "⏳";
 
             // Button Format: [ ⏳ Math HW - Oct 12 ]
             inlineKeyboard.push([{
-                text: `${statusEmoji} ${data.title} - ${dueDate}`,
-                callback_data: `view_${doc.id}`
+                text: `${statusEmoji} ${assignment.title} - ${dueDate}`,
+                callback_data: `view_${assignment.id}`
             }]);
         });
 
@@ -530,29 +507,22 @@ async function handleAssignmentsCommand(chatId: string, userUid: string) {
 }
 
 async function showRemindMenu(chatId: string, userUid: string) {
-    const assignmentsSnapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .limit(20)
-        .get();
-
-    const pendingDocs = assignmentsSnapshot.docs.filter(
-        (doc) => doc.data().status !== "Completed"
+    const pendingAssignments = (await listUserAssignmentRecords(db, userUid)).filter(
+        (assignment) => assignment.status !== "Completed"
     ).slice(0, 10);
 
-    if (pendingDocs.length === 0) {
+    if (pendingAssignments.length === 0) {
         await sendTelegramMessage(chatId, "📚 You have no pending assignments to set reminders for.");
         return;
     }
 
     const inlineKeyboard: any[][] = [];
-    pendingDocs.forEach((doc) => {
-        const d = doc.data();
-        const hasReminder = d.reminder?.enabled;
+    pendingAssignments.forEach((assignment) => {
+        const hasReminder = assignment.reminder?.enabled;
         const emoji = hasReminder ? '🔔' : '⏰';
         inlineKeyboard.push([{
-            text: `${emoji} ${d.title}`,
-            callback_data: `remind_set_${doc.id}`
+            text: `${emoji} ${assignment.title}`,
+            callback_data: `remind_set_${assignment.id}`
         }]);
     });
 
@@ -628,14 +598,14 @@ async function handleCallbackQuery(query: any, userUid: string) {
 
     if (data.startsWith('remind_set_')) {
         const assignmentId = data.replace('remind_set_', '');
-        const doc = await db.doc(`users/${userUid}/assignments/${assignmentId}`).get();
+        const assignment = await getUserAssignmentRecord(db, userUid, assignmentId);
 
-        if (!doc.exists) {
+        if (!assignment) {
             await editTelegramMessage(chatId, messageId, "❌ Assignment not found.");
             return;
         }
 
-        await showReminderPresets(chatId, messageId, assignmentId, userUid, doc.data()?.reminder);
+        await showReminderPresets(chatId, messageId, assignmentId, userUid, assignment.reminder);
         return;
     }
 
@@ -644,19 +614,18 @@ async function handleCallbackQuery(query: any, userUid: string) {
         const preset = parts[2];  // 1h, 6h, etc.
         const assignmentId = parts[3];
 
-        const docRef = db.doc(`users/${userUid}/assignments/${assignmentId}`);
-        const doc = await docRef.get();
+        const assignment = await getUserAssignmentRecord(db, userUid, assignmentId);
 
-        if (!doc.exists) {
+        if (!assignment) {
             await editTelegramMessage(chatId, messageId, "❌ Assignment not found.");
             return;
         }
 
-        const assignment = doc.data()!;
-        await docRef.update({
-            "reminder.enabled": true,
-            "reminder.preset": preset,
-            "reminder.sentAt": admin.firestore.FieldValue.delete()
+        await updateUserAssignmentRecord(db, userUid, assignmentId, {
+            reminder: {
+                enabled: true,
+                preset,
+            },
         });
 
         await editTelegramMessage(chatId, messageId,
@@ -669,8 +638,18 @@ async function handleCallbackQuery(query: any, userUid: string) {
 
     if (data.startsWith('remind_disable_')) {
         const assignmentId = data.replace('remind_disable_', '');
-        await db.doc(`users/${userUid}/assignments/${assignmentId}`).update({
-            "reminder.enabled": false
+        const assignment = await getUserAssignmentRecord(db, userUid, assignmentId);
+
+        if (!assignment) {
+            await editTelegramMessage(chatId, messageId, "❌ Assignment not found.");
+            return;
+        }
+
+        await updateUserAssignmentRecord(db, userUid, assignmentId, {
+            reminder: {
+                ...(assignment.reminder ?? { preset: '1d' }),
+                enabled: false
+            },
         });
 
         await editTelegramMessage(chatId, messageId, "🔕 <b>Reminder Disabled</b>");
@@ -691,52 +670,50 @@ async function handleCallbackQuery(query: any, userUid: string) {
 
     if (data.startsWith('view_')) {
         const assignmentId = data.replace('view_', '');
-        const doc = await db.doc(`users/${userUid}/assignments/${assignmentId}`).get();
+        const assignment = await getUserAssignmentRecord(db, userUid, assignmentId);
 
-        if (!doc.exists) {
+        if (!assignment) {
             await editTelegramMessage(chatId, messageId, "❌ Assignment not found (it might verify deleted).");
             return;
         }
 
-        const d = doc.data()!;
-        const dateStr = new Date(d.dueDate).toLocaleDateString();
-        const statusStr = d.status === "Completed" ? "Completed" : "Pending";
-        let subjectName = "Unknown Subject";
-        if (d.subjectId) {
-            const subDoc = await db.doc(`users/${userUid}/subjects/${d.subjectId}`).get();
-            if (subDoc.exists) subjectName = subDoc.data()!.name;
-        }
+        const dateStr = new Date(assignment.dueDate).toLocaleDateString();
+        const statusStr = assignment.status;
+        const subjectName = assignment.subjectName || "Unknown Subject";
 
-        const text = `📖 <b>${d.title}</b>\n\n` +
+        const text = `📖 <b>${assignment.title}</b>\n\n` +
             `📚 Subject: ${subjectName}\n` +
             `📅 Due: ${dateStr}\n` +
             `📊 Status: ${statusStr}`;
 
-        const keyboard = [
-            [
-                { text: d.status === 'Completed' ? "🔄 Mark Pending" : "✅ Mark Done", callback_data: `toggle_${assignmentId}` },
-                { text: "✏️ Edit", callback_data: `edit_menu_${assignmentId}` }
-            ],
-            [
-                { text: "🗑️ Delete", callback_data: `delete_confirm_${assignmentId}` }
-            ],
-            [
-                { text: "🔙 Back to List", callback_data: `list_all` }
-            ]
-        ];
+        const keyboard = [[{
+            text: assignment.status === 'Completed' ? "🔄 Mark Pending" : "✅ Mark Done",
+            callback_data: `toggle_${assignmentId}`
+        }]];
+
+        if (assignment.canEditSharedFields) {
+            keyboard[0]!.push({ text: "✏️ Edit", callback_data: `edit_menu_${assignmentId}` });
+        }
+
+        if (assignment.canDelete) {
+            keyboard.push([{ text: "🗑️ Delete", callback_data: `delete_confirm_${assignmentId}` }]);
+        }
+
+        keyboard.push([{ text: "🔙 Back to List", callback_data: `list_all` }]);
 
         await editTelegramMessage(chatId, messageId, text, { inline_keyboard: keyboard });
     }
 
     else if (data.startsWith('toggle_')) {
         const assignmentId = data.replace('toggle_', '');
-        const docRef = db.doc(`users/${userUid}/assignments/${assignmentId}`);
-        const doc = await docRef.get();
-        if (doc.exists) {
-            const currentStatus = doc.data()!.status;
-            const newStatus = currentStatus === "Completed" ? "Pending" : "Completed";
-            await docRef.update({ status: newStatus });
+        const assignment = await getUserAssignmentRecord(db, userUid, assignmentId);
+
+        if (assignment) {
+            const newStatus = assignment.status === "Completed" ? "Pending" : "Completed";
+            await updateUserAssignmentRecord(db, userUid, assignmentId, { status: newStatus });
             await handleCallbackQuery({ ...query, data: `view_${assignmentId}` }, userUid);
+        } else {
+            await editTelegramMessage(chatId, messageId, "❌ Assignment not found.");
         }
     }
 
@@ -754,7 +731,7 @@ async function handleCallbackQuery(query: any, userUid: string) {
 
     else if (data.startsWith('delete_final_')) {
         const assignmentId = data.replace('delete_final_', '');
-        await db.doc(`users/${userUid}/assignments/${assignmentId}`).delete();
+        await deleteUserAssignmentRecord(db, userUid, assignmentId);
         await editTelegramMessage(chatId, messageId, "🗑️ <b>Assignment Deleted.</b>");
         await handleAssignmentsCommand(chatId, userUid);
     }
@@ -801,23 +778,18 @@ async function handleCallbackQuery(query: any, userUid: string) {
         await db.collection("telegramStates").doc(chatId).delete();
         await editTelegramMessage(chatId, messageId, "⏳ Loading list...");
 
-        const assignmentsSnapshot = await db
-            .collection(`users/${userUid}/assignments`)
-            .orderBy("dueDate", "asc")
-            .limit(10)
-            .get();
+        const assignments = (await listUserAssignmentRecords(db, userUid)).slice(0, 10);
 
-        if (assignmentsSnapshot.empty) {
+        if (assignments.length === 0) {
             await editTelegramMessage(chatId, messageId, "📚 You have no assignments yet!");
         } else {
             const inlineKeyboard: any[][] = [];
-            assignmentsSnapshot.docs.forEach((doc) => {
-                const d = doc.data();
-                const dd = new Date(d.dueDate).toLocaleDateString();
-                const s = d.status === "Completed" ? "✅" : "⏳";
+            assignments.forEach((assignment) => {
+                const dd = new Date(assignment.dueDate).toLocaleDateString();
+                const s = assignment.status === "Completed" ? "✅" : "⏳";
                 inlineKeyboard.push([{
-                    text: `${s} ${d.title} - ${dd}`,
-                    callback_data: `view_${doc.id}`
+                    text: `${s} ${assignment.title} - ${dd}`,
+                    callback_data: `view_${assignment.id}`
                 }]);
             });
             await editTelegramMessage(chatId, messageId, "📅 <b>Your Assignments:</b>", { inline_keyboard: inlineKeyboard });
@@ -1004,15 +976,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 } else if (hoursMatch) {
                     minutes = parseInt(hoursMatch[1]) * 60;
                 } else if (parsed && parsed > now) {
-                    const doc = await db.doc(`users/${userUid}/assignments/${reminderAssignmentId}`).get();
-                    if (doc.exists) {
-                        const dueDate = new Date(doc.data()!.dueDate);
+                    const assignment = await getUserAssignmentRecord(db, userUid, reminderAssignmentId);
+                    if (assignment) {
+                        const dueDate = new Date(assignment.dueDate);
                         minutes = Math.max(0, Math.round((dueDate.getTime() - parsed.getTime()) / (1000 * 60)));
                     }
                 }
 
                 if (minutes > 0) {
-                    await db.doc(`users/${userUid}/assignments/${reminderAssignmentId}`).update({
+                    await updateUserAssignmentRecord(db, userUid, reminderAssignmentId, {
                         reminder: {
                             enabled: true,
                             preset: 'custom',
@@ -1094,7 +1066,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
 
                 if (assignmentId && editField) {
-                    await db.doc(`users/${userUid}/assignments/${assignmentId}`).update({
+                    await updateUserAssignmentRecord(db, userUid, assignmentId, {
                         [editField]: newValue
                     });
 

@@ -3,14 +3,16 @@ import { useApp } from '../context';
 import CreateSubjectModal from '../components/CreateSubjectModal';
 import EditSubjectModal from '../components/EditSubjectModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import ShareManagerModal from '../components/ShareManagerModal';
 import { Subject } from '../types';
 import { GlassCard } from '../components/ui/GlassCard';
 import { NeonButton } from '../components/ui/NeonButton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table';
-import { Plus, FolderIcon, Edit, Trash2 } from 'lucide-react';
+import { Plus, FolderIcon, Edit, Trash2, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedThemeToggler } from '../components/ui/AnimatedThemeToggler';
 import { SubjectBadge } from '../components/ui/SubjectBadge';
+import { SharedPermissionBadge } from '../components/ui/SharedPermissionBadge';
 import { formatSubjectLastUpdated } from '../utils/subjectPresentation';
 
 const Subjects = () => {
@@ -18,6 +20,7 @@ const Subjects = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [deletingSubject, setDeletingSubject] = useState<Subject | null>(null);
+  const [sharingSubject, setSharingSubject] = useState<Subject | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleDeleteSubject = async () => {
@@ -41,14 +44,24 @@ const Subjects = () => {
         onClose={() => setEditingSubject(null)}
         subject={editingSubject}
       />
+      <ShareManagerModal
+        isOpen={!!sharingSubject}
+        onClose={() => setSharingSubject(null)}
+        subject={sharingSubject}
+      />
       <ConfirmDeleteModal
         isOpen={!!deletingSubject}
         onClose={() => setDeletingSubject(null)}
         onConfirm={handleDeleteSubject}
-        title="Delete Subject"
+        title={deletingSubject?.isShared ? 'Delete Shared Subject' : 'Delete Subject'}
         itemName={deletingSubject?.name || ''}
         itemType="subject"
         loading={deleteLoading}
+        warningMessage={
+          deletingSubject?.isShared
+            ? 'This will remove the shared subject and its shared assignments for every member.'
+            : undefined
+        }
       />
 
       <div className="flex justify-between items-start pt-4 md:pt-0">
@@ -83,7 +96,12 @@ const Subjects = () => {
                 <div className="flex items-center gap-3">
                   <SubjectBadge name={subject.name} showName={false} size="lg" />
                   <div>
-                    <h3 className="font-semibold text-foreground">{subject.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{subject.name}</h3>
+                      {subject.isShared && (
+                        <SharedPermissionBadge role={subject.sharedRole} />
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Updated {formatSubjectLastUpdated(subject.lastUpdated, subject.createdAt)}
                     </p>
@@ -91,20 +109,34 @@ const Subjects = () => {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button
-                    aria-label={`Edit subject ${subject.name}`}
-                    onClick={() => setEditingSubject(subject)}
-                    className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-muted/50 text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button
-                    aria-label={`Delete subject ${subject.name}`}
-                    onClick={() => setDeletingSubject(subject)}
-                    className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+                  {(!subject.isShared || subject.canManageShare) && (
+                    <button
+                      data-testid={`subject-share-${subject.id}`}
+                      aria-label={`Share subject ${subject.name}`}
+                      onClick={() => setSharingSubject(subject)}
+                      className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-muted/50 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Share2 className="h-5 w-5" />
+                    </button>
+                  )}
+                  {subject.canEdit !== false && (
+                    <button
+                      aria-label={`Edit subject ${subject.name}`}
+                      onClick={() => setEditingSubject(subject)}
+                      className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-muted/50 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                  )}
+                  {subject.canDelete && (
+                    <button
+                      aria-label={`Delete subject ${subject.name}`}
+                      onClick={() => setDeletingSubject(subject)}
+                      className="h-11 w-11 flex items-center justify-center rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -136,31 +168,51 @@ const Subjects = () => {
               {subjects.map((subject) => (
                 <TableRow data-testid={`subject-row-${subject.id}`} key={subject.id} className="group hover:bg-muted/30 dark:hover:bg-white/5 border-border dark:border-white/5 transition-colors">
                   <TableCell className="font-medium text-foreground">
-                    <SubjectBadge name={subject.name} size="md" />
+                    <div className="flex items-center gap-2">
+                      <SubjectBadge name={subject.name} size="md" />
+                      {subject.isShared && (
+                        <SharedPermissionBadge role={subject.sharedRole} />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatSubjectLastUpdated(subject.lastUpdated, subject.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <NeonButton
-                        data-testid={`subject-edit-${subject.id}`}
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 hover:bg-white/10 text-muted-foreground hover:text-primary"
-                        onClick={() => setEditingSubject(subject)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </NeonButton>
-                      <NeonButton
-                        data-testid={`subject-delete-${subject.id}`}
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeletingSubject(subject)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </NeonButton>
+                      {(!subject.isShared || subject.canManageShare) && (
+                        <NeonButton
+                          data-testid={`subject-share-${subject.id}`}
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 hover:bg-white/10 text-muted-foreground hover:text-primary"
+                          onClick={() => setSharingSubject(subject)}
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </NeonButton>
+                      )}
+                      {subject.canEdit !== false && (
+                        <NeonButton
+                          data-testid={`subject-edit-${subject.id}`}
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 hover:bg-white/10 text-muted-foreground hover:text-primary"
+                          onClick={() => setEditingSubject(subject)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </NeonButton>
+                      )}
+                      {subject.canDelete && (
+                        <NeonButton
+                          data-testid={`subject-delete-${subject.id}`}
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeletingSubject(subject)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </NeonButton>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

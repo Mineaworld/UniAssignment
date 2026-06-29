@@ -2,14 +2,20 @@ import { Status, Subject } from '../../types';
 import { AssignmentFormState } from './types';
 
 interface AssignmentBasicsFieldsProps {
+  disableScheduleFields?: boolean;
+  disableSharedStatus?: boolean;
   formData: AssignmentFormState;
+  lockedSubjectLabel?: string | null;
   onChange: (updates: Partial<AssignmentFormState>) => void;
   onOpenSubjectForm?: () => void;
   subjects: Subject[];
 }
 
 export const AssignmentBasicsFields = ({
+  disableScheduleFields = false,
+  disableSharedStatus = false,
   formData,
+  lockedSubjectLabel = null,
   onChange,
   onOpenSubjectForm,
   subjects,
@@ -24,6 +30,7 @@ export const AssignmentBasicsFields = ({
           data-testid="assignment-title-input"
           type="text"
           required
+          disabled={disableScheduleFields}
           placeholder="e.g., History Essay - Chapter 5 Analysis"
           className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/50 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
           value={formData.title}
@@ -37,28 +44,36 @@ export const AssignmentBasicsFields = ({
             Subject
           </label>
           <div className="mt-1 flex gap-2">
-            <select
-              id={subjectSelectId}
-              data-testid="assignment-subject-select"
-              required
-              className="flex-1 rounded-lg border-border/60 bg-background/80 dark:bg-slate-900 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
-              value={formData.subjectId}
-              onChange={(event) => onChange({ subjectId: event.target.value })}
-            >
-              <option value="">Select a subject</option>
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
+            {lockedSubjectLabel ? (
+              <div className="flex h-12 flex-1 items-center rounded-lg border border-border/60 bg-muted/20 px-4 text-sm font-medium text-foreground">
+                {lockedSubjectLabel}
+              </div>
+            ) : (
+              <select
+                id={subjectSelectId}
+                data-testid="assignment-subject-select"
+                required
+                disabled={disableScheduleFields}
+                className="flex-1 rounded-lg border-border/60 bg-background/80 dark:bg-slate-900 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all disabled:cursor-not-allowed disabled:opacity-70"
+                value={formData.subjectId}
+                onChange={(event) => onChange({ subjectId: event.target.value })}
+              >
+                <option value="">Select a subject</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
-            {onOpenSubjectForm && (
+            {onOpenSubjectForm && !lockedSubjectLabel && (
               <button
                 type="button"
+                disabled={disableScheduleFields}
                 onClick={onOpenSubjectForm}
                 aria-label="Add new subject"
-                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+                className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
                 title="Add new subject"
               >
                 <span className="material-symbols-outlined">add</span>
@@ -71,6 +86,7 @@ export const AssignmentBasicsFields = ({
           <span className="text-sm font-medium text-foreground/80">Status</span>
           <select
             data-testid="assignment-status-select"
+            disabled={disableSharedStatus}
             className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-900 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
             value={formData.status}
             onChange={(event) => onChange({ status: event.target.value as Status })}
@@ -89,6 +105,7 @@ export const AssignmentBasicsFields = ({
             data-testid="assignment-date-input"
             type="date"
             required
+            disabled={disableScheduleFields}
             className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/50 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
             value={formData.date}
             onChange={(event) => onChange({ date: event.target.value })}
@@ -100,6 +117,7 @@ export const AssignmentBasicsFields = ({
           <input
             data-testid="assignment-time-input"
             type="time"
+            disabled={disableScheduleFields}
             className="mt-1 block w-full rounded-lg border-border/60 bg-background/80 dark:bg-slate-800/50 text-foreground shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 px-4 transition-all"
             value={formData.time}
             onChange={(event) => onChange({ time: event.target.value })}

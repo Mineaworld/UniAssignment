@@ -20,6 +20,7 @@ export interface AssignmentDoc {
         enabled: boolean;
         preset: string;
         customMinutes?: number;
+        customTime?: string;
         sentAt?: string;
     };
 }

@@ -19,9 +19,9 @@ describe('prepareAssignmentUpdates', () => {
     const result = prepareAssignmentUpdates(updates, createDeleteToken);
 
     expect(result.dueDate).toBe('2026-03-10T12:00:00.000Z');
-    expect(result['reminder.enabled']).toBe(true);
-    expect(result['reminder.preset']).toBe(ReminderPreset.OneHour);
-    expect(result['reminder.sentAt']).toBe(deleteToken);
+    expect(result["reminder.enabled"]).toBe(true);
+    expect(result["reminder.preset"]).toBe(ReminderPreset.OneHour);
+    expect(result["reminder.sentAt"]).toBe(deleteToken);
   });
 
   it('does not force sentAt reset when reminder is disabled', () => {
@@ -36,7 +36,7 @@ describe('prepareAssignmentUpdates', () => {
 
     const result = prepareAssignmentUpdates(updates, createDeleteToken);
 
-    expect(result['reminder.sentAt']).toBe('2026-03-09T12:00:00.000Z');
+    expect(result["reminder.sentAt"]).toBe('2026-03-09T12:00:00.000Z');
   });
 
   it('maps top-level undefined values to delete tokens', () => {
@@ -60,8 +60,8 @@ describe('prepareAssignmentUpdates', () => {
 
     const result = prepareAssignmentUpdates(updates, createDeleteToken);
 
-    expect(result['reminder.enabled']).toBe(true);
-    expect(result['reminder.preset']).toBe(ReminderPreset.Custom);
-    expect(result['reminder.customTime']).toBe(deleteToken);
+    expect(result["reminder.enabled"]).toBe(true);
+    expect(result["reminder.preset"]).toBe(ReminderPreset.Custom);
+    expect(result["reminder.customTime"]).toBe(deleteToken);
   });
 });

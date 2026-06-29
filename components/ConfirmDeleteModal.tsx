@@ -10,6 +10,7 @@ interface ConfirmDeleteModalProps {
     itemName: string;
     itemType: 'assignment' | 'subject';
     loading?: boolean;
+    warningMessage?: string;
 }
 
 const ConfirmDeleteModal = ({
@@ -19,7 +20,8 @@ const ConfirmDeleteModal = ({
     title,
     itemName,
     itemType,
-    loading = false
+    loading = false,
+    warningMessage,
 }: ConfirmDeleteModalProps) => {
     const handleConfirm = () => {
         onConfirm();
@@ -65,10 +67,10 @@ const ConfirmDeleteModal = ({
                                     ? This action cannot be undone.
                                 </p>
 
-                                {itemType === 'subject' && (
+                                {(warningMessage || itemType === 'subject') && (
                                     <p className="mt-3 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-lg p-3">
                                         <span className="material-symbols-outlined text-sm align-middle mr-1">warning</span>
-                                        Assignments linked to this subject will not be deleted.
+                                        {warningMessage || 'Assignments linked to this subject will not be deleted.'}
                                     </p>
                                 )}
                             </div>

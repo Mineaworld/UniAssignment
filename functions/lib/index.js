@@ -39,6 +39,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const chrono = __importStar(require("chrono-node"));
+const sharedAssignments_1 = require("./sharedAssignments");
 // Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
@@ -83,7 +84,9 @@ async function sendTelegramMessage(chatId, text, keyboard) {
     });
     if (!response.ok) {
         console.error("Failed to send Telegram message:", await response.text());
+        return false;
     }
+    return true;
 }
 // --- HELPER: Format time before due (human-readable) ---
 function formatTimeBeforeDue(hours) {
@@ -134,10 +137,10 @@ function calculateReminderTime(dueDate, reminder) {
 async function sendReminderNotification(chatId, assignment) {
     const { dueDate, title, reminder } = assignment;
     if (!reminder)
-        return;
+        return false;
     const reminderTime = calculateReminderTime(dueDate, reminder);
     if (!reminderTime)
-        return;
+        return false;
     const timeDiff = new Date(dueDate).getTime() - reminderTime.getTime();
     const hoursBefore = timeDiff / MS_PER_HOUR;
     const timeText = formatTimeBeforeDue(hoursBefore);
@@ -156,7 +159,7 @@ async function sendReminderNotification(chatId, assignment) {
     const message = `🔔 <b>Reminder!</b>\n\n` +
         `<b>${title}</b> is due in ${timeText}.\n` +
         `📅 Due: ${dateFormatter.format(dueDateTime)} at ${timeFormatter.format(dueDateTime)}`;
-    await sendTelegramMessage(chatId, message);
+    return sendTelegramMessage(chatId, message);
 }
 async function getState(chatId) {
     const doc = await db.collection("telegramStates").doc(chatId).get();
@@ -223,22 +226,17 @@ async function handleStartIdentifier(chatId, userId, text) {
     }
 }
 async function handleAssignmentsCommand(chatId, userUid) {
-    const assignmentsSnapshot = await db
-        .collection(`users/${userUid}/assignments`)
-        .orderBy("dueDate", "asc")
-        .limit(10)
-        .get();
-    if (assignmentsSnapshot.empty) {
+    const assignments = (await (0, sharedAssignments_1.listUserAssignments)(db, userUid)).slice(0, 10);
+    if (assignments.length === 0) {
         await sendTelegramMessage(chatId, "📚 You have no assignments yet!");
     }
     else {
         let message = "📚 <b>Your Assignments:</b>\n\n";
-        assignmentsSnapshot.docs.forEach((doc, index) => {
-            const data = doc.data();
-            const dueDate = new Date(data.dueDate).toLocaleDateString();
-            const statusEmoji = data.status === "Completed" ? "✅" :
-                data.status === "In Progress" ? "🔄" : "⏳";
-            message += `${index + 1}. ${statusEmoji} <b>${data.title}</b>\n`;
+        assignments.forEach((assignment, index) => {
+            const dueDate = new Date(assignment.dueDate).toLocaleDateString();
+            const statusEmoji = assignment.status === "Completed" ? "✅" :
+                assignment.status === "In Progress" ? "🔄" : "⏳";
+            message += `${index + 1}. ${statusEmoji} <b>${assignment.title}</b>\n`;
             message += `   📅 ${dueDate}\n\n`;
         });
         await sendTelegramMessage(chatId, message);
@@ -412,7 +410,6 @@ exports.telegramWebhook = (0, https_1.onRequest)(async (req, res) => {
 });
 // --- SCHEDULED: Check for upcoming deadlines and send notifications ---
 exports.checkDeadlines = (0, scheduler_1.onSchedule)("every 15 minutes", async () => {
-    var _a;
     console.log("Checking for reminders...");
     const now = new Date();
     const windowStart = new Date(now.getTime() - 15 * 60 * 1000); // 15 min ago (catch-up)
@@ -425,29 +422,29 @@ exports.checkDeadlines = (0, scheduler_1.onSchedule)("every 15 minutes", async (
         // Get assignments with enabled reminders
         // Note: Filter out Completed assignments in JavaScript to avoid
         // Firestore inequality + orderBy constraint if we add sorting later
-        const assignmentsSnapshot = await db
-            .collection(`users/${userUid}/assignments`)
-            .where("reminder.enabled", "==", true)
-            .get();
-        for (const doc of assignmentsSnapshot.docs) {
-            const assignment = doc.data();
+        const assignments = await (0, sharedAssignments_1.listUserAssignmentsWithReminders)(db, userUid);
+        for (const assignment of assignments) {
+            const reminder = assignment.reminder;
+            if (!reminder)
+                continue;
             // Skip completed assignments
             if (assignment.status === "Completed")
                 continue;
             // Skip if already sent
-            if ((_a = assignment.reminder) === null || _a === void 0 ? void 0 : _a.sentAt)
+            if (reminder.sentAt)
                 continue;
             // Calculate reminder time
-            const reminderTime = calculateReminderTime(assignment.dueDate, assignment.reminder);
+            const reminderTime = calculateReminderTime(assignment.dueDate, reminder);
             if (!reminderTime)
                 continue;
             // Check if reminder time is within execution window
             if (reminderTime >= windowStart && reminderTime <= windowEnd) {
-                await sendReminderNotification(chatId, assignment);
+                const sent = await sendReminderNotification(chatId, assignment);
+                if (!sent) {
+                    continue;
+                }
                 // Mark as sent
-                await doc.ref.update({
-                    "reminder.sentAt": now.toISOString()
-                });
+                await (0, sharedAssignments_1.markReminderSent)(db, userUid, assignment.id, now.toISOString());
             }
         }
     }

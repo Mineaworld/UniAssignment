@@ -6,6 +6,9 @@ import { Assignment, Priority, Status } from '../types';
 import { cn } from '../utils/cn';
 import { useApp } from '../context';
 import { SubjectBadge } from './ui/SubjectBadge';
+import { SharedAssignmentBadge } from './ui/SharedAssignmentBadge';
+import { SharedPermissionBadge } from './ui/SharedPermissionBadge';
+import { getAssignmentSubject } from '../utils/assignmentSubject';
 
 interface KanbanCardProps {
   assignment: Assignment;
@@ -40,7 +43,7 @@ const KanbanCardContent = ({
   const isCompleted = assignment.status === Status.Completed;
   const isOverdue = new Date(assignment.dueDate) < new Date() && !isCompleted;
   const StatusIcon = statusIcons[assignment.status];
-  const subjectName = subjects.find((subject) => subject.id === assignment.subjectId)?.name;
+  const subject = getAssignmentSubject(assignment, subjects);
 
   return (
     <>
@@ -58,11 +61,13 @@ const KanbanCardContent = ({
         {assignment.title}
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/70 pt-3 dark:border-white/10">
-        <div className="flex min-w-0 items-center gap-2">
-          {subjectName && <SubjectBadge initialsClassName="h-6 min-w-6 px-1.5 text-[10px]" name={subjectName} size="sm" />}
+      <div className="mt-4 border-t border-border/70 pt-3 dark:border-white/10">
+        <div className="flex flex-wrap items-center gap-2">
+          {subject && <SubjectBadge initialsClassName="h-6 min-w-6 px-1.5 text-[10px]" name={subject.name} size="sm" />}
+          {assignment.isShared && <SharedAssignmentBadge compact />}
+          {assignment.isShared && <SharedPermissionBadge role={assignment.sharedRole} />}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="mt-3 flex items-center justify-end gap-2 text-xs text-muted-foreground">
           <StatusIcon className={cn('h-3.5 w-3.5', statusIconClasses[assignment.status])} />
           <span>
             {new Date(assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}

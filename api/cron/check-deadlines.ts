@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
+import { listUserReminderRecords, updateUserAssignmentRecord } from '../../server/sharedAssignments.js';
 
 // Initialize Firebase Admin (only once)
 if (!admin.apps || admin.apps.length === 0) {
@@ -47,10 +48,10 @@ interface Assignment {
 }
 
 // --- HELPER: Send Telegram Message ---
-async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
+async function sendTelegramMessage(chatId: string, text: string): Promise<boolean> {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     try {
-        await fetch(url, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -59,8 +60,10 @@ async function sendTelegramMessage(chatId: string, text: string): Promise<void> 
                 parse_mode: 'HTML',
             }),
         });
+        return response.ok;
     } catch (e) {
         console.error('Failed to send telegram message', e);
+        return false;
     }
 }
 
@@ -124,12 +127,12 @@ function formatTimeBeforeDue(hours: number): string {
 }
 
 // --- HELPER: Send Reminder Notification ---
-async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<void> {
+async function sendReminderNotification(chatId: string, assignment: Assignment): Promise<boolean> {
     const { dueDate, title, reminder } = assignment;
-    if (!reminder) return;
+    if (!reminder) return false;
 
     const reminderTime = calculateReminderTime(dueDate, reminder);
-    if (!reminderTime) return;
+    if (!reminderTime) return false;
 
     const timeDiff = new Date(dueDate).getTime() - reminderTime.getTime();
     const hoursBefore = timeDiff / MS_PER_HOUR;
@@ -154,7 +157,7 @@ async function sendReminderNotification(chatId: string, assignment: Assignment):
         `<b>${title}</b> is due in ${timeText}.\n` +
         `📅 Due: ${dateFormatter.format(dueDateTime)} at ${timeFormatter.format(dueDateTime)}`;
 
-    await sendTelegramMessage(chatId, message);
+    return sendTelegramMessage(chatId, message);
 }
 
 // --- MAIN HANDLER ---
@@ -197,34 +200,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             usersChecked++;
 
             // Get assignments with enabled reminders
-            const assignmentsSnapshot = await db
-                .collection(`users/${userUid}/assignments`)
-                .where('reminder.enabled', '==', true)
-                .get();
+            const assignments = await listUserReminderRecords(db, userUid);
 
-            for (const doc of assignmentsSnapshot.docs) {
-                const assignment = doc.data() as Assignment;
+            for (const assignment of assignments) {
+                const reminder = assignment.reminder;
+                if (!reminder) continue;
 
                 // Skip completed assignments
                 if (assignment.status === 'Completed') continue;
 
                 // Skip if already sent
-                if (assignment.reminder?.sentAt) continue;
+                if (reminder.sentAt) continue;
 
                 // Calculate reminder time
                 const reminderTime = calculateReminderTime(
                     assignment.dueDate,
-                    assignment.reminder!
+                    reminder
                 );
                 if (!reminderTime) continue;
 
                 // Check if reminder time is within execution window
                 if (reminderTime >= windowStart && reminderTime <= windowEnd) {
-                    await sendReminderNotification(chatId, assignment);
+                    const sent = await sendReminderNotification(chatId, assignment);
+
+                    if (!sent) {
+                        continue;
+                    }
 
                     // Mark as sent
-                    await doc.ref.update({
-                        'reminder.sentAt': now.toISOString(),
+                    await updateUserAssignmentRecord(db, userUid, assignment.id, {
+                        reminder: {
+                            customMinutes: reminder.customMinutes,
+                            customTime: reminder.customTime,
+                            enabled: reminder.enabled,
+                            preset: reminder.preset,
+                            sentAt: now.toISOString(),
+                        },
                     });
 
                     remindersSent++;
