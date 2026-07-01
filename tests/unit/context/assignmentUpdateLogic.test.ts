@@ -64,4 +64,62 @@ describe('prepareAssignmentUpdates', () => {
     expect(result["reminder.preset"]).toBe(ReminderPreset.Custom);
     expect(result["reminder.customTime"]).toBe(deleteToken);
   });
+
+  it('strips undefined values from nested objects like notes', () => {
+    const updates: Partial<Assignment> = {
+      notes: {
+        version: 1,
+        blocks: [
+          { id: 'block-1', type: 'paragraph', content: undefined, styles: undefined },
+          { id: 'block-2', type: 'heading', content: [{ type: 'text', text: 'Hello' }] },
+        ],
+      } as unknown as Assignment['notes'],
+    };
+
+    const result = prepareAssignmentUpdates(updates, createDeleteToken);
+
+    const notesResult = result.notes as Record<string, unknown>;
+    expect(notesResult.version).toBe(1);
+
+    const blocks = notesResult.blocks as Array<Record<string, unknown>>;
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).not.toHaveProperty('content');
+    expect(blocks[0]).not.toHaveProperty('styles');
+    expect(blocks[0]).toHaveProperty('id', 'block-1');
+    expect(blocks[0]).toHaveProperty('type', 'paragraph');
+    expect(blocks[1]).toHaveProperty('content');
+  });
+
+  it('strips undefined values from nested arrays', () => {
+    const updates: Partial<Assignment> = {
+      notes: {
+        version: 1,
+        blocks: [
+          { id: 'block-1', type: 'paragraph', children: [undefined, { type: 'text' }] },
+        ],
+      } as unknown as Assignment['notes'],
+    };
+
+    const result = prepareAssignmentUpdates(updates, createDeleteToken);
+
+    const blocks = (result.notes as Record<string, unknown>).blocks as Array<Record<string, unknown>>;
+    const children = blocks[0]!.children as Array<unknown>;
+    expect(children).toHaveLength(1);
+    expect(children[0]).toEqual({ type: 'text' });
+  });
+
+  it('preserves null values in nested objects', () => {
+    const updates: Partial<Assignment> = {
+      subjectSnapshot: {
+        name: 'Math',
+        color: null as unknown as string,
+      } as unknown as Assignment['subjectSnapshot'],
+    };
+
+    const result = prepareAssignmentUpdates(updates, createDeleteToken);
+
+    const snapshot = result.subjectSnapshot as Record<string, unknown>;
+    expect(snapshot.name).toBe('Math');
+    expect(snapshot.color).toBeNull();
+  });
 });
