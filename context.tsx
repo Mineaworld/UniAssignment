@@ -16,6 +16,7 @@ import {
 import { Assignment, AppContextType, Subject, User, PomodoroSession, PomodoroStats, PomodoroSessionType } from './types';
 import { DEFAULT_SUBJECT_COLOR } from './constants/colors';
 import { useSharedSpaces } from './hooks/useSharedSpaces';
+import { sanitizeForFirestore } from './utils/firestore';
 
 // ============================================================================
 // Types & Constants
@@ -432,52 +433,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   // =========================================================================
   // Helper Functions
   // =========================================================================
-
-  /**
-   * Deeply removes undefined values from an object to make it Firestore-compatible.
-   * Firestore does not accept undefined values; they must be omitted or set to null.
-   *
-   * This function recursively processes nested objects and arrays to ensure
-   * no undefined values exist at any level of the data structure.
-   *
-   * @param obj - The object to sanitize
-   * @returns A new object with all undefined values removed
-   */
-  const sanitizeForFirestore = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
-    const sanitized: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      // Skip undefined values entirely
-      if (value === undefined) {
-        continue;
-      }
-
-      // Recursively sanitize nested objects
-      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-        const nestedSanitized = sanitizeForFirestore(value as Record<string, unknown>);
-        // Only include the nested object if it has properties after sanitization
-        if (Object.keys(nestedSanitized).length > 0) {
-          sanitized[key] = nestedSanitized;
-        }
-      }
-      // Recursively sanitize arrays
-      else if (Array.isArray(value)) {
-        sanitized[key] = value
-          .filter(item => item !== undefined)
-          .map(item =>
-            item !== null && typeof item === 'object' && !Array.isArray(item)
-              ? sanitizeForFirestore(item as Record<string, unknown>)
-              : item
-          );
-      }
-      // Include primitive values directly
-      else {
-        sanitized[key] = value;
-      }
-    }
-
-    return sanitized as Partial<T>;
-  };
 
   const addSubject = async (subject: Omit<Subject, 'id' | 'createdAt' | 'lastUpdated'>): Promise<void> => {
     if (!user?.uid) throw new Error('User not authenticated');

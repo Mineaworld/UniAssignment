@@ -1,4 +1,5 @@
 import { Assignment } from '../types';
+import { isPlainObject } from './firestore';
 
 const shouldResetReminderSentAt = (updates: Partial<Assignment>): boolean => {
   return (updates.dueDate !== undefined || updates.reminder !== undefined) &&
@@ -7,10 +8,15 @@ const shouldResetReminderSentAt = (updates: Partial<Assignment>): boolean => {
 
 /**
  * Recursively strips undefined values from nested objects and arrays.
- * Preserves null and other primitive values.
+ * Preserves null, non-plain objects (Date, Timestamp, sentinels), and primitives.
  */
 const stripUndefinedDeep = (value: unknown): unknown => {
   if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  // Preserve non-plain objects (Date, Firestore Timestamp, sentinels, etc.)
+  if (!Array.isArray(value) && !isPlainObject(value)) {
     return value;
   }
 

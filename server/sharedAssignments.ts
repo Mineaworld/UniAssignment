@@ -1,5 +1,6 @@
 import type admin from 'firebase-admin';
 import type { AssignmentDoc } from './telegram/types.js';
+import { sanitizeForFirestore } from '../utils/firestore.js';
 
 type Firestore = admin.firestore.Firestore;
 type DocumentReference = admin.firestore.DocumentReference;
@@ -109,39 +110,6 @@ const deleteRefsInBatches = async (
 
         await batch.commit();
     }
-};
-
-const sanitizeForFirestore = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
-    const sanitized: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-        if (value === undefined) {
-            continue;
-        }
-
-        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-            const nestedSanitized = sanitizeForFirestore(value as Record<string, unknown>);
-            if (Object.keys(nestedSanitized).length > 0) {
-                sanitized[key] = nestedSanitized;
-            }
-            continue;
-        }
-
-        if (Array.isArray(value)) {
-            sanitized[key] = value
-                .filter((item) => item !== undefined)
-                .map((item) => (
-                    item !== null && typeof item === 'object' && !Array.isArray(item)
-                        ? sanitizeForFirestore(item as Record<string, unknown>)
-                        : item
-                ));
-            continue;
-        }
-
-        sanitized[key] = value;
-    }
-
-    return sanitized as Partial<T>;
 };
 
 const getParticipantIds = (

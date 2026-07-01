@@ -35,6 +35,7 @@ import {
 } from '../types';
 import { prepareAssignmentUpdates } from '../utils/assignmentUpdate';
 import { buildShareLink, createSharedAssignmentId, parseSharedAssignmentId } from '../utils/sharedSpaces';
+import { sanitizeForFirestore } from '../utils/firestore';
 
 interface SharedSpaceDoc {
   activeInviteId?: string | null;
@@ -111,39 +112,6 @@ interface FirestoreErrorLike {
 
 const SHARED_BASE_FIELD_KEYS = ['title', 'dueDate', 'priority', 'examType'] as const;
 const SHARED_PERSONAL_FIELD_KEYS = ['status', 'reminder', 'notes', 'description'] as const;
-
-const sanitizeForFirestore = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
-  const sanitized: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === undefined) {
-      continue;
-    }
-
-    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      const nestedSanitized = sanitizeForFirestore(value as Record<string, unknown>);
-      if (Object.keys(nestedSanitized).length > 0) {
-        sanitized[key] = nestedSanitized;
-      }
-      continue;
-    }
-
-    if (Array.isArray(value)) {
-      sanitized[key] = value
-        .filter((item) => item !== undefined)
-        .map((item) => (
-          item !== null && typeof item === 'object' && !Array.isArray(item)
-            ? sanitizeForFirestore(item as Record<string, unknown>)
-            : item
-        ));
-      continue;
-    }
-
-    sanitized[key] = value;
-  }
-
-  return sanitized as Partial<T>;
-};
 
 const createSharedStateFromAssignment = (
   assignment: Pick<Assignment, 'description' | 'notes' | 'reminder' | 'status'>
