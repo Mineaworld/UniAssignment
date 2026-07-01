@@ -1,8 +1,43 @@
 import { Assignment } from '../types';
+import { isPlainObject } from './firestore';
 
 const shouldResetReminderSentAt = (updates: Partial<Assignment>): boolean => {
   return (updates.dueDate !== undefined || updates.reminder !== undefined) &&
     Boolean(updates.reminder?.enabled);
+};
+
+/**
+ * Recursively strips undefined values from nested objects and arrays.
+ * Preserves null, non-plain objects (Date, Timestamp, sentinels), and primitives.
+ */
+const stripUndefinedDeep = (value: unknown): unknown => {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  // Preserve non-plain objects (Date, Firestore Timestamp, sentinels, etc.)
+  if (!Array.isArray(value) && !isPlainObject(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== undefined)
+      .map((item) => stripUndefinedDeep(item));
+  }
+
+  const obj = value as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined) continue;
+    const stripped = stripUndefinedDeep(val);
+    if (stripped !== undefined) {
+      result[key] = stripped;
+    }
+  }
+
+  return result;
 };
 
 /**
@@ -39,7 +74,13 @@ export const prepareAssignmentUpdates = <TDeleteToken>(
       continue;
     }
 
-    processedUpdates[key] = value === undefined ? createDeleteToken() : value;
+    if (value === undefined) {
+      processedUpdates[key] = createDeleteToken();
+    } else if (typeof value === 'object' && value !== null) {
+      processedUpdates[key] = stripUndefinedDeep(value);
+    } else {
+      processedUpdates[key] = value;
+    }
   }
 
   return processedUpdates;
