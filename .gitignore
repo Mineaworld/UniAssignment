@@ -49,4 +49,9 @@ agents.md
 # Claude Code temp files
 tmpclaude-*
 nul
+
+# Local cache
+.omo/
+
+# Local env
 .env*.local
